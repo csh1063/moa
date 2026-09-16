@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 import SnapKit
+import Combine
 
 final class SplashViewController: BaseViewController {
 
@@ -83,6 +84,29 @@ final class SplashViewController: BaseViewController {
         return stackView
     }()
 
+    private let progressBarWidth: CGFloat = 160
+
+    private let progressTrack: UIView = {
+        let view = UIView()
+        view.backgroundColor = Theme.strokeSoft
+        view.layer.cornerRadius = 2
+        view.layer.masksToBounds = true
+        view.alpha = 0
+        return view
+    }()
+
+    private let progressFill: UIView = {
+        let view = UIView()
+        view.backgroundColor = Theme.primary
+        view.layer.cornerRadius = 2
+        view.layer.masksToBounds = true
+        return view
+    }()
+
+    private var progressFillWidthConstraint: Constraint?
+
+    private var cancellables = Set<AnyCancellable>()
+
     private let viewModel: SplashViewModel
 
     override var pageTitle: String? { "스플래시" }
@@ -102,10 +126,16 @@ final class SplashViewController: BaseViewController {
         view.backgroundColor = Theme.background
         setupHierarchy()
         setupConstraints()
+        setupBindings()
     }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         self.viewModel.send(.appear)
+        // 실제 체크(삭제된 사진 정리/동기화)는 .appear를 보내는 이 시점에 바로 시작되는데,
+        // 프로그레스바는 카드 연출(step4)에 맞춰 뒤늦게(약 2.8초 뒤) 나타나도록 돼 있었다 —
+        // 그래서 바가 보일 때 이미 진행률이 훌쩍 앞서 있는 경우가 많았다. 카드 연출과 무관하게
+        // 처음부터 바로 페이드인해서 실제 진행 상황을 그대로 보여준다.
+        UIView.animate(withDuration: 0.3) { self.progressTrack.alpha = 1 }
         self.runAnimation { [weak self] in
             self?.viewModel.send(.endAnim)
         }
@@ -133,6 +163,9 @@ final class SplashViewController: BaseViewController {
         textStack.addArrangedSubview(titleLabel)
         textStack.addArrangedSubview(subtitleLabel)
         view.addSubview(textStack)
+
+        view.addSubview(progressTrack)
+        progressTrack.addSubview(progressFill)
     }
 
     private func setupConstraints() {
@@ -152,6 +185,31 @@ final class SplashViewController: BaseViewController {
             $0.top.equalTo(cardsContainer.snp.bottom).offset(36)
             $0.centerX.equalToSuperview()
         }
+
+        progressTrack.snp.makeConstraints {
+            $0.top.equalTo(textStack.snp.bottom).offset(28)
+            $0.centerX.equalToSuperview()
+            $0.width.equalTo(progressBarWidth)
+            $0.height.equalTo(4)
+        }
+
+        progressFill.snp.makeConstraints { make in
+            make.leading.top.bottom.equalToSuperview()
+            progressFillWidthConstraint = make.width.equalTo(0).constraint
+        }
+    }
+
+    private func setupBindings() {
+        viewModel.transform().progress
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ratio in
+                guard let self else { return }
+                self.progressFillWidthConstraint?.update(offset: self.progressBarWidth * CGFloat(ratio))
+                UIView.animate(withDuration: 0.2) {
+                    self.view.layoutIfNeeded()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // anchorPoint를 건드리는 카드 3장만 manual frame

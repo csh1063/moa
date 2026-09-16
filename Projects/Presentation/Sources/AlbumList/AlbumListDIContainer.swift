@@ -57,6 +57,31 @@ public final class AlbumListDIContainer {
                                   albumUseCase: albumUseCase)
     }
 
+    func makeLocationMapViewModel() -> LocationMapViewModel {
+
+        let imageUseCase = DefaultPhotoImageUseCase(
+            repository: photoLibraryRepository
+        )
+
+        let photoMapUseCase = DefaultPhotoMapUseCase(
+            photoDataRepository: photoDataRepository
+        )
+
+        return LocationMapViewModel(photoMapUseCase: photoMapUseCase, imageUseCase: imageUseCase)
+    }
+
+    func makeImageViewerViewModel(photoDetails: [PhotoDetail], index: Int) -> ImageViewerViewModel {
+
+        let imageUseCase = DefaultImageViewerUseCase(
+            repository: photoLibraryRepository,
+            labelRepository: photoLabelDataRepository
+        )
+
+        return ImageViewerViewModel(photoDetails: photoDetails,
+                                    initialIndex: index,
+                                    imageUseCase: imageUseCase)
+    }
+
     func makeDetailDIContainer(album: Album, isSelectMode: Bool) -> AlbumDetailDIContainer {
         AlbumDetailDIContainer(
             album: album,

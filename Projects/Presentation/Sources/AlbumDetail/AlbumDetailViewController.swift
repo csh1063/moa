@@ -206,7 +206,7 @@ final class AlbumDetailViewController: BaseViewController {
 //                let imageLoader: any ImageLoadable = self.viewModel.isFaceAlbum
 //                    ? FaceAlbumImageLoader(viewModel: self.viewModel)
 //                    : self.viewModel
-                return photos.map { PhotoCellItemViewModel(localIdentifier: $0.localIdentifier, imageLoader: imageLoader) }
+                return photos.map { PhotoCellItemViewModel(localIdentifier: $0.localIdentifier, imageLoader: imageLoader, isVideo: $0.isVideo) }
             }
             .sink { [weak self] photos in self?.applySnapshot(with: photos) }
             .store(in: &cancellables)
@@ -312,13 +312,15 @@ final class AlbumDetailViewController: BaseViewController {
         refreshCoverTags()
     }
 
-    /// 대표 사진 고르기 모드일 때만, 지금 이미 대표로 저장돼 있는 사진 셀에 "대표" 태그를 붙인다
+    /// 대표 사진 고르기 모드일 때만, 지금 이미 대표로 저장돼 있는 사진 셀에 "대표" 태그를 붙이고
+    /// 영상 셀은 고를 수 없게 흐리게 표시한다
     private func refreshCoverTags() {
         collectionView.visibleCells.forEach { cell in
             guard let photoCell = cell as? PhotoCell,
                   let indexPath = collectionView.indexPath(for: photoCell),
                   let item = dataSource.itemIdentifier(for: indexPath) else { return }
             photoCell.setCoverTag(pageMode == .pickCover && item.localIdentifier == currentCoverId)
+            photoCell.alpha = (pageMode == .pickCover && item.isVideo) ? 0.35 : 1.0
         }
     }
 
@@ -367,6 +369,8 @@ extension AlbumDetailViewController {
             cell.setSelectionMode(isMultiSelectMode)
             cell.setSelected(selectedIdentifiers.contains(cellViewModel.localIdentifier))
             cell.setCoverTag(pageMode == .pickCover && cellViewModel.localIdentifier == currentCoverId)
+            // 대표 사진 고르기 모드에서는 영상을 고를 수 없다 — 흐리게 표시해서 선택 불가임을 알려준다
+            cell.alpha = (pageMode == .pickCover && cellViewModel.isVideo) ? 0.35 : 1.0
 
 //            // 셀 탭 → viewer 열기
 //            cell.cellTapPublisher
@@ -378,6 +382,11 @@ extension AlbumDetailViewController {
             cell.onImageTap = { [weak self] in
                 guard let self else { return }
                 if pageMode == .pickCover {
+                    // 영상은 대표 사진으로 고를 수 없다
+                    guard !cellViewModel.isVideo else {
+                        viewModel.send(.tappedVideoAsCoverCandidate)
+                        return
+                    }
                     // 바로 적용하지 않고 미리보기부터 — 그리드는 그대로 pickCover 모드에 남아있는다
                     // (취소하면 다시 고를 수 있도록). 실제 적용/모드 종료는 미리보기의 "선택" 확정 후에만
                     viewModel.send(.selectCoverCandidate(id: cellViewModel.localIdentifier))

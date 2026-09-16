@@ -270,6 +270,14 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
             throw AlbumRepositoryError.albumNotFound
         }
 
+        // 영상은 대표 사진으로 고를 수 없다 — UI에서도 막지만 데이터 레이어에서도 한 번 더 확인
+        let photoDescriptor = FetchDescriptor<PhotoEntity>(
+            predicate: #Predicate { $0.localIdentifier == identifier }
+        )
+        if let photo = try context.fetch(photoDescriptor).first, photo.isVideo {
+            throw AlbumRepositoryError.coverPhotoCannotBeVideo
+        }
+
         entity.coverPhotoIdentifier = identifier
         entity.coverPhotoManuallySet = true
 
@@ -364,7 +372,10 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 //            $0.createdAt > $1.createdAt
 //        }.first?.localIdentifier
 
-        let latestNewPhoto = uniqueNewPhotos.max(by: { $0.createdAt < $1.createdAt })
+        // 영상은 대표 사진 후보에서 제외 — 날짜/지역/여행 앨범은 영상도 같이 담기지만 커버는 항상 사진이어야
+        // 한다. 단, "영상" 앨범 자체는 내용물이 전부 영상이라 이 제외 규칙을 적용하면 커버가 영원히 안 잡히므로 예외.
+        let coverCandidates = album.from == "video" ? uniqueNewPhotos : uniqueNewPhotos.filter { !$0.isVideo }
+        let latestNewPhoto = coverCandidates.max(by: { $0.createdAt < $1.createdAt })
         let currentCoverPhoto = album.photos.first(where: { $0.localIdentifier == album.coverPhotoIdentifier })
 
         // 사용자가 직접 고른 대표 사진이면 새 사진이 추가돼도 자동으로 안 바꾼다
@@ -562,7 +573,8 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         source.isEdited = true
         source.linkedFaceAlbumIds = linkedFaceAlbumIds
         source.linkedAnimalAlbumIds = linkedAnimalAlbumIds
-        source.coverPhotoIdentifier = photos.max(by: { $0.createdAt < $1.createdAt })?.localIdentifier
+        // 영상은 대표 사진 후보에서 제외
+        source.coverPhotoIdentifier = photos.filter { !$0.isVideo }.max(by: { $0.createdAt < $1.createdAt })?.localIdentifier
 
         context.delete(target)
         try context.save()

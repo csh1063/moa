@@ -38,7 +38,8 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
             address: photo.address,
             addressEn: photo.addressEn,
             year: photo.year,
-            month: photo.month
+            month: photo.month,
+            isVideo: photo.isVideo
         )
         context.insert(entity)
         try context.save()
@@ -66,7 +67,8 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
                 address: photo.address,
                 addressEn: photo.addressEn,
                 year: photo.year,
-                month: photo.month
+                month: photo.month,
+                isVideo: photo.isVideo
             )
             context.insert(entity)
             pendingCount += 1
@@ -113,7 +115,8 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
                     address: photo.address,
                     addressEn: photo.addressEn,
                     year: photo.year,
-                    month: photo.month
+                    month: photo.month,
+                    isVideo: photo.isVideo
                 )
                 context.insert(entity)
             }
@@ -230,6 +233,14 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         return try context.fetch(fetchDescriptor).map { $0.toDomain() }
     }
 
+    public func fetchVideos() throws -> [Photo] {
+        let context = ModelContext(container)
+        let fetchDescriptor = FetchDescriptor<PhotoEntity>(
+            predicate: #Predicate { $0.isVideo == true }
+        )
+        return try context.fetch(fetchDescriptor).map { $0.toDomain() }
+    }
+
     public func fetchLocationUnanalyzed() throws -> [Photo] {
         let context = ModelContext(container)
         // 라벨/얼굴 분석(analyzedAt)과 주소 변환이 이제 동시에 진행되므로, 라벨 분석 완료 여부가 아니라
@@ -316,10 +327,12 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
     }
 
     // 비슷한사진 비교를 아직 거치지 않은 "새 사진" 전체 (시간 윈도우 이웃을 찾으려면 전체 목록이 필요해서 페이지네이션하지 않음)
+    // 영상은 임베딩 비교 대상이 아니라서 제외 — 다른 분류(라벨/얼굴/동물)와 달리 여기는 "라벨/임베딩이
+    // 없어서 자연히 안 걸리는" 구조가 아니라 PHAsset을 직접 다시 불러와 특징벡터를 뽑기 때문에 명시적으로 걸러야 한다
     public func fetchSimilarUnchecked() throws -> [Photo] {
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<PhotoEntity>(
-            predicate: #Predicate { $0.similarCheckedAt == nil }
+            predicate: #Predicate { $0.similarCheckedAt == nil && !$0.isVideo }
         )
         return try context.fetch(fetchDescriptor).map { $0.toDomain() }
     }
@@ -352,7 +365,9 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
             let photos = album.photos
                 .filter { $0.localIdentifier != identifier }
                 .sorted { $0.createdAt > $1.createdAt }
-            album.coverPhotoIdentifier = photos.first?.localIdentifier
+            // 영상은 대표 사진 후보에서 제외 — 단, "영상" 앨범 자체는 내용물이 전부 영상이라 예외.
+            // 그 외 앨범은 남은 사진이 전부 영상이면 대표 사진 없음(nil)으로 둔다
+            album.coverPhotoIdentifier = album.from == "video" ? photos.first?.localIdentifier : photos.first { !$0.isVideo }?.localIdentifier
 
             for album in entity.albums {
                 album.photoCount = photos.count

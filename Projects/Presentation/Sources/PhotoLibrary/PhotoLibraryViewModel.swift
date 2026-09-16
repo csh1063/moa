@@ -141,7 +141,7 @@ public final class PhotoLibraryViewModel: BaseViewModel {
             let photoList = try await self.useCase.fetchPhoto()
 
             self.photoDetails = photoList.photos.map {
-                PhotoDetail(id: $0.localIdentifier, createdDate: $0.createdDate, photo: $0.photo)
+                PhotoDetail(id: $0.localIdentifier, createdDate: $0.createdDate, photo: $0.photo, isVideo: $0.isVideo)
             }
 //            self.photoMap = Dictionary(uniqueKeysWithValues: photoList.photos.compactMap{$0.photo}.map { ($0.localIdentifier, $0) })
             let formatter = DateFormatter()
@@ -158,7 +158,8 @@ public final class PhotoLibraryViewModel: BaseViewModel {
                         PhotoCellItemViewModel(
                             localIdentifier: $0.localIdentifier,
                             imageLoader: self,
-                            isUnanalysis: $0.photo == nil
+                            isUnanalysis: $0.photo == nil,
+                            isVideo: $0.isVideo
                         )
                     }
                 )

@@ -141,9 +141,6 @@ final class CoverPhotoPreviewViewController: UIViewController {
 
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         confirmButton.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)
-
-        let dimTap = UITapGestureRecognizer(target: self, action: #selector(cancelTapped))
-        dimView.addGestureRecognizer(dimTap)
     }
 
     private func loadPreviewCard() {

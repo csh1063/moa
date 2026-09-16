@@ -69,8 +69,32 @@ public final class AlbumCoordinator: BaseCoordinator {
     }
 
     func moveFromList(_ from: String) {
-        let listDI = diContainer.makeListDIContainer(from: from)
+        // 장소는 그리드 목록이 아니라 지도 화면으로 대체 — 전용 코디네이터로 분기
+        if from == "location" {
+            let listDI = diContainer.makeListDIContainer(from: from)
+            let mapCoordinator = LocationMapCoordinator(
+                diContainer: listDI,
+                navigationController: self.navigationController
+            )
+            self.hideTabBar?()
+            self.start(coordinator: mapCoordinator)
+            return
+        }
 
+        // 시간은 date 앨범 카드 목록이 아니라 사진첩 탭과 같은 월별 그리드로 대체
+        if from == "date" {
+            let photoLibraryDI = diContainer.makePhotoLibraryDIContainer()
+            let dateCoordinator = DateAlbumGridCoordinator(
+                diContainer: photoLibraryDI,
+                tabbarViewModel: tabbarViewModel,
+                navigationController: self.navigationController
+            )
+            self.hideTabBar?()
+            self.start(coordinator: dateCoordinator)
+            return
+        }
+
+        let listDI = diContainer.makeListDIContainer(from: from)
         let listCoordinator = AlbumListCoordinator(
             diContainer: listDI,
             navigationController: self.navigationController

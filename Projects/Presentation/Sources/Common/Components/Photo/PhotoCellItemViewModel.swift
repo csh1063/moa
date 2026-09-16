@@ -17,15 +17,17 @@ struct PhotoCellItemViewModel: Hashable {
     var isSelected: Bool = false            // 선택 상태
     var isFavorite: Bool = false            // 즐겨찾기
     var isUnanalysis: Bool
+    let isVideo: Bool
 
 //    let photo: PhotoInAlbum
     private let imageLoader: any ImageLoadable
 
-    init(localIdentifier: String, imageLoader: any ImageLoadable, isUnanalysis: Bool = false) {
+    init(localIdentifier: String, imageLoader: any ImageLoadable, isUnanalysis: Bool = false, isVideo: Bool = false) {
         self.localIdentifier = localIdentifier
         self.formattedDate = ""
         self.imageLoader = imageLoader
         self.isUnanalysis = isUnanalysis
+        self.isVideo = isVideo
     }
 //    init(photo: PhotoInAlbum, imageLoader: any ImageLoadable) {
 //        self.localIdentifier = photo.localIdentifier

@@ -17,6 +17,8 @@ public protocol PhotoDataRepository {
     func fetchPhotoCount() throws -> Int
     func fetchIds(page: Int, pageSize: Int) throws -> [String]
     func fetchHasCoordinators() throws -> [Photo]
+    /// 영상 앨범용 — 라이브러리 전체의 영상 사진
+    func fetchVideos() throws -> [Photo]
     func fetchAnalyzed() throws -> [String]
     func fetchLocationUnanalyzed() throws -> [Photo]
     func fetchUnanalyzed() throws -> [Photo]

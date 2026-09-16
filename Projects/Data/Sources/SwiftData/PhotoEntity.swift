@@ -34,6 +34,9 @@ public final class PhotoEntity {
     public var year: String?
     public var month: String?
 
+    /// 영상(PHAssetMediaType.video) 여부 — 라벨/얼굴/동물 인식·비슷한사진 비교에서 제외하는 기준
+    public var isVideo: Bool = false
+
     @Relationship(deleteRule: .cascade)
     public var labels: [PhotoLabelEntity] = []
 
@@ -57,7 +60,8 @@ public final class PhotoEntity {
         address: PhotoLocation? = nil,
         addressEn: PhotoLocation? = nil,
         year: String? = nil,
-        month: String? = nil
+        month: String? = nil,
+        isVideo: Bool = false
     ) {
         self.id = id
         self.localIdentifier = localIdentifier
@@ -70,5 +74,6 @@ public final class PhotoEntity {
         self.addressEn = addressEn
         self.year = year
         self.month = month
+        self.isVideo = isVideo
     }
 }

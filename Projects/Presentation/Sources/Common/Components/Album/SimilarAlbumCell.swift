@@ -78,28 +78,29 @@ final class SimilarAlbumCell: UICollectionViewCell {
 //        nameLabel.text           = "유사한 사진"
 //        contentView.addSubview(nameLabel)
 
-        let size: CGFloat = 64
-
+        // 스택/이미지 크기를 셀 너비에 비례시킨다(기존 88pt 셀 기준 72pt 스택 = 0.818, 72pt 스택
+        // 기준 64pt 이미지 = 0.889) — 셀이 커지면(모두보기 2컬럼) 스택도 같이 커지고, 홈 캐러셀(88pt
+        // 고정)은 기존과 동일하게 유지된다.
         stackContainer.snp.makeConstraints { make in
             make.top.equalToSuperview()
             make.centerX.equalToSuperview()
-            make.width.height.equalTo(72)
+            make.width.height.equalTo(contentView.snp.width).multipliedBy(0.818)
         }
 
         // front: 좌하단 기준, back/mid는 살짝 오른쪽으로 offset
         frontImageView.snp.makeConstraints { make in
             make.leading.bottom.equalToSuperview()
-            make.width.height.equalTo(size)
+            make.width.height.equalTo(stackContainer.snp.width).multipliedBy(0.889)
         }
         midImageView.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(4)
             make.bottom.equalToSuperview().offset(-2)
-            make.width.height.equalTo(size)
+            make.width.height.equalTo(stackContainer.snp.width).multipliedBy(0.889)
         }
         backImageView.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(8)
             make.bottom.equalToSuperview().offset(-4)
-            make.width.height.equalTo(size)
+            make.width.height.equalTo(stackContainer.snp.width).multipliedBy(0.889)
         }
 
         countBadge.snp.makeConstraints { make in

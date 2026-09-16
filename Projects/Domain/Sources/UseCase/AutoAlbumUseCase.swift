@@ -19,6 +19,8 @@ public protocol AutoAlbumUseCase {
     /// 날짜 앨범만 즉시 생성 — 사진 기본 스캔 직후, 라벨/지오코딩을 기다리지 않고 안전하게 부를 수
     /// 있다("이미 처리됨" 플래그를 안 건드리는 순수 추가 연산이라 나중에 분류가 다시 돌아도 안전).
     func createDateAlbumsEarly() async throws
+    /// 영상만 모아두는 단일 앨범 — 라벨/좌표 안 기다리고 날짜 앨범과 같은 타이밍(기본 스캔 직후)에 생성
+    func createVideoAlbumEarly() async throws
     /// 여행 앨범 생성(빈 여행자로) + 지역 앨범 분류 — 지오코딩(주소) 스트림이 끝나는 대로 부른다.
     /// 지역 분류는 주소 데이터만 있으면 되고 라벨을 안 써서, 라벨 스트림을 기다릴 필요가 없다.
     func createTravelAlbumsEarly() async throws
@@ -159,6 +161,11 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
 
     public func createDateAlbumsEarly() async throws {
         try createDateAlbumsCore()
+        try albumDataRepository.syncAlbums()
+    }
+
+    public func createVideoAlbumEarly() async throws {
+        try createVideoAlbumCore()
         try albumDataRepository.syncAlbums()
     }
 
@@ -307,6 +314,24 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
 
         for (albumId, photoIdentifiers) in albumPhotoMap {
             try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+        }
+    }
+
+    // 영상은 라벨/카테고리/얼굴/동물/중복탐지 대상이 아니라서 별도 규칙 매칭 없이 "영상" 단일 앨범
+    // 하나에 그냥 다 모은다 — saveAlbum(returnExist: true)라 이미 있으면 그 앨범에 새 영상만 이어붙임
+    private func createVideoAlbumCore() throws {
+        let videoPhotos = try photoDataRepository.fetchVideos()
+        guard !videoPhotos.isEmpty else { return }
+
+        let album = Album(
+            name: "video",
+            displayName: "영상",
+            isAuto: true,
+            photoCount: 0,
+            from: "video"
+        )
+        if let saved = try albumDataRepository.saveAlbum(album: album, returnExist: true) {
+            try albumDataRepository.addPhotos(albumId: saved.id, photoIdentifiers: videoPhotos.map { $0.localIdentifier })
         }
     }
 
@@ -1009,27 +1034,6 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     }
 
     private func addressKeyValue(_ address: PhotoLocation) -> (key: String, value: String)? {
-        if let country = address.country, !country.isEmpty {
-            let isoCode = address.isoCountryCode ?? ""
-            let administrativeArea = TravelAlbumNaming.cleanAreaName(address.administrativeArea ?? "", isoCode: isoCode)
-            let locality = TravelAlbumNaming.cleanAreaName(address.locality ?? "", isoCode: isoCode)
-            let subLocality = TravelAlbumNaming.cleanAreaName(address.subLocality ?? "", isoCode: isoCode)
-            let key = "\(TravelAlbumNaming.cleanAreaName(country, isoCode: isoCode)) \(administrativeArea)".trimmingCharacters(in: .whitespaces)
-
-            let addressText: String
-            if locality == administrativeArea || locality.hasSuffix("도") {
-                addressText = subLocality
-            } else {
-                addressText = [locality, subLocality]
-                    .compactMap { $0 }
-                    .reduce(into: [String]()) { result, value in
-                        if result.last != value { result.append(value) }
-                    }
-                    .joined(separator: " ")
-            }
-
-            return (key, addressText)
-        }
-        return nil
+        AddressGrouping.keyValue(for: address)
     }
 }

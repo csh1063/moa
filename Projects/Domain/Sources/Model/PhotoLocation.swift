@@ -7,11 +7,11 @@
 //
 
 public struct PhotoLocation: Codable, Equatable, Hashable {
-//    public var country: String?               // 대한민국
-//    public var administrativeArea: String?    // 서울특별시
-//    public var locality: String?              // 서울특별시
-//    public var subLocality: String?           // 강남구
-//    public var thoroughfare: String?          // 테헤란로
+//    public var country: String?               //6이하// 대한민국
+//    public var administrativeArea: String?    //8// 서울특별시
+//    public var locality: String?              //10// 서울특별시
+//    public var subLocality: String?           //12// 강남구
+//    public var thoroughfare: String?          //15// 테헤란로
 //    public var ocean: String?                 // nil 바다 이름
 //    public var isoCountryCode: String?
 

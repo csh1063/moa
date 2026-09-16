@@ -34,7 +34,13 @@ final class AlbumListViewController: BaseViewController {
 
     private var cancellables = Set<AnyCancellable>()
 
-    override var pageTitle: String? { "여행 목록" }
+    override var pageTitle: String? { screenTitle }
+
+    /// "인물" 모두보기는 face 앨범 목록으로 열리지만 내부적으로 동물(animal)도 같이 보여주므로,
+    /// AlbumSection의 type("face"/"animal" 구분 없이 face 하나로 취급)과 맞춰 조회한다.
+    private var screenTitle: String {
+        AlbumSection.allCases.first { $0.type == viewModel.from }?.title ?? viewModel.from
+    }
 
     private var isSelectionMode = false {
         didSet { updateSelectionUI() }
@@ -62,7 +68,7 @@ final class AlbumListViewController: BaseViewController {
 
     private func setupView() {
 
-        self.naviView.setTitle(String(localized: "여행", bundle: .module))
+        self.naviView.setTitle(screenTitle)
         self.naviView.addButtons([LeftButton(type: .back), RightButton(type: .select)])
 
         collectionView.contentInset = UIEdgeInsets(top: 20, left: 0, bottom: 80, right: 0)
@@ -177,7 +183,7 @@ final class AlbumListViewController: BaseViewController {
             case "travel":     return self?.makeTravelSection()
             case "location":  return self?.makeLocationSection(environment: environment)
             case "category": return self?.makeCategorySection()
-            case "face":     return self?.makeFaceSection()
+            case "face":     return self?.makeFaceSection(environment: environment)
             case "similar": return self?.makeSimilarSection()
             default: return self?.makeTravelSection()
             }
@@ -296,48 +302,66 @@ final class AlbumListViewController: BaseViewController {
         return section
     }
 
-    /// 인물: 수평 스크롤 아바타
-    private func makeFaceSection() -> NSCollectionLayoutSection {
+    /// 인물: 4열 고정 — 아이템 너비를 화면 실제 폭(environment)에서 역산해서 항상 정확히 4개가
+    /// 한 줄에 들어가게 한다. 이전엔 아이템 너비가 88pt 고정값이라 화면이 좁은 기기(예: 375pt)에서는
+    /// 4*88이 안 들어가서 3열로 줄어드는 문제가 있었음.
+    private func makeFaceSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
+        let columns = 4
+        let spacing: CGFloat = 4
+        let sectionInset: CGFloat = 4
+
+        let availableWidth = environment.container.effectiveContentSize.width
+            - (sectionInset * 2)
+            - (spacing * CGFloat(columns - 1))
+        let itemWidth = availableWidth / CGFloat(columns)
+        let itemHeight = itemWidth  // 사진첩 그리드처럼 정사각 — 이름은 하단 그라데이션으로 사진 위에 얹는다
+
         let itemSize = NSCollectionLayoutSize(
-            widthDimension: .absolute(80),
-            heightDimension: .absolute(96)
+            widthDimension: .absolute(itemWidth),
+            heightDimension: .absolute(itemHeight)
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(96)
+            heightDimension: .absolute(itemHeight)
         )
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        // 4개를 명시적으로(아이템 4개짜리 배열) 구성 — makeLocationSection과 같은 방식.
+        let group = NSCollectionLayoutGroup.horizontal(
+            layoutSize: groupSize,
+            subitems: [item, item, item, item]
+        )
+        group.interItemSpacing = .fixed(spacing)
 
         let section = NSCollectionLayoutSection(group: group)
-//        section.orthogonalScrollingBehavior = .continuous
-        section.interGroupSpacing = 16
-        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 20, bottom: 28, trailing: 20)
+        section.interGroupSpacing = spacing
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: sectionInset, bottom: 20, trailing: sectionInset)
         return section
     }
+    /// 중복: 4컬럼 → 2컬럼으로 카드를 키운다. SimilarAlbumCell의 스택/이미지가 셀 너비에 비례하므로
+    /// 카드가 커지면 겹쳐쌓인 사진도 같이 커진다.
     private func makeSimilarSection() -> NSCollectionLayoutSection {
 
         let screenWidth = UIScreen.main.bounds.width
-        let itemWidth = (screenWidth - 32) / 4  // leading+trailing inset 32, 아이템간 간격 24
+        let itemWidth = (screenWidth - 32 - 12) / 2  // leading+trailing inset 32, 컬럼 사이 간격 12
 
         let itemSize = NSCollectionLayoutSize(
             widthDimension: .absolute(itemWidth),
             heightDimension: .absolute(itemWidth)
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4)
 
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
             heightDimension: .absolute(itemWidth)
         )
-
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        // 2컬럼을 명시적으로(아이템 2개짜리 배열) 구성 — makeLocationSection과 같은 방식.
+        // 1개짜리 배열을 자동 타일링시키면 interItemSpacing이 안 먹혀서 간격 계산이 어긋난다.
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item, item])
+        group.interItemSpacing = .fixed(12)
 
         let section = NSCollectionLayoutSection(group: group)
-//        section.orthogonalScrollingBehavior = .continuous
-        section.interGroupSpacing = 4
+        section.interGroupSpacing = 14
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 28, trailing: 16)
         return section
     }
@@ -370,12 +394,12 @@ extension AlbumListViewController {
             self?.applySelectionOverlay(to: cell, album: vm.album)
         }
 
-        let faceRegistration = UICollectionView.CellRegistration<FaceAlbumCell, FaceAlbumCellViewModel> { [weak self] cell, _, vm in
+        let faceRegistration = UICollectionView.CellRegistration<FaceAlbumGridCell, FaceAlbumCellViewModel> { [weak self] cell, _, vm in
             cell.configure(with: vm)
             self?.applySelectionOverlay(to: cell, album: vm.album)
         }
 
-        let animalRegistration = UICollectionView.CellRegistration<AnimalAlbumCell, AnimalAlbumCellViewModel> { [weak self] cell, _, vm in
+        let animalRegistration = UICollectionView.CellRegistration<AnimalAlbumGridCell, AnimalAlbumCellViewModel> { [weak self] cell, _, vm in
             cell.configure(with: vm)
             self?.applySelectionOverlay(to: cell, album: vm.album)
         }

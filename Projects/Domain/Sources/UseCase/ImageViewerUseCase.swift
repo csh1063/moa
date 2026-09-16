@@ -8,6 +8,7 @@
 
 public protocol ImageViewerUseCase {
     func loadImage<T>(id: String, type: LoadPhotoOptionType) async throws -> ImageData<T>
+    func loadVideoAsset<T>(id: String) async throws -> T?
     func getLabels(by localIdentifier: String) async throws -> [PhotoLabel]
 }
 
@@ -24,6 +25,10 @@ public class DefaultImageViewerUseCase: ImageViewerUseCase {
 
     public func loadImage<T>(id: String, type: LoadPhotoOptionType) async throws -> ImageData<T> {
         return try await self.repository.loadImage(id: id, type: type)
+    }
+
+    public func loadVideoAsset<T>(id: String) async throws -> T? {
+        return try await self.repository.loadVideoAsset(id: id)
     }
 
     public func getLabels(by localIdentifier: String) async throws -> [PhotoLabel] {

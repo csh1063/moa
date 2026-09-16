@@ -75,6 +75,9 @@ final class AlbumSectionHeaderView: UICollectionReusableView {
             self.moreButton.isHidden = itemCount < 20
         case .similar:
             self.moreButton.isHidden = false
+        case .library:
+            // 카테고리처럼 홈 화면에 전체를 그대로 보여줘서 별도 모두보기가 필요 없다
+            self.moreButton.isHidden = true
         }
     }
 }

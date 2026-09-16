@@ -95,6 +95,7 @@ final class MyPageViewModel: BaseViewModel {
             switch data.type {
             case .allLibraryPhoto, .allPhoto, .unanalysisPhoto, .analyzedDate: break
             case .analysis: tabbarViewModel.send(.analysis)
+            case .libraryImport: tabbarViewModel.send(.importLibraryAlbum)
             case .reAutoAlbum: tabbarViewModel.send(.reAutoAlbum)
             case .reset: tabbarViewModel.send(.clear)
             case .locationAnalysis, .locationAutoAlbum: break
@@ -194,13 +195,15 @@ final class MyPageViewModel: BaseViewModel {
             [
                 MyCellData(type: .analyzedDate, value: analyzedDate),
                 MyCellData(type: .analyzedData, value: analyzedDataSize),
-                MyCellData(type: .analysis)
+                MyCellData(type: .analysis),
+                MyCellData(type: .libraryImport)
             ]
         } else {
             [
                 MyCellData(type: .analyzedDate, value: analyzedDate),
                 MyCellData(type: .analyzedData, value: analyzedDataSize),
                 MyCellData(type: .analysis),
+                MyCellData(type: .libraryImport),
                 MyCellData(type: .reAutoAlbum)
             ]
         }

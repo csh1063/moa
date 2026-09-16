@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Photos
 import Domain
 
 extension AlbumAssetEntity {
@@ -24,7 +25,8 @@ extension PhotoAssetEntity {
             id: self.asset.localIdentifier,
             createdDate: self.asset.creationDate,
             latitude: self.asset.location?.coordinate.latitude,
-            longitude: self.asset.location?.coordinate.longitude
+            longitude: self.asset.location?.coordinate.longitude,
+            isVideo: self.asset.mediaType == .video
         )
     }
 }

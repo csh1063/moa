@@ -24,7 +24,8 @@ extension PhotoEntity {
             year: year,
             month: month,
             labels: [],
-            faceEmbedding: []
+            faceEmbedding: [],
+            isVideo: isVideo
         )
     }
 
@@ -42,7 +43,8 @@ extension PhotoEntity {
             year: year,
             month: month,
             labels: labels.map { $0.toDomain() },
-            faceEmbedding: []
+            faceEmbedding: [],
+            isVideo: isVideo
         )
     }
 
@@ -60,7 +62,8 @@ extension PhotoEntity {
             year: year,
             month: month,
             labels: [],
-            faceEmbedding: faceEmbeddings.map { $0.toDomain() }
+            faceEmbedding: faceEmbeddings.map { $0.toDomain() },
+            isVideo: isVideo
         )
     }
 
@@ -78,7 +81,8 @@ extension PhotoEntity {
             year: year,
             month: month,
             labels: labels.map { $0.toDomain() },
-            faceEmbedding: faceEmbeddings.map { $0.toDomain() }
+            faceEmbedding: faceEmbeddings.map { $0.toDomain() },
+            isVideo: isVideo
         )
     }
 }

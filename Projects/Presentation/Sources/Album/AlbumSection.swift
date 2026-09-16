@@ -15,6 +15,7 @@ enum AlbumSection: Int, CaseIterable {
     case category
     case location
     case date
+    case library
 
     var title: String {
         switch self {
@@ -24,6 +25,7 @@ enum AlbumSection: Int, CaseIterable {
         case .category: return String(localized: "분류", bundle: .module)
         case .face:     return String(localized: "인물", bundle: .module)
         case .similar: return String(localized: "중복", bundle: .module)
+        case .library: return String(localized: "가져온 앨범", bundle: .module)
         }
     }
 
@@ -35,6 +37,7 @@ enum AlbumSection: Int, CaseIterable {
         case .category: return "category"
         case .face:     return "face"
         case .similar: return "similar"
+        case .library: return "library"
         }
     }
 

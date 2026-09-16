@@ -12,6 +12,7 @@ import Domain
 
 enum TabbarViewModelAction {
     case progressSheet(AnalyzeProgress)
+    case showLibraryImportPicker(LibraryAlbumImportUseCase)
 }
 
 struct AnalyzeProgress {
@@ -59,6 +60,7 @@ public final class TabbarViewModel: BaseViewModel {
         case afterConsent
         case showOnboarding
         case afterOnboarding
+        case importLibraryAlbum
     }
 
     public struct Output {
@@ -138,17 +140,20 @@ public final class TabbarViewModel: BaseViewModel {
     private let analysisUseCase: PhotoAnalysisUseCase
     private let autoAlbumUseCase: AutoAlbumUseCase
     private let legacyAccessUseCase: LegacyAccessUseCase
+    private let libraryAlbumImportUseCase: LibraryAlbumImportUseCase
 
     private var cancellables = Set<AnyCancellable>()
 
     init(permissionUseCase: PermissionUseCase,
          analysisUseCase: PhotoAnalysisUseCase,
          autoAlbumUseCase: AutoAlbumUseCase,
-         legacyAccessUseCase: LegacyAccessUseCase) {
+         legacyAccessUseCase: LegacyAccessUseCase,
+         libraryAlbumImportUseCase: LibraryAlbumImportUseCase) {
         self.permissionUseCase = permissionUseCase
         self.analysisUseCase = analysisUseCase
         self.autoAlbumUseCase = autoAlbumUseCase
         self.legacyAccessUseCase = legacyAccessUseCase
+        self.libraryAlbumImportUseCase = libraryAlbumImportUseCase
 
         super.init()
 
@@ -215,6 +220,8 @@ public final class TabbarViewModel: BaseViewModel {
             await checkOnboarding()
         case .afterOnboarding:
             await onboardingComplete()
+        case .importLibraryAlbum:
+            self.onAction?(.showLibraryImportPicker(libraryAlbumImportUseCase))
         case .analysis:
             showAlert(
                 title: String(localized: "사진 분석", bundle: .module),
@@ -241,7 +248,7 @@ public final class TabbarViewModel: BaseViewModel {
                 message: String(localized: "앨범들을 삭제 후 다시 생성해요.\n어떤 앨범을 다시 생성할까요?", bundle: .module),
                 buttons: [
                     AlertButtonConfig(title: String(localized: "취소", bundle: .module), style: .cancel, action: nil),
-                    AlertButtonConfig(title: String(localized: "자동 앨범", bundle: .module), style: .default) { [weak self] in
+                    AlertButtonConfig(title: String(localized: "전체 자동 앨범", bundle: .module), style: .default) { [weak self] in
                         Task {
                             guard let self else {return}
                             self.isLoading = true
@@ -275,16 +282,10 @@ public final class TabbarViewModel: BaseViewModel {
                             await self.createCategoryAutoAlbum()
                         }
                     },
-                    AlertButtonConfig(title: String(localized: "얼굴 앨범", bundle: .module), style: .default) { [weak self] in
+                    AlertButtonConfig(title: String(localized: "얼굴/동물 앨범", bundle: .module), style: .default) { [weak self] in
                         Task {
                             guard let self else {return}
-                            await self.createFaceAutoAlbum()
-                        }
-                    },
-                    AlertButtonConfig(title: String(localized: "동물 앨범", bundle: .module), style: .default) { [weak self] in
-                        Task {
-                            guard let self else {return}
-                            await self.createAnimalAutoAlbum()
+                            await self.createFaceAnimalAutoAlbum()
                         }
                     },
                     AlertButtonConfig(title: String(localized: "여행 앨범", bundle: .module), style: .default) { [weak self] in
@@ -384,6 +385,8 @@ public final class TabbarViewModel: BaseViewModel {
                         let stepStartedAt = Date()
                         debugLog("⏱️ [분석] 날짜 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                         try? await self?.autoAlbumUseCase.createDateAlbumsEarly()
+                        // 영상은 라벨/좌표 상관없이 바로 분류 가능해서 날짜 앨범과 같은 타이밍에 처리
+                        try? await self?.autoAlbumUseCase.createVideoAlbumEarly()
                         await MainActor.run {
                             guard let self else { return }
                             self.dateProgress = 1
@@ -616,23 +619,13 @@ public final class TabbarViewModel: BaseViewModel {
         }
     }
 
-    private func createFaceAutoAlbum() async {
+    // 메인 앨범 화면에서 얼굴/동물이 이미 하나의 섹션(AlbumSection.faceSectionFromValues)으로
+    // 합쳐져 보여지고 있어서, 재생성 메뉴도 같은 단위로 묶어 하나의 버튼/동작으로 처리한다
+    private func createFaceAnimalAutoAlbum() async {
         self.isComplete = false
         do {
             self.isLoading = true
             try await autoAlbumUseCase.createFaceAlbums()
-            self.isLoading = false
-            self.isComplete = true
-        } catch {
-            self.isLoading = false
-            self.isComplete = true
-        }
-    }
-
-    private func createAnimalAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
             try await autoAlbumUseCase.createAnimalAlbums()
             self.isLoading = false
             self.isComplete = true

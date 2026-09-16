@@ -136,7 +136,8 @@ public final class DefaultPhotoAnalysisUseCase: PhotoAnalysisUseCase {
                 latitude: item.latitude,
                 longitude: item.longitude,
                 year: components.year.map { String($0) },
-                month: components.month.map { String($0) }
+                month: components.month.map { String($0) },
+                isVideo: item.isVideo
             )
         }
         try dataRepository.saveAllPhotosBase(photos)

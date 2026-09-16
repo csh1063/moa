@@ -33,6 +33,7 @@ final class ImageViewerViewController: UIViewController {
         cv.dataSource = self
         cv.delegate = self
         cv.register(ImageViewerCell.self, forCellWithReuseIdentifier: ImageViewerCell.identifier)
+        cv.register(VideoViewerCell.self, forCellWithReuseIdentifier: VideoViewerCell.identifier)
         cv.contentInsetAdjustmentBehavior = .never
         return cv
     }()
@@ -113,6 +114,13 @@ final class ImageViewerViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         AnalyticsTracker.shared.logScreenView("사진 뷰어")
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // 화면을 닫는 동안(스와이프-다운/X 버튼) 재생 중이던 영상 소리가 계속 나는 걸 막는다
+        let currentIndexPath = IndexPath(item: currentIndex, section: 0)
+        (collectionView.cellForItem(at: currentIndexPath) as? VideoViewerCell)?.pause()
     }
 
     override func viewDidLayoutSubviews() {
@@ -215,6 +223,7 @@ final class ImageViewerViewController: UIViewController {
 
         let tap = UITapGestureRecognizer()
         tap.cancelsTouchesInView = false
+        tap.delegate = self
         collectionView.addGestureRecognizer(tap)
         tap.eventPublisher
             .sink { [weak self] _ in
@@ -226,6 +235,7 @@ final class ImageViewerViewController: UIViewController {
                     self.bottomInfoView.alpha = alpha
                     self.bottomInfoView.transform = CGAffineTransform(translationX: 0, y: self.showOverlay ? 0 : 20)
                 }
+                currentVideoCell()?.setControlsHidden(!showOverlay, animated: true)
             }
             .store(in: &cancellables)
 
@@ -248,6 +258,10 @@ final class ImageViewerViewController: UIViewController {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    private func currentVideoCell() -> VideoViewerCell? {
+        collectionView.cellForItem(at: IndexPath(item: currentIndex, section: 0)) as? VideoViewerCell
     }
 
     // MARK: - Check Button
@@ -352,6 +366,27 @@ extension ImageViewerViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let photoDetail = viewModel.photoDetails[indexPath.item]
+
+        if photoDetail.isVideo {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoViewerCell.identifier, for: indexPath)
+            if let videoCell = cell as? VideoViewerCell {
+                Task {
+                    // 정지 프레임(포스터)은 기존 이미지 로딩 경로를 그대로 재사용해서 바로 보여주고,
+                    // 실제 재생용 AVPlayerItem은 별도로 비동기 로드한다 — 준비되기 전에 재생 버튼을
+                    // 눌러도 setPlayerItem이 나중에 채워지므로 안전하다
+                    let poster = await viewModel.loadImage(for: indexPath.item, size: collectionView.bounds.size)
+                    await MainActor.run {
+                        videoCell.configure(poster: poster)
+                        videoCell.setControlsHidden(!showOverlay, animated: false)
+                    }
+                    let playerItem = await viewModel.loadVideoPlayerItem(id: photoDetail.id)
+                    await MainActor.run { videoCell.setPlayerItem(playerItem) }
+                }
+            }
+            return cell
+        }
+
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageViewerCell.identifier, for: indexPath)
         if let imageCell = cell as? ImageViewerCell {
             Task {
@@ -373,6 +408,10 @@ extension ImageViewerViewController: UICollectionViewDelegateFlowLayout {
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         let page = Int(scrollView.contentOffset.x / scrollView.bounds.width)
         guard page != currentIndex else { return }
+        // 스와이프로 다음 항목으로 넘어갈 때, 재생 중이던 영상이 화면 밖에서도 계속 도는 걸 막는다
+        let previousIndexPath = IndexPath(item: currentIndex, section: 0)
+        (collectionView.cellForItem(at: previousIndexPath) as? VideoViewerCell)?.pause()
+
         currentIndex = page
         viewModel.send(.pageChanged(page))
         updateCheckButton(selectedIdentifiers: viewModel.selectedIdentifiers)
@@ -386,6 +425,12 @@ extension ImageViewerViewController: UIGestureRecognizerDelegate {
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
         let velocity = pan.velocity(in: view)
         return abs(velocity.y) > abs(velocity.x)
+    }
+
+    // 재생/일시정지 버튼을 탭한 건 오버레이 토글(tap)이 아니라 버튼 자신의 액션으로만 처리한다
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard gestureRecognizer is UITapGestureRecognizer else { return true }
+        return !(touch.view is UIButton)
     }
 }
 

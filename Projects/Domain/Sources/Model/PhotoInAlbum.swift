@@ -46,12 +46,14 @@ public struct PhotoInAlbum: Hashable {
     public let longitude: Double?
     public var photo: Photo?
     public var isUnanalysis: Bool = false
+    public let isVideo: Bool
 
-    public init(id: String, createdDate: Date? = nil, latitude: Double? = nil, longitude: Double? = nil) {
+    public init(id: String, createdDate: Date? = nil, latitude: Double? = nil, longitude: Double? = nil, isVideo: Bool = false) {
         self.localIdentifier = id
         self.createdDate = createdDate
         self.latitude = latitude
         self.longitude = longitude
+        self.isVideo = isVideo
     }
 
     public static func == (lhs: PhotoInAlbum, rhs: PhotoInAlbum) -> Bool {

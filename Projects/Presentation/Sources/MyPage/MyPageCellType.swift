@@ -76,6 +76,7 @@ enum MyPageCellType {
     case analyzedDate
     case analyzedData
     case analysis
+    case libraryImport
     case reAutoAlbum
     case reset
 
@@ -110,6 +111,7 @@ enum MyPageCellType {
         case .unanalysisPhoto: return "lasso.badge.sparkles"
         case .analyzedDate: return "clock.arrow.circlepath"
         case .analysis: return "sparkles"
+        case .libraryImport: return "square.and.arrow.down"
         case .analyzedData: return "cylinder.split.1x2"
         case .reAutoAlbum: return "arrow.clockwise"
         case .reset: return "eraser"
@@ -139,6 +141,7 @@ enum MyPageCellType {
         case .analyzedDate: return String(localized: "최근 분석", bundle: .module)
         case .analyzedData: return String(localized: "분석 용량", bundle: .module)
         case .analysis: return String(localized: "분석하기", bundle: .module)
+        case .libraryImport: return String(localized: "사진첩 앨범 불러오기", bundle: .module)
         case .reAutoAlbum: return String(localized: "자동 앨범 재생성", bundle: .module)
         case .reset: return String(localized: "분석 정보 삭제하기", bundle: .module)
         case .locationAnalysis: return String(localized: "사진 좌표를 주소로 변환", bundle: .module)
@@ -171,7 +174,7 @@ enum MyPageCellType {
         switch self {
         case .allLibraryPhoto, .allPhoto, .unanalysisPhoto, .analyzedDate, .analyzedData:
             return .info
-        case .analysis, .reset, .displayMode, .reAutoAlbum:
+        case .analysis, .libraryImport, .reset, .displayMode, .reAutoAlbum:
             return .button
         case .locationAnalysis, .locationAutoAlbum, .versionString:
             return .info

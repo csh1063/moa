@@ -52,6 +52,20 @@ final class PhotoCell: UICollectionViewCell {
         return iv
     }()
 
+    /// 사진/영상 구분 — 재생 버튼이 아니라 그냥 "이건 영상이다" 표시용 아이콘(오른쪽 아래)
+    private let videoIndicatorIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.image = UIImage(systemName: "video.fill")?.withRenderingMode(.alwaysTemplate)
+        iv.tintColor = .white
+        iv.contentMode = .scaleAspectFit
+        iv.layer.shadowColor = UIColor.black.cgColor
+        iv.layer.shadowOpacity = 0.5
+        iv.layer.shadowRadius = 1.5
+        iv.layer.shadowOffset = CGSize(width: 0, height: 0.5)
+        iv.isHidden = true
+        return iv
+    }()
+
     /// 대표 사진 고르기 그리드에서, 지금 이미 대표로 저장돼 있는 사진에 붙는 태그
     private let coverTagLabel: UILabel = {
         let lb = UILabel()
@@ -91,6 +105,7 @@ final class PhotoCell: UICollectionViewCell {
         setSelectionMode(false)
         setSelected(false)
         setCoverTag(false)
+        videoIndicatorIcon.isHidden = true
     }
 
     // MARK: - Setup
@@ -110,6 +125,7 @@ final class PhotoCell: UICollectionViewCell {
         checkCoverView.addSubview(checkView)
         checkView.addSubview(checkImageView)
         coverView.addSubview(coverTagLabel)
+        coverView.addSubview(videoIndicatorIcon)
 
         coverView.snp.makeConstraints { make in make.edges.equalToSuperview() }
         mainImageView.snp.makeConstraints { make in make.edges.equalToSuperview() }
@@ -124,6 +140,11 @@ final class PhotoCell: UICollectionViewCell {
             make.top.leading.equalToSuperview().inset(6)
             make.height.equalTo(18)
             make.width.greaterThanOrEqualTo(32)
+        }
+
+        videoIndicatorIcon.snp.makeConstraints { make in
+            make.bottom.trailing.equalToSuperview().inset(6)
+            make.width.height.equalTo(16)
         }
 
         checkView.snp.makeConstraints { make in
@@ -168,6 +189,7 @@ final class PhotoCell: UICollectionViewCell {
             color: viewModel.isUnanalysis ? Theme.negative : Theme.strokeSoft,
             borderWidth: 1
         )
+        videoIndicatorIcon.isHidden = !viewModel.isVideo
 
         task = Task {
             let size = frame.size

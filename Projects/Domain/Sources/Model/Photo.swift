@@ -39,6 +39,10 @@ public struct Photo: Hashable {
     public var faceEmbedding: [FaceEmbedding]
     public var animalEmbedding: [AnimalEmbedding]
 
+    /// 영상(PHAssetMediaType.video) 여부 — true면 라벨/얼굴/동물 인식, 비슷한사진 임베딩 비교
+    /// 파이프라인에서 제외된다(날짜/지역/여행 앨범은 그대로 포함)
+    public var isVideo: Bool
+
     public init(
         id: UUID = UUID(),
         localIdentifier: String,
@@ -53,7 +57,8 @@ public struct Photo: Hashable {
         month: String? = nil,
         labels: [PhotoLabel] = [],
         faceEmbedding: [FaceEmbedding] = [],
-        animalEmbedding: [AnimalEmbedding] = []
+        animalEmbedding: [AnimalEmbedding] = [],
+        isVideo: Bool = false
     ) {
         self.id = id
         self.localIdentifier = localIdentifier
@@ -69,6 +74,7 @@ public struct Photo: Hashable {
         self.labels = labels
         self.faceEmbedding = faceEmbedding
         self.animalEmbedding = animalEmbedding
+        self.isVideo = isVideo
     }
 
     public static func == (lhs: Photo, rhs: Photo) -> Bool {

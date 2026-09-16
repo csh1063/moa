@@ -60,7 +60,7 @@ final class TravelPhotoPickerViewModel {
 
     /// 상세(뷰어) 화면에 넘겨줄 목록 — 앨범 상세와 동일하게 이미지를 탭하면 상세로 볼 수 있게 한다
     var photoDetails: [PhotoDetail] {
-        photos.map { PhotoDetail(id: $0.localIdentifier, createdDate: $0.createdDate, photo: $0.photo) }
+        photos.map { PhotoDetail(id: $0.localIdentifier, createdDate: $0.createdDate, photo: $0.photo, isVideo: $0.isVideo) }
     }
 
     func loadFirstPageIfNeeded() async {

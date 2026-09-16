@@ -43,6 +43,7 @@ public final class AlbumViewModel: BaseViewModel {
         case more(String)
         case permission
         case showAlbumMenu(Album)
+        case importLibraryAlbum
     }
 
     public struct Output {
@@ -137,6 +138,8 @@ public final class AlbumViewModel: BaseViewModel {
             tabbarViewModel.send(.permission)
         case .showAlbumMenu(let album):
             self.onAction?(.showAlbumMenu(album))
+        case .importLibraryAlbum:
+            tabbarViewModel.send(.importLibraryAlbum)
         }
     }
 
@@ -179,11 +182,14 @@ public final class AlbumViewModel: BaseViewModel {
                 .location(LocationAlbumCellViewModel(album: $1, imageLoader: self, isMost: $0 == 0))
             }
 
-        data.items[.category] = albums.filter { $0.from == "category" }
+        // 영상은 라벨 기반 분류가 아니라 별도 from("video")으로 관리되지만, 화면에서는 "분류" 섹션
+        // 맨 뒤에 같이 보여준다 — 항상 마지막 자리에 고정(정렬 대상 아님)
+        let categoryAlbums = albums.filter { $0.from == "category" }
             .sorted { $0.photoCount > $1.photoCount }
-            .map {
-                .category(CategoryAlbumCellViewModel(album: $0, imageLoader: self))
-            }
+            .map { AlbumType.category(CategoryAlbumCellViewModel(album: $0, imageLoader: self)) }
+        let videoAlbums = albums.filter { $0.from == "video" }
+            .map { AlbumType.category(CategoryAlbumCellViewModel(album: $0, imageLoader: self)) }
+        data.items[.category] = categoryAlbums + videoAlbums
 
         data.items[.face] = albums.filter { AlbumSection.faceSectionFromValues.contains($0.from) }
             .filter { $0.photoCount >= 20 }
@@ -198,6 +204,14 @@ public final class AlbumViewModel: BaseViewModel {
             .sorted { $0.photoCount > $1.photoCount }
             .map {
                 .similar(SimilarAlbumCellViewModel(album: $0, imageLoader: self))
+            }
+
+        // 사진첩에서 그대로 가져온(자동분류 아닌) 앨범 — CategoryAlbumCell을 그대로 재사용한다
+        // (album.name이 카테고리 키와 안 겹쳐서 항상 default 아이콘으로 뜨지만 자연스럽다)
+        data.items[.library] = albums.filter { $0.from == "library" }
+            .sorted { $0.createdAt > $1.createdAt }
+            .map {
+                .category(CategoryAlbumCellViewModel(album: $0, imageLoader: self))
             }
 
         data.totalCount = albums.count

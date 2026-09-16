@@ -10,6 +10,7 @@ import Foundation
 import Domain
 import Photos
 import PhotosUI
+import AVFoundation
 
 public final class PhotoLibraryService {
 
@@ -27,32 +28,18 @@ public final class PhotoLibraryService {
 
     public init() {}
 
+    /// "사진첩 앨범 불러오기" 피커용 — 스마트 앨범(즐겨찾기/전체/셀피 등)은 제외하고 사용자가 직접
+    /// 만든 앨범만 대상으로 한다. 스마트 앨범까지 포함하면 "전체"를 가져오는 등 이미 자동분류와
+    /// 겹치는 선택지가 생겨서 혼란스럽다는 피드백으로 사용자 앨범만 남김.
     public func getAlbumList() async throws -> [AlbumAssetEntity] {
 
         return await Task.detached(priority: .userInitiated) {
 
             var albumModelList = [AlbumAssetEntity]()
 
-            let favoriteAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum,
-                                                                         subtype: .smartAlbumFavorites, options: nil)
-            let allAlbum = PHAssetCollection.fetchAssetCollections(with: .smartAlbum,
-                                                                   subtype: .smartAlbumUserLibrary,
-                                                                   options: nil)
-            let selfiesAlbum = PHAssetCollection.fetchAssetCollections(with: .smartAlbum,
-                                                                       subtype: .smartAlbumSelfPortraits,
-                                                                       options: nil)
-            let panoramaAlbum = PHAssetCollection.fetchAssetCollections(with: .smartAlbum,
-                                                                        subtype: .smartAlbumPanoramas,
-                                                                        options: nil)
-            let burstAlbum = PHAssetCollection.fetchAssetCollections(with: .smartAlbum,
-                                                                     subtype: .smartAlbumBursts, options: nil)
-            let screenShotAlbum = PHAssetCollection.fetchAssetCollections(with: .smartAlbum,
-                                                                          subtype: .smartAlbumScreenshots,
-                                                                          options: nil)
             let userAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
 
-            let albums = [allAlbum, favoriteAlbums, selfiesAlbum,
-                          panoramaAlbum, burstAlbum, screenShotAlbum, userAlbums]
+            let albums = [userAlbums]
             for album in albums {
                 album.enumerateObjects { (collection, _, _) in
                     let opt = PHFetchOptions()
@@ -62,7 +49,7 @@ public final class PhotoLibraryService {
                     if assets.count > 0 {
                         let fetchOptions = PHFetchOptions()
                         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-                        fetchOptions.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+                        fetchOptions.predicate = PHFetchOptions.mediaTypePredicate
 
                         let newAlbum = AlbumAssetEntity(
                             name: collection.localizedTitle ?? "",
@@ -93,7 +80,7 @@ public final class PhotoLibraryService {
             if let savedAll = self.allPhotos, !reload {
                 result = savedAll
             } else {
-                result = PHAsset.fetchAssets(with: .image, options: .defaultOptions)
+                result = PHAsset.fetchAssets(with: .defaultOptions)
             }
         }
 
@@ -151,10 +138,10 @@ public final class PhotoLibraryService {
             let options = PHFetchOptions()
             options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
             options.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue),
+                PHFetchOptions.mediaTypePredicate,
                 NSPredicate(format: "creationDate < %@", date as NSDate)
             ])
-            result = PHAsset.fetchAssets(with: .image, options: options)
+            result = PHAsset.fetchAssets(with: options)
             beforeResultMap[date] = result
         }
         return await makeList(from: result, title: "", page: page, pageCount: pageCount)
@@ -169,10 +156,10 @@ public final class PhotoLibraryService {
             let options = PHFetchOptions()
             options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
             options.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue),
+                PHFetchOptions.mediaTypePredicate,
                 NSPredicate(format: "creationDate > %@", date as NSDate)
             ])
-            result = PHAsset.fetchAssets(with: .image, options: options)
+            result = PHAsset.fetchAssets(with: options)
             afterResultMap[date] = result
         }
         return await makeList(from: result, title: "", page: page, pageCount: pageCount)
@@ -209,7 +196,7 @@ public final class PhotoLibraryService {
             if let savedAll = self.allPhotos {
                 result = savedAll
             } else {
-                result = PHAsset.fetchAssets(with: .image, options: .defaultOptions)
+                result = PHAsset.fetchAssets(with: .defaultOptions)
             }
         }
 
@@ -222,7 +209,7 @@ public final class PhotoLibraryService {
         if let savedAll = self.allPhotos {
             result = savedAll
         } else {
-            result = PHAsset.fetchAssets(with: .image, options: .defaultOptions)
+            result = PHAsset.fetchAssets(with: .defaultOptions)
         }
 
         let totalCount = result.count
@@ -274,6 +261,21 @@ public final class PhotoLibraryService {
                         return
                     }
                     continuation.resume(returning: image?.cgImage)
+            }
+        }
+    }
+
+    /// 상세화면 실제 재생용 — 영상 PHAsset을 AVPlayerItem으로 불러온다
+    public func loadPlayerItem(id: String) async throws -> AVPlayerItem? {
+        guard let asset = await getAsset(id: id) else { return nil }
+
+        let options = PHVideoRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .automatic
+
+        return await withCheckedContinuation { continuation in
+            imageManager.requestPlayerItem(forVideo: asset, options: options) { playerItem, _ in
+                continuation.resume(returning: playerItem)
             }
         }
     }
@@ -333,8 +335,18 @@ extension PHFetchOptions {
             NSSortDescriptor(key: "creationDate", ascending: false),
             NSSortDescriptor(key: "modificationDate", ascending: false)
         ]
-        option.predicate = NSPredicate(format: "mediaType = %d", PHAssetMediaType.image.rawValue)
+        option.predicate = mediaTypePredicate
         return option
+    }
+
+    /// 사진 + 영상 둘 다 포함 — 영상은 라벨/얼굴/동물 인식·비슷한사진 비교 대상에서만 제외되고
+    /// 라이브러리 조회 자체는 사진과 동일하게 취급한다(날짜/지역/여행 앨범에는 그대로 들어가야 하므로)
+    static var mediaTypePredicate: NSPredicate {
+        NSPredicate(
+            format: "mediaType = %d OR mediaType = %d",
+            PHAssetMediaType.image.rawValue,
+            PHAssetMediaType.video.rawValue
+        )
     }
 }
 

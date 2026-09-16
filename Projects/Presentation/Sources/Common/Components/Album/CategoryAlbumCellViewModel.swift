@@ -58,6 +58,9 @@ struct CategoryAlbumCellViewModel: AlbumCellViewModel {
         case "vehicle":
             systemIconName = "car.fill"
             iconColor = UIColor("#6B7AFF")
+        case "video":
+            systemIconName = "video.fill"
+            iconColor = UIColor("#3A3A3C")
         default:
             systemIconName = "photo.fill"
             iconColor = Theme.textTertiary

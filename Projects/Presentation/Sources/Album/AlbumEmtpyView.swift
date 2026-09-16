@@ -13,6 +13,7 @@ import Combine
 final class AlbumEmtpyView: UIView {
 
     var onAnalysis: (() -> Void)?
+    var onImportLibraryAlbum: (() -> Void)?
 
     var publisher: AnyPublisher<UIButton, Never> {
         analysisButton.tapPublisher.eraseToAnyPublisher()
@@ -79,6 +80,23 @@ final class AlbumEmtpyView: UIView {
         return label
     }()
 
+    /// 자동 분석과 별개로, 사진첩에 이미 있는 앨범을 그대로 가져오는 보조 동작 — 강조하지 않고
+    /// 텍스트 버튼 정도로 아래쪽에 조용히 둔다
+    private let libraryImportButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.title = String(localized: "사진첩 앨범 불러오기", bundle: .module)
+        config.baseForegroundColor = Theme.textSecondary
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { container in
+            var c = container
+            c.font = .systemFont(ofSize: 14, weight: .medium)
+            return c
+        }
+        config.image = UIImage(systemName: "square.and.arrow.down")
+        config.imagePadding = 6
+        config.imagePlacement = .leading
+        return UIButton(configuration: config)
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
 
@@ -128,6 +146,8 @@ final class AlbumEmtpyView: UIView {
         progressiveView.addSubview(progressiveTitleLabel)
         progressiveView.addSubview(progressiveMessageLabel)
 
+        addSubview(libraryImportButton)
+
         // 카드 높이를 고정값(180)으로 박아두면 메시지가 길어지거나 기기 폭이 좁아 줄바꿈이 늘어날 때
         // 텍스트가 잘려서 "..."으로 보이는 문제가 있었다 — 내부 요소들의 top~bottom 제약 체인이 이미
         // 높이를 완전히 결정하므로, 고정 높이 없이 내용에 맞춰 자연스럽게 늘어나게 둔다.
@@ -156,6 +176,11 @@ final class AlbumEmtpyView: UIView {
         progressiveView.snp.makeConstraints { make in
             make.top.equalTo(analysisView.snp.bottom).offset(20)
             make.leading.trailing.equalTo(self).inset(20)
+        }
+
+        libraryImportButton.snp.makeConstraints { make in
+            make.top.equalTo(progressiveView.snp.bottom).offset(20)
+            make.centerX.equalToSuperview()
             make.bottom.equalTo(self).inset(32)
         }
 
@@ -186,9 +211,14 @@ final class AlbumEmtpyView: UIView {
 
     private func setupBinding() {
         analysisButton.addTarget(self, action: #selector(didTapAnalyze), for: .touchUpInside)
+        libraryImportButton.addTarget(self, action: #selector(didTapImportLibraryAlbum), for: .touchUpInside)
     }
 
     @objc func didTapAnalyze() {
         self.onAnalysis?()
+    }
+
+    @objc func didTapImportLibraryAlbum() {
+        self.onImportLibraryAlbum?()
     }
 }

@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 import Combine
+import Domain
 
 @MainActor
 final class TabbarCoordinator: BaseCoordinator {
@@ -44,6 +45,8 @@ final class TabbarCoordinator: BaseCoordinator {
             switch type {
             case .progressSheet(let progress):
                 self?.startAnalysisFlow(progress: progress)
+            case .showLibraryImportPicker(let useCase):
+                self?.presentLibraryImportPicker(useCase: useCase)
             }
         }
 
@@ -86,6 +89,15 @@ final class TabbarCoordinator: BaseCoordinator {
 
         window.rootViewController = self.tabbarViewController
         window.makeKeyAndVisible()
+    }
+
+    /// "사진첩 앨범 불러오기"는 앨범 탭/설정 탭 양쪽에서 같은 진입점(tabbarViewModel)을 통해
+    /// 트리거되므로, 특정 탭의 네비게이션 스택이 아니라 탭바 위에 새 모달로 띄운다.
+    private func presentLibraryImportPicker(useCase: LibraryAlbumImportUseCase) {
+        let modalNav = UINavigationController()
+        let importCoordinator = LibraryAlbumPickerCoordinator(useCase: useCase, navigationController: modalNav)
+        self.start(coordinator: importCoordinator)
+        tabbarViewController?.present(modalNav, animated: true)
     }
 
     private func makePhotoLibraryCoordinator(viewModel: TabbarViewModel) -> PhotoLibraryCoordinator {

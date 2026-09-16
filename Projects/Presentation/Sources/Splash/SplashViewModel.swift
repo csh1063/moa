@@ -21,11 +21,15 @@ public final class SplashViewModel: BaseViewModel {
 
     struct Output {
         let finished: AnyPublisher<Bool, Never>
+        let progress: AnyPublisher<Double, Never>
     }
 
     private let input = PassthroughSubject<Input, Never>()
 
     @Published private var finished: Bool = false
+    /// 스플래시에서 도는 체크(삭제된 사진 정리 + 앨범 커버/개수 동기화)의 전체 진행률 — 앞
+    /// 절반은 checkDeletedPhoto, 뒷 절반은 syncCoverAndCount에 배분한다.
+    @Published private var progress: Double = 0
     private let appearSubject = PassthroughSubject<Void, Never>()
     private let animDoneSubject = PassthroughSubject<Void, Never>()
 
@@ -44,7 +48,10 @@ public final class SplashViewModel: BaseViewModel {
     }
 
     func transform() -> Output {
-        Output(finished: $finished.eraseToAnyPublisher())
+        Output(
+            finished: $finished.eraseToAnyPublisher(),
+            progress: $progress.eraseToAnyPublisher()
+        )
     }
 
     func send(_ input: Input) {
@@ -129,11 +136,12 @@ public final class SplashViewModel: BaseViewModel {
 
     private func checkDeletedPhoto() async {
         do {
-            for try await progress in try await self.useCase.checkDeletedPhoto() {
-                switch progress {
+            for try await progressState in try await self.useCase.checkDeletedPhoto() {
+                switch progressState {
                 case .progress(let ratio):
-                    debugLog("check progress: \(ratio)")
+                    self.progress = ratio * 0.5
                 case .completed:
+                    self.progress = 0.5
                     await self.syncData()
                 case .unavailable(let reason):
                     debugLog("check reason: \(reason)")
@@ -147,11 +155,12 @@ public final class SplashViewModel: BaseViewModel {
 
     private func syncData() async {
         do {
-            for try await progress in try await self.useCase.syncCoverAndCount() {
-                switch progress {
+            for try await progressState in try await self.useCase.syncCoverAndCount() {
+                switch progressState {
                 case .progress(let ratio):
-                    debugLog("syncData progress: \(ratio)")
+                    self.progress = 0.5 + ratio * 0.5
                 case .completed:
+                    self.progress = 1.0
 //                    await self.start()
                     appearSubject.send()
                 case .unavailable(let reason):

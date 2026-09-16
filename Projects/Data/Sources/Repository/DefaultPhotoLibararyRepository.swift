@@ -8,6 +8,7 @@
 
 import Foundation
 import Domain
+import Photos
 
 public final class DefaultPhotoLibraryRepository: PhotoLibraryRepository {
 
@@ -47,11 +48,25 @@ public final class DefaultPhotoLibraryRepository: PhotoLibraryRepository {
         return ImageData(cgImage: cgImage as? T)
     }
 
+    public func loadVideoAsset<T>(id: String) async throws -> T? {
+        let playerItem = try await self.libraryService.loadPlayerItem(id: id)
+        return playerItem as? T
+    }
+
     public func fetchPhotos(before date: Date, page: Int, pageCount: Int) async throws -> PhotoList {
         try await self.libraryService.getPhotosBefore(date, page: page, pageCount: pageCount).toDomain()
     }
 
     public func fetchPhotos(after date: Date, page: Int, pageCount: Int) async throws -> PhotoList {
         try await self.libraryService.getPhotosAfter(date, page: page, pageCount: pageCount).toDomain()
+    }
+
+    public func fetchDeviceAlbums() async throws -> [AlbumAsset] {
+        try await self.libraryService.getAlbumList().map { $0.toDomain() }
+    }
+
+    public func fetchAllPhotos(in collection: PHAssetCollection) async throws -> [PhotoInAlbum] {
+        // page: -1은 페이지네이션 없이 전체를 한 번에 반환 (PhotoLibraryService.getPhotoList 참고)
+        try await self.libraryService.getPhotoList(from: collection, page: -1).toDomain().photos
     }
 }

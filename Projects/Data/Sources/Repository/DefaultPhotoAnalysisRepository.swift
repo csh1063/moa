@@ -9,6 +9,7 @@
 import Foundation
 import Domain
 import CoreGraphics
+import Photos
 
 // Data 모듈
 public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
@@ -58,7 +59,11 @@ public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
             let task = Task {
                 do {
                     let allAssets = try await libraryService.getPhotoList().photos
-                    let photos = allAssets.filter { !excludingIds.contains($0.asset.localIdentifier) }
+                    // 영상은 라벨/얼굴/동물 인식 대상이 아니다 — 여기서 제외하면 라벨이 안 붙어서
+                    // 카테고리/얼굴/동물 앨범 분류에서도 자연히 빠진다(날짜/지역/여행 앨범은 영향 없음)
+                    let photos = allAssets.filter {
+                        !excludingIds.contains($0.asset.localIdentifier) && $0.asset.mediaType != .video
+                    }
 
                     let total = photos.count
                     var completed = 0

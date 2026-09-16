@@ -50,6 +50,8 @@ public final class AlbumDetailViewModel: BaseViewModel {
         case excludeSelected(ids: [String])
         /// 대표 사진 고르기 모드에서 사진을 탭했을 때 — 바로 적용하지 않고 미리보기부터 요청
         case selectCoverCandidate(id: String)
+        /// 대표 사진 고르기 모드에서 영상을 탭했을 때 — 선택 불가 안내
+        case tappedVideoAsCoverCandidate
     }
 
     public struct Output {
@@ -231,6 +233,15 @@ public final class AlbumDetailViewModel: BaseViewModel {
 
         case .selectCoverCandidate(let id):
             onAction?(.previewCover(album: album, candidateId: id))
+
+        case .tappedVideoAsCoverCandidate:
+            showAlert(
+                title: String(localized: "대표 사진으로 설정할 수 없어요", bundle: .module),
+                message: String(localized: "영상은 대표 사진으로 선택할 수 없어요", bundle: .module),
+                buttons: [
+                    AlertButtonConfig(title: String(localized: "확인", bundle: .module), style: .default, action: nil)
+                ]
+            )
 
         case .excludeSelected(let ids):
             showAlert(

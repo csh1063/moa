@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import AVFoundation
 import Combine
 import Domain
 
@@ -90,6 +91,11 @@ final class ImageViewerViewModel: BaseViewModel {
         } catch {
             return nil
         }
+    }
+
+    /// 영상 셀 전용 — 매번 새 AVPlayerItem을 만들어야 재생 위치가 꼬이지 않아서 캐시하지 않는다
+    func loadVideoPlayerItem(id: String) async -> AVPlayerItem? {
+        try? await imageUseCase.loadVideoAsset(id: id)
     }
 
     // MARK: - Private

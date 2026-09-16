@@ -99,7 +99,7 @@ final class TravelPhotoGridView: UIView {
 
     private func applySnapshot() {
         let items = viewModel.photos.map {
-            PhotoCellItemViewModel(localIdentifier: $0.localIdentifier, imageLoader: viewModel)
+            PhotoCellItemViewModel(localIdentifier: $0.localIdentifier, imageLoader: viewModel, isVideo: $0.isVideo)
         }
         var snapshot = NSDiffableDataSourceSnapshot<Int, PhotoCellItemViewModel>()
         snapshot.appendSections([0])
