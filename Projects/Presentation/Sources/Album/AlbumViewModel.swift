@@ -17,6 +17,8 @@ enum AlbumViewModelAction {
     case pop
     /// 앨범을 길게 눌렀을 때 — 타입별 앨범 메뉴(최소 "앨범 삭제")를 띄운다
     case showAlbumMenu(Album)
+    /// "가져온 앨범" 모두보기 화면 우측 상단 "가져오기" 버튼
+    case presentLibraryImportPicker
 }
 
 struct AlbumSectionsData {
@@ -208,8 +210,10 @@ public final class AlbumViewModel: BaseViewModel {
 
         // 사진첩에서 그대로 가져온(자동분류 아닌) 앨범 — CategoryAlbumCell을 그대로 재사용한다
         // (album.name이 카테고리 키와 안 겹쳐서 항상 default 아이콘으로 뜨지만 자연스럽다)
+        // 메인에는 최대 3개만 노출하고, 나머지는 "모두보기"에서 확인한다
         data.items[.library] = albums.filter { $0.from == "library" }
             .sorted { $0.createdAt > $1.createdAt }
+            .prefix(3)
             .map {
                 .category(CategoryAlbumCellViewModel(album: $0, imageLoader: self))
             }
@@ -232,6 +236,15 @@ public final class AlbumViewModel: BaseViewModel {
         } catch {
             debugLog("이미지 로딩 실패: \(error.localizedDescription)")
             return nil
+        }
+    }
+
+    func loadImageProgressive(id: String, size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
+        Task {
+            await imageUseCase.loadImageProgressive(id: id, size: size) { (data: ImageData<CGImage>, isFinal) in
+                let image = data.cgImage.map { UIImage(cgImage: $0) }
+                Task { @MainActor in onImage(image, isFinal) }
+            }
         }
     }
 }

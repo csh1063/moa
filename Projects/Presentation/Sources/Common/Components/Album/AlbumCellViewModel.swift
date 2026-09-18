@@ -27,6 +27,10 @@ extension AlbumCellViewModel {
         await imageLoader.loadImage(id: localIdentifier, size: size)
     }
 
+    func loadImageProgressive(size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
+        imageLoader.loadImageProgressive(id: localIdentifier, size: size, onImage: onImage)
+    }
+
     static func == (lhs: Self, rhs: Self) -> Bool {
         // photoCount/localIdentifier(커버 사진)까지 비교해야 한다 — id와 displayName만 같으면
         // "안 바뀐 셀"로 취급돼서 UICollectionViewDiffableDataSource가 다시 안 그려준다(합치기/사진

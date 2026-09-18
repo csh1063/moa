@@ -1,8 +1,8 @@
 //
-//  DateAlbumCell.swift
+//  LibraryAlbumGridCell.swift
 //  Presentation
 //
-//  Created by sanghyeon on 5/27/26.
+//  Created by sanghyeon on 9/18/26.
 //  Copyright © 2026 sanghyeon. All rights reserved.
 //
 
@@ -10,16 +10,15 @@ import UIKit
 import SnapKit
 import Domain
 
-final class DateAlbumCell: UICollectionViewCell {
+/// "가져온 앨범" 모두보기 전용 셀 — DateAlbumCell과 같은 구조(커버 사진 + 하단 그라데이션 + 텍스트)를
+/// 따르되, 레이아웃(makeLibrarySection)에서 세로 크기를 메인 화면 시간 카드의 2배(240)로 고정하고
+/// 가로 2열로 배치한다
+final class LibraryAlbumGridCell: UICollectionViewCell {
 
     // MARK: - UI
 
     private let containerView = UIView()
-
-    /// 콜라주: 상단 wide 1장 + 하단 2장
-    private let topPhotoView            = UIImageView()
-//    private let bottomLeadingPhotoView  = UIImageView()
-//    private let bottomTrailingPhotoView = UIImageView()
+    private let photoView = UIImageView()
 
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView()
@@ -30,10 +29,9 @@ final class DateAlbumCell: UICollectionViewCell {
     }()
 
     private let overlayView = UIView()
-    private let yearLabel   = UILabel()
-    private let countLabel  = UILabel()
+    private let nameLabel  = UILabel()
+    private let countLabel = UILabel()
 
-    private var tasks: [Task<Void, Never>] = []
     private var currentIdentifier: String?
 
     // MARK: - Init
@@ -44,26 +42,18 @@ final class DateAlbumCell: UICollectionViewCell {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("DateAlbumCell does not support NSCoding")
+        fatalError("LibraryAlbumGridCell does not support NSCoding")
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        tasks.forEach { $0.cancel() }
-        tasks = []
         currentIdentifier = nil
-        topPhotoView.image = nil
-//        bottomLeadingPhotoView.image = nil
-//        bottomTrailingPhotoView.image = nil
+        photoView.image = nil
         placeholderIcon.isHidden = false
     }
 
     override func layoutSubviews() {
-//            super.layoutSubviews()
-            // Cell의 최종 bounds 크기를 레이어에 주입
-//        self.layoutIfNeeded()
-
-            super.layoutSubviews()
+        super.layoutSubviews()
         overlayView.layoutIfNeeded()
         if let gradient = overlayView.layer.sublayers?.first as? CAGradientLayer {
             gradient.frame = overlayView.bounds
@@ -81,12 +71,10 @@ final class DateAlbumCell: UICollectionViewCell {
         containerView.addBorder(color: Theme.strokeSoft, borderWidth: 1)
         contentView.addSubview(containerView)
 
-        [topPhotoView/*, bottomLeadingPhotoView, bottomTrailingPhotoView*/].forEach {
-            $0.contentMode = .scaleAspectFill
-            $0.clipsToBounds = true
-            $0.backgroundColor = Theme.strokeSoft
-            containerView.addSubview($0)
-        }
+        photoView.contentMode = .scaleAspectFill
+        photoView.clipsToBounds = true
+        photoView.backgroundColor = Theme.strokeSoft
+        containerView.addSubview(photoView)
 
         containerView.addSubview(placeholderIcon)
 
@@ -97,9 +85,11 @@ final class DateAlbumCell: UICollectionViewCell {
         overlayView.layer.addSublayer(gradient)
         containerView.addSubview(overlayView)
 
-        yearLabel.textColor = .white
-        yearLabel.font = .systemFont(ofSize: 22, weight: .bold)
-        containerView.addSubview(yearLabel)
+        nameLabel.textColor = .white
+        nameLabel.font = .systemFont(ofSize: 16, weight: .bold)
+        nameLabel.numberOfLines = 1
+        nameLabel.lineBreakMode = .byTruncatingTail
+        containerView.addSubview(nameLabel)
 
         countLabel.textColor = UIColor.white.withAlphaComponent(0.75)
         countLabel.font = .systemFont(ofSize: 12, weight: .regular)
@@ -108,22 +98,9 @@ final class DateAlbumCell: UICollectionViewCell {
         containerView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
-
-        topPhotoView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview()
-//            make.height.equalToSuperview().multipliedBy(0.6)
-            make.bottom.equalToSuperview()
+        photoView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
-//        bottomLeadingPhotoView.snp.makeConstraints { make in
-//            make.top.equalTo(topPhotoView.snp.bottom).offset(2)
-//            make.leading.bottom.equalToSuperview()
-//            make.trailing.equalTo(containerView.snp.centerX).offset(-1)
-//        }
-//        bottomTrailingPhotoView.snp.makeConstraints { make in
-//            make.top.equalTo(topPhotoView.snp.bottom).offset(2)
-//            make.trailing.bottom.equalToSuperview()
-//            make.leading.equalTo(containerView.snp.centerX).offset(1)
-//        }
         placeholderIcon.snp.makeConstraints { make in
             make.center.equalToSuperview()
             make.size.equalTo(36)
@@ -135,7 +112,7 @@ final class DateAlbumCell: UICollectionViewCell {
             make.leading.trailing.equalToSuperview().inset(12)
             make.bottom.equalToSuperview().inset(12)
         }
-        yearLabel.snp.makeConstraints { make in
+        nameLabel.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(12)
             make.bottom.equalTo(countLabel.snp.top).offset(-2)
         }
@@ -143,21 +120,17 @@ final class DateAlbumCell: UICollectionViewCell {
 
     // MARK: - Configure
 
-    func configure(with viewModel: DateAlbumCellViewModel) {
-
+    func configure(with viewModel: CategoryAlbumCellViewModel) {
         currentIdentifier = viewModel.localIdentifier
-        yearLabel.text  = viewModel.displayName
+        nameLabel.text = viewModel.displayName
         countLabel.text = String(localized: "사진 \(viewModel.photoCount.formatted())장", bundle: .module)
 
-        // 커버 1장을 3분할 위치 모두에 동일하게 사용
-        // 실제로 여러 장 커버가 생기면 photos 배열에서 추가 identifier 받아 확장
-        let photoViews = [topPhotoView/*, bottomLeadingPhotoView, bottomTrailingPhotoView*/]
-        photoViews.forEach { $0.image = nil }
+        photoView.image = nil
 
-        let size = CGSize(width: 300, height: 300)
+        let size = CGSize(width: 300, height: 400)
         viewModel.loadImageProgressive(size: size) { [weak self] image, _ in
             guard let self, self.currentIdentifier == viewModel.localIdentifier else { return }
-            photoViews.forEach { $0.image = image }
+            self.photoView.image = image
             self.placeholderIcon.isHidden = image != nil
         }
     }

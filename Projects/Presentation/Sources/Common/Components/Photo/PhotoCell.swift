@@ -191,13 +191,11 @@ final class PhotoCell: UICollectionViewCell {
         )
         videoIndicatorIcon.isHidden = !viewModel.isVideo
 
-        task = Task {
-            let size = frame.size
-            let image = await viewModel.loadImage(size: CGSize(width: size.width * 2, height: size.height * 2))
-            if !Task.isCancelled && assetIdentifier == viewModel.localIdentifier {
-                mainImageView.image = image
-            }
-            noImageView.stopShimmer()
+        let size = frame.size
+        viewModel.loadImageProgressive(size: CGSize(width: size.width * 2, height: size.height * 2)) { [weak self] image, isFinal in
+            guard let self, self.assetIdentifier == viewModel.localIdentifier else { return }
+            self.mainImageView.image = image
+            if isFinal { self.noImageView.stopShimmer() }
         }
     }
 

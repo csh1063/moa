@@ -66,10 +66,18 @@ final class AlbumListViewController: BaseViewController {
         self.viewModel.send(.appear)
     }
 
+    /// "가져온 앨범" 모두보기는 다중 선택 삭제 대신 "가져오기" 버튼만 노출한다
+    /// (개별 삭제는 롱프레스 메뉴로 여전히 가능)
+    private var normalRightButtons: [NaviButtonSetting] {
+        viewModel.from == "library"
+            ? [RightButton(type: .importAlbum)]
+            : [RightButton(type: .select)]
+    }
+
     private func setupView() {
 
         self.naviView.setTitle(screenTitle)
-        self.naviView.addButtons([LeftButton(type: .back), RightButton(type: .select)])
+        self.naviView.addButtons([LeftButton(type: .back)] + normalRightButtons)
 
         collectionView.contentInset = UIEdgeInsets(top: 20, left: 0, bottom: 80, right: 0)
         collectionView.delegate = self
@@ -120,6 +128,8 @@ final class AlbumListViewController: BaseViewController {
                 self.isSelectionMode = true
             case .cancel:
                 self.isSelectionMode = false
+            case .importAlbum:
+                self.viewModel.send(.importLibraryAlbum)
             default: break
             }
         }
@@ -151,7 +161,7 @@ final class AlbumListViewController: BaseViewController {
         naviView.addButtons(
             isSelectionMode
                 ? [LeftButton(type: .back), RightButton(type: .cancel)]
-                : [LeftButton(type: .back), RightButton(type: .select)]
+                : [LeftButton(type: .back)] + normalRightButtons
         )
     }
 
@@ -185,6 +195,7 @@ final class AlbumListViewController: BaseViewController {
             case "category": return self?.makeCategorySection()
             case "face":     return self?.makeFaceSection(environment: environment)
             case "similar": return self?.makeSimilarSection()
+            case "library": return self?.makeLibrarySection()
             default: return self?.makeTravelSection()
             }
         }
@@ -365,6 +376,34 @@ final class AlbumListViewController: BaseViewController {
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 28, trailing: 16)
         return section
     }
+
+    /// 가져온 앨범: LibraryAlbumGridCell(DateAlbumCell과 같은 사진+그라데이션+텍스트 구조)을
+    /// 2열로 배치하고, 셀 높이는 메인 화면 "시간" 카드(120pt)의 2배(240)로 고정한다
+    private func makeLibrarySection() -> NSCollectionLayoutSection {
+        let inset: CGFloat = 20
+        let spacing: CGFloat = 12
+        let itemHeight: CGFloat = 240
+        let screenWidth = UIScreen.main.bounds.width
+        let itemWidth = (screenWidth - inset * 2 - spacing) / 2
+
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .absolute(itemWidth),
+            heightDimension: .absolute(itemHeight)
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .absolute(itemHeight)
+        )
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item, item])
+        group.interItemSpacing = .fixed(spacing)
+
+        let section = NSCollectionLayoutSection(group: group)
+        section.interGroupSpacing = spacing
+        section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: inset, bottom: 28, trailing: inset)
+        return section
+    }
 }
 
 extension AlbumListViewController {
@@ -394,6 +433,11 @@ extension AlbumListViewController {
             self?.applySelectionOverlay(to: cell, album: vm.album)
         }
 
+        let libraryGridRegistration = UICollectionView.CellRegistration<LibraryAlbumGridCell, CategoryAlbumCellViewModel> { [weak self] cell, _, vm in
+            cell.configure(with: vm)
+            self?.applySelectionOverlay(to: cell, album: vm.album)
+        }
+
         let faceRegistration = UICollectionView.CellRegistration<FaceAlbumGridCell, FaceAlbumCellViewModel> { [weak self] cell, _, vm in
             cell.configure(with: vm)
             self?.applySelectionOverlay(to: cell, album: vm.album)
@@ -411,8 +455,8 @@ extension AlbumListViewController {
 
         dataSource = UICollectionViewDiffableDataSource<Int, AlbumType>(
             collectionView: collectionView
-        ) { /*[weak self]*/ collectionView, indexPath, item in
-//            guard let self else { return UICollectionViewCell() }
+        ) { [weak self] collectionView, indexPath, item in
+            guard let self else { return UICollectionViewCell() }
             switch item {
             case .date(let vm):
                 return collectionView.dequeueConfiguredReusableCell(
@@ -430,6 +474,14 @@ extension AlbumListViewController {
                     for: indexPath,
                     item: vm)
             case .category(let vm):
+                // "가져온 앨범" 모두보기는 카테고리와 같은 AlbumType.category를 재사용하지만
+                // 이 화면(viewModel.from == "library")에서만 전용 카드 스타일로 그린다
+                if self.viewModel.from == "library" {
+                    return collectionView.dequeueConfiguredReusableCell(
+                        using: libraryGridRegistration,
+                        for: indexPath,
+                        item: vm)
+                }
                 return collectionView.dequeueConfiguredReusableCell(
                     using: categoryRegistration,
                     for: indexPath,

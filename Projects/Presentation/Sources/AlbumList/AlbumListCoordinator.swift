@@ -41,6 +41,8 @@ public final class AlbumListCoordinator: BaseCoordinator {
                 self?.pop()
             case .showAlbumMenu(let album):
                 self?.showAlbumMenu(album: album)
+            case .presentLibraryImportPicker:
+                self?.presentLibraryImportPicker()
             default: break
             }
         }
@@ -67,6 +69,14 @@ public final class AlbumListCoordinator: BaseCoordinator {
         )
         self.hideTabBar?()
         self.start(coordinator: detailCoordinator)
+    }
+
+    private func presentLibraryImportPicker() {
+        let useCase = diContainer.makeLibraryAlbumImportUseCase()
+        let modalNav = UINavigationController()
+        let importCoordinator = LibraryAlbumPickerCoordinator(useCase: useCase, navigationController: modalNav)
+        self.start(coordinator: importCoordinator)
+        navigationController.present(modalNav, animated: true)
     }
 
     /// 앨범을 길게 눌렀을 때 — 앨범 상세의 "..." 버튼과 완전히 동일한 메뉴를 상세 화면 진입 없이 띄운다.

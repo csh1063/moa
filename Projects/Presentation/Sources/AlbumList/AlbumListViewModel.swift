@@ -25,6 +25,7 @@ final class AlbumListViewModel: BaseViewModel {
         case dismiss
         case showAlbumMenu(Album)
         case confirmDeleteAlbums([Album])
+        case importLibraryAlbum
     }
 
     struct Output {
@@ -96,6 +97,8 @@ final class AlbumListViewModel: BaseViewModel {
             self.onAction?(.showAlbumMenu(album))
         case .confirmDeleteAlbums(let albums):
             confirmDeleteAlbums(albums)
+        case .importLibraryAlbum:
+            onAction?(.presentLibraryImportPicker)
         }
     }
 
@@ -182,6 +185,12 @@ final class AlbumListViewModel: BaseViewModel {
                         ? .animal(AnimalAlbumCellViewModel(album: album, imageLoader: self, imageUseCase: imageUseCase, albumUseCase: albumUseCase))
                         : .face(FaceAlbumCellViewModel(album: album, imageLoader: self, imageUseCase: imageUseCase, albumUseCase: albumUseCase))
                 }
+        case "library":
+            list = albums.filter { $0.from == "library" }
+                .sorted { $0.createdAt > $1.createdAt }
+                .map {
+                    .category(CategoryAlbumCellViewModel(album: $0, imageLoader: self))
+                }
         default: list = []
         }
 //        data.items[.date] = []//albums.filter { $0.from == "date" }
@@ -230,6 +239,15 @@ final class AlbumListViewModel: BaseViewModel {
         } catch {
             debugLog("이미지 로딩 실패: \(error.localizedDescription)")
             return nil
+        }
+    }
+
+    func loadImageProgressive(id: String, size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
+        Task {
+            await imageUseCase.loadImageProgressive(id: id, size: size) { (data: ImageData<CGImage>, isFinal) in
+                let image = data.cgImage.map { UIImage(cgImage: $0) }
+                Task { @MainActor in onImage(image, isFinal) }
+            }
         }
     }
 }

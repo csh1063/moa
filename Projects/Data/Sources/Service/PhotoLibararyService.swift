@@ -265,6 +265,37 @@ public final class PhotoLibraryService {
         }
     }
 
+    /// 그리드/카드 썸네일 전용 — opportunistic으로 저화질 콜백을 먼저 받아 즉시 보여주고, 뒤이어
+    /// 오는 고화질 콜백으로 교체한다. continuation 기반이 아니라 콜백을 그대로 넘겨주는 방식이라,
+    /// 예전에 고화질 콜백이 아예 안 오는 자산에서 무한대기하던 문제(위 loadImage 주석 참고)가
+    /// 구조적으로 재발할 수 없다 — 저화질만 오고 끝나도 호출부는 그냥 그 상태로 남을 뿐이다.
+    public func loadImageProgressive(
+        id: String,
+        targetSize: CGSize,
+        onImage: @escaping (CGImage?, _ isFinal: Bool) -> Void
+    ) async {
+        guard let asset = await getAsset(id: id) else {
+            onImage(nil, true)
+            return
+        }
+
+        let options = PHImageRequestOptions()
+        options.resizeMode = .fast
+        options.deliveryMode = .opportunistic
+        options.isSynchronous = false
+        options.isNetworkAccessAllowed = true
+
+        imageManager.requestImage(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: options
+        ) { image, info in
+            let isDegraded = info?[PHImageResultIsDegradedKey] as? Bool ?? false
+            onImage(image?.cgImage, !isDegraded)
+        }
+    }
+
     /// 상세화면 실제 재생용 — 영상 PHAsset을 AVPlayerItem으로 불러온다
     public func loadPlayerItem(id: String) async throws -> AVPlayerItem? {
         guard let asset = await getAsset(id: id) else { return nil }

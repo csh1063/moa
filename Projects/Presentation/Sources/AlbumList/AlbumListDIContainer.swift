@@ -82,6 +82,14 @@ public final class AlbumListDIContainer {
                                     imageUseCase: imageUseCase)
     }
 
+    func makeLibraryAlbumImportUseCase() -> LibraryAlbumImportUseCase {
+        DefaultLibraryAlbumImportUseCase(
+            photoLibraryRepository: photoLibraryRepository,
+            photoDataRepository: photoDataRepository,
+            albumDataRepository: albumDataRepository
+        )
+    }
+
     func makeDetailDIContainer(album: Album, isSelectMode: Bool) -> AlbumDetailDIContainer {
         AlbumDetailDIContainer(
             album: album,

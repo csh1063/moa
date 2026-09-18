@@ -125,11 +125,10 @@ final class LocationAlbumCell: UICollectionViewCell {
             setupSmall(pinColor: viewModel.pinColor)
         }
 
-        task = Task {
-            let size = CGSize(width: 88, height: 88)
-            let image = await viewModel.loadImage(size: size)
-            guard !Task.isCancelled, assetIdentifier == viewModel.localIdentifier else { return }
-            thumbImageView.image = image
+        let size = CGSize(width: 88, height: 88)
+        viewModel.loadImageProgressive(size: size) { [weak self] image, _ in
+            guard let self, self.assetIdentifier == viewModel.localIdentifier else { return }
+            self.thumbImageView.image = image
         }
     }
 

@@ -44,13 +44,16 @@ final class AlbumSectionHeaderView: UICollectionReusableView {
         moreButton.addTarget(self, action: #selector(moreTapped), for: .touchUpInside)
         addSubview(moreButton)
 
+        // 섹션의 contentInsets(leading/trailing 20)이 supplementariesFollowContentInsets
+        // 기본값(true)에 의해 헤더에도 이미 적용된 상태라, 여기서 또 20을 주면 셀 콘텐츠보다
+        // 20pt 더 안쪽에서 시작하는 이중 여백이 된다 — 헤더 프레임 경계에 바로 붙인다
         titleLabel.snp.makeConstraints { make in
-            make.leading.equalToSuperview().inset(20)
+            make.leading.equalToSuperview()
             make.centerY.equalToSuperview()
         }
 
         moreButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().inset(20)
+            make.trailing.equalToSuperview()
             make.centerY.equalToSuperview()
         }
     }
@@ -76,8 +79,8 @@ final class AlbumSectionHeaderView: UICollectionReusableView {
         case .similar:
             self.moreButton.isHidden = false
         case .library:
-            // 카테고리처럼 홈 화면에 전체를 그대로 보여줘서 별도 모두보기가 필요 없다
-            self.moreButton.isHidden = true
+            // 메인엔 최대 3개까지만 노출되므로, 하나라도 있으면 나머지를 볼 수 있게 모두보기를 보여준다
+            self.moreButton.isHidden = itemCount < 1
         }
     }
 }

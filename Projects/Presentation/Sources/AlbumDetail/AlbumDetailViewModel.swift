@@ -149,6 +149,15 @@ public final class AlbumDetailViewModel: BaseViewModel {
         }
     }
 
+    func loadImageProgressive(id: String, size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
+        Task {
+            await imageUseCase.loadImageProgressive(id: id, size: size) { (data: ImageData<CGImage>, isFinal) in
+                let image = data.cgImage.map { UIImage(cgImage: $0) }
+                Task { @MainActor in onImage(image, isFinal) }
+            }
+        }
+    }
+
     /// 얼굴 앨범 디버깅용: 전체 사진이 아니라 이 앨범에 묶이게 한 얼굴 부분만 크롭해서 반환
     func loadFaceImage(id: String, size: CGSize) async -> UIImage? {
         guard let boundingBox = faceBoundingBoxes[id] else {

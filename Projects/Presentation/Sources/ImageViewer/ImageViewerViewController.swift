@@ -371,17 +371,21 @@ extension ImageViewerViewController: UICollectionViewDataSource {
         if photoDetail.isVideo {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoViewerCell.identifier, for: indexPath)
             if let videoCell = cell as? VideoViewerCell {
+                videoCell.currentPhotoId = photoDetail.id
+                // 정지 프레임(포스터)은 화면 크기 정도의 저화질 먼저 → 최대 해상도로 교체. 실제
+                // 재생용 AVPlayerItem은 별도로 비동기 로드한다 — 준비되기 전에 재생 버튼을 눌러도
+                // setPlayerItem이 나중에 채워지므로 안전하다
+                viewModel.loadImageProgressive(id: photoDetail.id, size: collectionView.bounds.size) { [weak videoCell] poster, _ in
+                    guard let videoCell, videoCell.currentPhotoId == photoDetail.id else { return }
+                    videoCell.configure(poster: poster)
+                    videoCell.setControlsHidden(!self.showOverlay, animated: false)
+                }
                 Task {
-                    // 정지 프레임(포스터)은 기존 이미지 로딩 경로를 그대로 재사용해서 바로 보여주고,
-                    // 실제 재생용 AVPlayerItem은 별도로 비동기 로드한다 — 준비되기 전에 재생 버튼을
-                    // 눌러도 setPlayerItem이 나중에 채워지므로 안전하다
-                    let poster = await viewModel.loadImage(for: indexPath.item, size: collectionView.bounds.size)
-                    await MainActor.run {
-                        videoCell.configure(poster: poster)
-                        videoCell.setControlsHidden(!showOverlay, animated: false)
-                    }
                     let playerItem = await viewModel.loadVideoPlayerItem(id: photoDetail.id)
-                    await MainActor.run { videoCell.setPlayerItem(playerItem) }
+                    await MainActor.run {
+                        guard videoCell.currentPhotoId == photoDetail.id else { return }
+                        videoCell.setPlayerItem(playerItem)
+                    }
                 }
             }
             return cell
@@ -389,9 +393,10 @@ extension ImageViewerViewController: UICollectionViewDataSource {
 
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageViewerCell.identifier, for: indexPath)
         if let imageCell = cell as? ImageViewerCell {
-            Task {
-                let image = await viewModel.loadImage(for: indexPath.item, size: collectionView.bounds.size)
-                await MainActor.run { imageCell.configure(image: image) }
+            imageCell.currentPhotoId = photoDetail.id
+            viewModel.loadImageProgressive(id: photoDetail.id, size: collectionView.bounds.size) { [weak imageCell] image, _ in
+                guard let imageCell, imageCell.currentPhotoId == photoDetail.id else { return }
+                imageCell.configure(image: image)
             }
         }
         return cell
@@ -430,7 +435,7 @@ extension ImageViewerViewController: UIGestureRecognizerDelegate {
     // 재생/일시정지 버튼을 탭한 건 오버레이 토글(tap)이 아니라 버튼 자신의 액션으로만 처리한다
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         guard gestureRecognizer is UITapGestureRecognizer else { return true }
-        return !(touch.view is UIButton)
+        return !(touch.view is UIButton || touch.view is UISlider)
     }
 }
 

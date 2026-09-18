@@ -11,11 +11,11 @@ import Domain
 enum AlbumSection: Int, CaseIterable {
     case travel
     case face
+    case library
     case similar
     case category
     case location
     case date
-    case library
 
     var title: String {
         switch self {

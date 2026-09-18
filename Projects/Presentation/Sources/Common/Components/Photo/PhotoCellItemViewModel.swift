@@ -40,6 +40,10 @@ struct PhotoCellItemViewModel: Hashable {
         await imageLoader.loadImage(id: localIdentifier, size: size)
     }
 
+    func loadImageProgressive(size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
+        imageLoader.loadImageProgressive(id: localIdentifier, size: size, onImage: onImage)
+    }
+
     static func == (lhs: PhotoCellItemViewModel, rhs: PhotoCellItemViewModel) -> Bool {
         lhs.localIdentifier == rhs.localIdentifier
     }

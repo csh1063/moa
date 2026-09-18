@@ -83,14 +83,27 @@ final class PhotoMapAnnotationView: MKAnnotationView {
         let size: CGFloat = count > 1 ? 52 : 40
 
         countBadge.isHidden = count <= 1
-        countBadge.text = "\(count)"
+        let countText = "\(count)"
+        countBadge.text = countText
 
         frame = CGRect(x: 0, y: 0, width: size, height: size)
         centerOffset = CGPoint(x: 0, y: -size / 2)
         avatarContainer.frame = bounds
         avatarContainer.layer.cornerRadius = size / 2
         imageView.frame = avatarContainer.bounds
-        countBadge.frame = CGRect(x: size - 20, y: size - 14, width: 24, height: 16)
+
+        // 3자리(~999)까지는 기존 24pt 고정 폭으로 잘리지 않으니 그대로 두고, 4자리
+        // 이상(1000+)일 때만 텍스트 폭에 맞춰 뱃지를 넓힌다 — 우측 끝(size + 4) 기준으로
+        // 왼쪽으로 확장. 항상 동적으로 계산하면 3자리 뱃지까지 다 커 보이게 된다
+        let badgeHeight: CGFloat = 16
+        let badgeWidth: CGFloat
+        if count >= 1000 {
+            let textWidth = (countText as NSString).size(withAttributes: [.font: countBadge.font as Any]).width
+            badgeWidth = ceil(textWidth) + 10
+        } else {
+            badgeWidth = 24
+        }
+        countBadge.frame = CGRect(x: size + 4 - badgeWidth, y: size - 14, width: badgeWidth, height: badgeHeight)
 
         guard let thumbnailId = cluster.photos.first?.localIdentifier else { return }
         task = Task { [weak self] in

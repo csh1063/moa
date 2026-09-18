@@ -101,6 +101,15 @@ public final class PhotoLibraryViewModel: BaseViewModel {
         }
     }
 
+    func loadImageProgressive(id: String, size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
+        Task {
+            await imageUseCase.loadImageProgressive(id: id, size: size) { (data: ImageData<CGImage>, isFinal) in
+                let image = data.cgImage.map { UIImage(cgImage: $0) }
+                Task { @MainActor in onImage(image, isFinal) }
+            }
+        }
+    }
+
     private func bind() {
         self.input.sink { [weak self] input in
             guard let self else { return }

@@ -100,6 +100,7 @@
 		7FA65F1F768F9BA1D426C203 /* LocationMapCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A851D25568AA27CC0A68624E /* LocationMapCoordinator.swift */; };
 		802B12E33E2A659E054052E4 /* ImageLoadable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE569B13800FF9871F9B568 /* ImageLoadable.swift */; };
 		816DA425CF89A37BB407B2E7 /* MainCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AD422405AEA0A6A12AAD28 /* MainCoordinator.swift */; };
+		82FC8F3E686D5AF4CC28015F /* LibraryAlbumGridCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67134AC04A9FADDA063EE063 /* LibraryAlbumGridCell.swift */; };
 		844350A9318751FDA20ACBFD /* AnalysisProgressManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D320388CBAAEC0F5B0406D3 /* AnalysisProgressManager.swift */; };
 		8724723A2379F5A075E0F080 /* TuistAssets+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B0961E8873C1BFDA61108A2 /* TuistAssets+Presentation.swift */; };
 		875C5815D9B3DFD90807CE11 /* UIControl+Publisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00134F7BB613E1BD0B7516E7 /* UIControl+Publisher.swift */; };
@@ -271,6 +272,7 @@
 		61F2F6619F3F3C694B29487D /* AlertManageable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertManageable.swift; sourceTree = "<group>"; };
 		64A57C4E3C0EB98D13F5C88E /* PhotoGridViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGridViewController.swift; sourceTree = "<group>"; };
 		6572185E13AF9F40CC6A8359 /* AppDIContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDIContainer.swift; sourceTree = "<group>"; };
+		67134AC04A9FADDA063EE063 /* LibraryAlbumGridCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryAlbumGridCell.swift; sourceTree = "<group>"; };
 		67B253ABDA558CF1481E03C1 /* AnimalAlbumGridCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalAlbumGridCell.swift; sourceTree = "<group>"; };
 		67BC566822730766F3AE64D4 /* TabbarDIContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabbarDIContainer.swift; sourceTree = "<group>"; };
 		6AE569B13800FF9871F9B568 /* ImageLoadable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoadable.swift; sourceTree = "<group>"; };
@@ -415,6 +417,7 @@
 				F4D16244C58F840FF194DE43 /* FaceAlbumGridCell.swift */,
 				26371EC091BC8C695C25E490 /* FaceCellView.swift */,
 				292D99FE10DAFB52CFAE73E0 /* FaceCellViewModel.swift */,
+				67134AC04A9FADDA063EE063 /* LibraryAlbumGridCell.swift */,
 				77DDFB88BE44225E00A36622 /* LocationAlbumCell.swift */,
 				1BBF3D39CC49B71F014AE289 /* LocationAlbumCellViewModel.swift */,
 				0BBA3F3365AD93BF4DC9BE96 /* SimilarAlbumCell.swift */,
@@ -1101,6 +1104,7 @@
 				1953286A5839E900271AFDD6 /* FaceAlbumGridCell.swift in Sources */,
 				161A4A9F95E4F0FBC867CE81 /* FaceCellView.swift in Sources */,
 				3947EA5AE49DFEF8DC572B71 /* FaceCellViewModel.swift in Sources */,
+				82FC8F3E686D5AF4CC28015F /* LibraryAlbumGridCell.swift in Sources */,
 				EEB8782BAAA7B07A3116E158 /* LocationAlbumCell.swift in Sources */,
 				18559B997BA8DED659E2135E /* LocationAlbumCellViewModel.swift in Sources */,
 				F93F7D9DB90707845B44657C /* SimilarAlbumCell.swift in Sources */,

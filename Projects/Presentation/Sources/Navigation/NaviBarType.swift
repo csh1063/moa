@@ -28,6 +28,7 @@ enum NaviBarButtonType: Equatable {
     case add
     case close
     case select
+    case importAlbum
 //    case filter
 //    case report
 //    case finder
@@ -54,6 +55,7 @@ enum NaviBarButtonType: Equatable {
         case .add: return "plus"
         case .close: return "xmark"
         case .select: return ""
+        case .importAlbum: return "tray.and.arrow.down"
 //        case .filter: return "line.3.horizontal.decrease"
 //        case .report: return "exclamationmark.bubble"
 //        case .finder: return "magnifyingglass"
@@ -83,7 +85,7 @@ enum NaviBarButtonType: Equatable {
     var backgroundColor: UIColor? {
         switch self {
 //        case .analysis: return Theme.primary
-        case .more, .cancel, .add, .select: return Theme.surface.withAlphaComponent(0.95)
+        case .more, .cancel, .add, .select, .importAlbum: return Theme.surface.withAlphaComponent(0.95)
         default: return nil
         }
     }

@@ -145,12 +145,11 @@ final class TravelAlbumCell: UICollectionViewCell {
         dateLabel.text = viewModel.dateRangeText
         countLabel.text = String(localized: "\(viewModel.photoCount.formatted())장", bundle: .module)
 
-        task = Task {
-            let size = CGSize(width: 400, height: 400)
-            let image = await viewModel.loadImage(size: size)
-            guard !Task.isCancelled, assetIdentifier == viewModel.localIdentifier else { return }
-            thumbImageView.image = image
-            placeholderIcon.isHidden = image != nil
+        let size = CGSize(width: 400, height: 400)
+        viewModel.loadImageProgressive(size: size) { [weak self] image, _ in
+            guard let self, self.assetIdentifier == viewModel.localIdentifier else { return }
+            self.thumbImageView.image = image
+            self.placeholderIcon.isHidden = image != nil
         }
     }
 }

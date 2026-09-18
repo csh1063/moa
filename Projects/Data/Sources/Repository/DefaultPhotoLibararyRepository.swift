@@ -69,4 +69,10 @@ public final class DefaultPhotoLibraryRepository: PhotoLibraryRepository {
         // page: -1은 페이지네이션 없이 전체를 한 번에 반환 (PhotoLibraryService.getPhotoList 참고)
         try await self.libraryService.getPhotoList(from: collection, page: -1).toDomain().photos
     }
+
+    public func loadImageProgressive<T>(id: String, size: CGSize, onImage: @escaping (ImageData<T>, Bool) -> Void) async {
+        await self.libraryService.loadImageProgressive(id: id, targetSize: size) { cgImage, isFinal in
+            onImage(ImageData(cgImage: cgImage as? T), isFinal)
+        }
+    }
 }

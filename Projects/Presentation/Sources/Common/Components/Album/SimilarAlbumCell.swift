@@ -129,13 +129,12 @@ final class SimilarAlbumCell: UICollectionViewCell {
 //            contentView.addShadow(color: .black, opacity: 0.3, offset: CGSize(width: 4, height: 4), radius: 8)
 //        }
 
-        task = Task {
-            let image = await viewModel.loadImage(size: CGSize(width: 128, height: 128))
-            guard !Task.isCancelled, currentIdentifier == viewModel.localIdentifier else { return }
+        viewModel.loadImageProgressive(size: CGSize(width: 128, height: 128)) { [weak self] image, _ in
+            guard let self, self.currentIdentifier == viewModel.localIdentifier else { return }
 
-            frontImageView.image = image
-            midImageView.image   = image
-            backImageView.image  = image
+            self.frontImageView.image = image
+            self.midImageView.image   = image
+            self.backImageView.image  = image
         }
     }
 
