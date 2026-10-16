@@ -80,7 +80,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         debugLog("📊 총 \(clusterResults.count)개 클러스터 생성 (leftover \(leftoverCount)개)")
 
         let entityById = Dictionary(uniqueKeysWithValues: allEntities.map { ($0.id, $0) })
-        var animalIndex = existingAlbumCount + 1
+        var animalIndex = try nextAlbumNumber(context: context)
 
         for result in clusterResults {
             applyClusterResult(
@@ -178,6 +178,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         }
 
         var currentPhotoIds = Set(album.photos.map { $0.localIdentifier })
+        let excludedPhotoIds = Set(album.clusters.flatMap { $0.excludedPhotoIds })
         var currentEmbeddingIds = Set(cluster.animalEmbeddings.map { $0.id })
 
         for embedding in result.embeddings {
@@ -189,7 +190,8 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
             }
 
             guard let photo = entity.photo else { continue }
-            if !currentPhotoIds.contains(photo.localIdentifier) {
+            // 사용자가 "이 앨범에서 제외"한 사진은 전체 재클러스터링에서도 다시 넣지 않는다 (증분 경로와 같은 규칙)
+            if !excludedPhotoIds.contains(photo.localIdentifier), !currentPhotoIds.contains(photo.localIdentifier) {
                 album.photos.append(photo)
                 currentPhotoIds.insert(photo.localIdentifier)
             }
@@ -199,14 +201,8 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
 
         album.photoCount = album.photos.count
 
-        // 사용자가 대표 사진을 직접 골랐으면 재분석 때 이 앨범이 다시 매칭돼도 자동으로 덮어쓰지 않는다
-        if !album.coverPhotoManuallySet,
-           let bestEntity = album.animalClusters
-            .flatMap({ $0.animalEmbeddings })
-            .max(by: { $0.detectionConfidence < $1.detectionConfidence }),
-           let bestPhotoId = bestEntity.photo?.localIdentifier {
-            album.coverPhotoIdentifier = bestPhotoId
-        }
+        // 대표사진 규칙(직접 고른 것 유지, 아니면 화질 최고)은 AlbumEntity+Cover 참고
+        album.refreshCover()
         debugLog("✅ [\(album.name)] \(album.photoCount)장")
     }
 
@@ -362,6 +358,12 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         name.split(separator: " ").last.flatMap { Int($0) }
     }
 
+    // 앨범 "개수 + 1"로 번호를 붙이면 병합 후 분리할 때 이미 있는 번호가 또 나온다 → 가장 큰 번호 + 1
+    private func nextAlbumNumber(context: ModelContext) throws -> Int {
+        let albums = try context.fetch(FetchDescriptor<AlbumEntity>(predicate: #Predicate { $0.from == "animal" }))
+        return (albums.compactMap { trailingNumber($0.name) }.max() ?? 0) + 1
+    }
+
     // MARK: - 사진 제외
 
     public func excludePhoto(photoId: String, fromAlbumId: UUID) async throws {
@@ -379,6 +381,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         album.photos.removeAll { $0.localIdentifier == photoId }
         album.photoCount = album.photos.count
         album.isEdited = true
+        album.repairCoverIfMissing()
 
         try context.save()
     }
@@ -508,10 +511,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
                 cluster.originalIsRenamed = false
             }
         } else {
-            let existingAlbumCount = try context.fetchCount(FetchDescriptor<AlbumEntity>(
-                predicate: #Predicate { $0.from == "animal" }
-            ))
-            newAlbumName = "반려동물 \(existingAlbumCount + 1)"
+            newAlbumName = "반려동물 \(try nextAlbumNumber(context: context))"
             newDisplayName = newAlbumName
             newIsRenamed = false
         }
@@ -551,14 +551,9 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         newAlbum.photoCount = newAlbum.photos.count
         album.isEdited = true
 
-        if let bestEntity = album.animalClusters.flatMap({ $0.animalEmbeddings }).max(by: { $0.detectionConfidence < $1.detectionConfidence }),
-           let bestPhotoId = bestEntity.photo?.localIdentifier {
-            album.coverPhotoIdentifier = bestPhotoId
-        }
-        if let bestEntity = newAlbum.animalClusters.flatMap({ $0.animalEmbeddings }).max(by: { $0.detectionConfidence < $1.detectionConfidence }),
-           let bestPhotoId = bestEntity.photo?.localIdentifier {
-            newAlbum.coverPhotoIdentifier = bestPhotoId
-        }
+        // 원래 앨범은 직접 고른 사진이 남아 있으면 유지, 새 앨범은 화질 기준
+        album.refreshCover()
+        newAlbum.refreshCover()
 
         try context.save()
         debugLog("✂️ 분리 완료 — \(album.name): \(album.photoCount)장 / \(newAlbum.name): \(newAlbum.photoCount)장")

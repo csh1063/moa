@@ -313,8 +313,7 @@ private final class TravelerManagementCell: UICollectionViewCell {
 
     private let penIcon: UIImageView = {
         let iv = UIImageView()
-        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
-        iv.image = UIImage(systemName: "pencil", withConfiguration: config)?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_pencil", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv

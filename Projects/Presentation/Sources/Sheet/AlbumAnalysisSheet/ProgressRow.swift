@@ -43,8 +43,7 @@ final class ProgressRow: UIView {
 
     private let detailToggleButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
-        button.setImage(UIImage(systemName: "chevron.down", withConfiguration: config), for: .normal)
+        button.setImage(UIImage(named: "lucide_chevron_down", in: .module, with: nil), for: .normal)
         button.tintColor = Theme.textTertiary
         return button
     }()
@@ -64,7 +63,7 @@ final class ProgressRow: UIView {
 
     init(icon: String, title: String) {
         super.init(frame: .zero)
-        iconView.image = UIImage(systemName: icon)
+        iconView.image = UIImage(named: icon, in: .module, with: nil)
         titleLabel.text = title
         fillLabel.text = title
         backgroundColor = Theme.surface

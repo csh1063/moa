@@ -47,9 +47,9 @@ final class TabbarViewController: CustomTabBarController {
 //        self.setLayoutMargin(height: 68,
 //                             margin: .init(leading: 0, trailing: 0, bottom: 0),
 //                             padding: .init(leading: 12, trailing: 12))
-        self.setAlign(.center)
-        // leading은 평소(.center)엔 안 쓰이지만, 분석 진행 배지가 뜰 때 .left로 전환하는 순간 쓰인다
-        // (setBadgeModeActive 참고) — 화면 맨 왼쪽에 딱 붙지 않도록 미리 여백을 정해둔다.
+        // 분석 배지 자리를 항상 비워두도록 .left로 고정 — 배지가 뜨고 질 때 탭바는 움직이지 않고
+        // 배지 자신만 그 자리에서 나타났다 사라진다(AnalysisBadgeManager 참고).
+        self.setAlign(.left)
         self.setLayoutMargin(height: 56, itemWidth: 80,
                              margin: .init(leading: 20, bottom: 4),
                              padding: .zero, cornerRadius: 28)
@@ -123,15 +123,6 @@ final class TabbarViewController: CustomTabBarController {
         self.animateFade(isShow: false)
     }
 
-    /// 분석 진행 배지(3단계)가 뜰 때만 탭바를 왼쪽으로 슬라이드해서 배지 자리를 내주고, 배지가
-    /// 사라지면 다시 가운데로 되돌린다 — 평소(분석 안 할 때) 탭바 모양은 그대로 유지하기 위해 이
-    /// 상태일 때만 정렬을 바꾼다.
-    func setBadgeModeActive(_ isActive: Bool) {
-        UIView.animate(withDuration: 0.4, delay: 0, options: [.curveEaseInOut]) {
-            self.setAlign(isActive ? .left : .center)
-            self.view.layoutIfNeeded()
-        }
-    }
 }
 
 extension TabbarViewController: CustomTabBarDelegate {

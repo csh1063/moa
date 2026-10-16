@@ -38,6 +38,10 @@ final class AnalysisBadgeManager {
         let view = AnalysisBadgeView()
         view.onTap = onTap
         view.alpha = 0
+        // 2단계 위젯이 오른쪽으로 슬라이드돼 사라지는 것과 같은 방향으로, 오른쪽에서 밀고 들어오게
+        // 시작 위치를 오른쪽으로 밀어둔다 — 높이는 서로 달라도(위젯은 더 위, 배지는 탭바 옆) 이동
+        // 방향이 같으면 "이어서 넘어왔다"는 느낌을 준다.
+        view.transform = CGAffineTransform(translationX: 60, y: 0)
 
         window.addSubview(view)
         view.snp.makeConstraints { make in
@@ -50,8 +54,12 @@ final class AnalysisBadgeManager {
         self.window = window
         self.badgeView = view
 
-        UIView.animate(withDuration: 0.3) {
+        UIView.animate(
+            withDuration: 0.4, delay: 0,
+            usingSpringWithDamping: 0.75, initialSpringVelocity: 0.4
+        ) {
             view.alpha = 1
+            view.transform = .identity
         }
         view.setActive()
     }
@@ -64,6 +72,7 @@ final class AnalysisBadgeManager {
         guard let badgeView else { return }
         UIView.animate(withDuration: 0.25, animations: {
             badgeView.alpha = 0
+            badgeView.transform = CGAffineTransform(translationX: 60, y: 0)
         }, completion: { _ in
             badgeView.removeFromSuperview()
         })

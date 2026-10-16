@@ -11,7 +11,10 @@ import SnapKit
 import Domain
 
 /// "인물" 모두보기 전용 셀 — 홈 화면의 원형 아바타(FaceAlbumCell)와 달리, 사진첩 그리드처럼
-/// 사각 사진이 셀 전체를 채우고, 사용자가 직접 이름을 지정한 경우에만 하단에 그라데이션+이름을 얹는다.
+/// 사각 사진이 셀 전체를 채운다. 이름을 직접 지은 경우와 아닌 경우 둘 다 하단에 그라데이션+라벨을
+/// 보여주되(이름이 없으면 "인물 N" 같은 자동 라벨), 자동 라벨은 이탤릭+반투명으로 구분해서
+/// "아직 이름 안 지은 상태"라는 걸 시각적으로 알 수 있게 한다 — 이름 없는 인물만 사각 사진+숫자뱃지만
+/// 덩그러니 떠서 "얼굴만 둥둥 떠다니는" 느낌이 든다는 피드백으로 바꿈.
 final class FaceAlbumGridCell: UICollectionViewCell {
 
     // MARK: - UI
@@ -21,7 +24,7 @@ final class FaceAlbumGridCell: UICollectionViewCell {
 
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "person.fill")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_user", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv
@@ -118,8 +121,15 @@ final class FaceAlbumGridCell: UICollectionViewCell {
         currentIdentifier = viewModel.localIdentifier
         countBadge.text = "\(viewModel.photoCount)"
 
-        gradientView.isHidden = !viewModel.isNamed
-        nameLabel.text = viewModel.isNamed ? viewModel.displayName : nil
+        gradientView.isHidden = false
+        nameLabel.text = viewModel.displayName
+        if viewModel.isNamed {
+            nameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+            nameLabel.textColor = .white
+        } else {
+            nameLabel.font = .italicSystemFont(ofSize: 13)
+            nameLabel.textColor = UIColor.white.withAlphaComponent(0.7)
+        }
 
         coverView.layer.borderColor = viewModel.isHighlighted
             ? Theme.primary.cgColor

@@ -129,12 +129,16 @@ final class SimilarAlbumCell: UICollectionViewCell {
 //            contentView.addShadow(color: .black, opacity: 0.3, offset: CGSize(width: 4, height: 4), radius: 8)
 //        }
 
-        viewModel.loadImageProgressive(size: CGSize(width: 128, height: 128)) { [weak self] image, _ in
-            guard let self, self.currentIdentifier == viewModel.localIdentifier else { return }
-
-            self.frontImageView.image = image
-            self.midImageView.image   = image
-            self.backImageView.image  = image
+        // 앞/중간/뒤에 서로 다른 실제 사진을 보여준다 — stackIdentifiers가 3장 미만이면(가벼운 목록
+        // 조회 경로이거나 중복이 2장뿐인 그룹) 모자란 자리는 마지막 식별자를 그대로 반복해서 채운다.
+        let ids = viewModel.stackIdentifiers
+        let imageViews = [frontImageView, midImageView, backImageView]
+        for (index, imageView) in imageViews.enumerated() {
+            guard let id = (index < ids.count ? ids[index] : ids.last) else { continue }
+            viewModel.imageLoader.loadImageProgressive(id: id, size: CGSize(width: 128, height: 128)) { [weak self] image, _ in
+                guard let self, self.currentIdentifier == viewModel.localIdentifier else { return }
+                imageView.image = image
+            }
         }
     }
 

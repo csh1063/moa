@@ -30,8 +30,7 @@ final class AnalysisBadgeView: UIView {
     }()
 
     private let iconView: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
-        let imageView = UIImageView(image: UIImage(systemName: "sparkle", withConfiguration: config))
+        let imageView = UIImageView(image: UIImage(named: "lucide_sparkle", in: .module, with: nil))
         imageView.tintColor = Theme.primary
         return imageView
     }()
@@ -137,8 +136,7 @@ final class AnalysisBadgeView: UIView {
         pulseRing1.opacity = 0
         pulseRing2.opacity = 0
 
-        let config = UIImage.SymbolConfiguration(pointSize: 13, weight: .bold)
-        iconView.image = UIImage(systemName: "checkmark", withConfiguration: config)
+        iconView.image = UIImage(named: "lucide_check", in: .module, with: nil)
         iconView.tintColor = Theme.positive
         coreCircle.layer.borderColor = Theme.positive.cgColor
 

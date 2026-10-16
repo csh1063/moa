@@ -271,7 +271,7 @@ private final class ClusterSplitRow: UIControl {
     }
 
     private func updateAppearance() {
-        checkmarkView.image = UIImage(systemName: isChosen ? "checkmark.circle.fill" : "circle")
+        checkmarkView.image = UIImage(named: isChosen ? "lucide_circle_check" : "lucide_circle", in: .module, with: nil)
         checkmarkView.tintColor = isChosen ? Theme.primary : Theme.textTertiary
         addBorder(color: isChosen ? Theme.primary : Theme.strokeSoft, borderWidth: isChosen ? 2 : 1)
     }

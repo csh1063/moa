@@ -75,7 +75,11 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
                 SortDescriptor(\.displayName, order: .forward)
             ]
         )
-        return try context.fetch(fetchDescriptor).map {$0.toDomainWithKey()}
+        // "similar"(비슷한 사진) 앨범만 커버 스택에 실제 사진 최대 4장이 필요해서 photos까지 채워
+        // 읽는다 — 다른 타입은 지금처럼 가볍게(coverPhotoIdentifier만) 읽어서 성능 영향이 없다.
+        return try context.fetch(fetchDescriptor).map {
+            $0.from == "similar" ? $0.toDomainWithPhoto() : $0.toDomainWithKey()
+        }
     }
 
     public func fetchAll(from: String) throws -> [Album] {
@@ -96,16 +100,6 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<AlbumEntity>(predicate: #Predicate { $0.id == id })
         return try context.fetch(fetchDescriptor).first?.toDomainWithKey()
-    }
-
-    public func fetchAutoAll() throws -> [Album] {
-
-        let context = ModelContext(container)
-
-        let fetchDescriptor = FetchDescriptor<AlbumEntity>(
-            predicate: #Predicate { $0.isAuto == true }
-        )
-        return try context.fetch(fetchDescriptor).map {$0.toDomain()}
     }
 
     public func fetchPhotos(by albumId: UUID) throws -> [Photo] {
@@ -304,34 +298,6 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         try self.syncAlbums()
     }
 
-    public func addPhoto(albumId: UUID, photoIdentifier: String) throws {
-
-        let context = ModelContext(container)
-
-        let albumDescriptor = FetchDescriptor<AlbumEntity>(
-            predicate: #Predicate { $0.id == albumId }
-        )
-
-        let photoDescriptor = FetchDescriptor<PhotoEntity>(
-            predicate: #Predicate { $0.localIdentifier == photoIdentifier }
-        )
-
-        guard let album = try context.fetch(albumDescriptor).first else {
-            throw AlbumRepositoryError.albumNotFound
-        }
-
-        guard let photo = try context.fetch(photoDescriptor).first else {
-            throw AlbumRepositoryError.photoNotFound
-        }
-
-        // 중복 체크
-        guard !album.photos.contains(where: { $0.localIdentifier == photoIdentifier }) else { return }
-
-        album.photos.append(photo)
-
-        try context.save()
-    }
-
     public func addPhotos(albumId: UUID, photoIdentifiers: [String]) throws {
 
         let context = ModelContext(container)
@@ -372,35 +338,9 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 //            $0.createdAt > $1.createdAt
 //        }.first?.localIdentifier
 
-        // 영상은 대표 사진 후보에서 제외 — 날짜/지역/여행 앨범은 영상도 같이 담기지만 커버는 항상 사진이어야
-        // 한다. 단, "영상" 앨범 자체는 내용물이 전부 영상이라 이 제외 규칙을 적용하면 커버가 영원히 안 잡히므로 예외.
-        let coverCandidates = album.from == "video" ? uniqueNewPhotos : uniqueNewPhotos.filter { !$0.isVideo }
-        let latestNewPhoto = coverCandidates.max(by: { $0.createdAt < $1.createdAt })
-        let currentCoverPhoto = album.photos.first(where: { $0.localIdentifier == album.coverPhotoIdentifier })
-
-        // 사용자가 직접 고른 대표 사진이면 새 사진이 추가돼도 자동으로 안 바꾼다
-        if !album.coverPhotoManuallySet, let latestNew = latestNewPhoto {
-            if let currentCover = currentCoverPhoto, currentCover.createdAt >= latestNew.createdAt {
-                // 기존 커버가 더 최신이면 유지 (아무것도 안 함)
-            } else {
-                album.coverPhotoIdentifier = latestNew.localIdentifier
-            }
-        }
+        album.refreshCover()
 
         try context.save()
-    }
-
-    public func removePhoto(albumId: UUID, photoIdentifier: String) throws {
-//        let fetchDescriptor = FetchDescriptor<AlbumPhotoMapEntity>(
-//            predicate: #Predicate {
-//                $0.album?.id == albumId &&
-//                $0.photo?.localIdentifier == photoIdentifier
-//            }
-//        )
-//        
-//        guard let map = try context.fetch(fetchDescriptor).first else { return }
-//        context.delete(map)
-//        try context.save()
     }
 
     public func deletePhotos(albumId: UUID, photoIdentifiers: [String]) throws {
@@ -411,11 +351,14 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         )
         guard let album = try context.fetch(descriptor).first else { return }
 
-        let targets = album.photos.filter { photoIdentifiers.contains($0.localIdentifier) }
+        // 이 앨범과의 연결만 끊는다 — PhotoEntity 자체를 지우면 다른 앨범/라벨/임베딩까지 같이 사라진다
+        let ids = Set(photoIdentifiers)
+        album.photos.removeAll { ids.contains($0.localIdentifier) }
+        album.photoCount = album.photos.count
+        // 사용자가 직접 뺀 것 — 여행 앨범 증분 갱신이 이 앨범을 지우고 다시 만들어 사진을 되살리지 않게 표시
+        album.isEdited = true
 
-        for photo in targets {
-            context.delete(photo)
-        }
+        album.repairCoverIfMissing()
 
         try context.save()
     }
@@ -439,19 +382,6 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 
         autoAlbums.forEach { $0.photos.removeAll() }
         autoAlbums.forEach { context.delete($0) }
-        try context.save()
-    }
-
-    public func syncPhotoCount() throws {
-        let context = ModelContext(container)
-
-        let albumDescriptor = FetchDescriptor<AlbumEntity>()
-        let albums = try context.fetch(albumDescriptor)
-
-        albums.forEach { album in
-            album.photoCount = album.photos.count
-        }
-
         try context.save()
     }
 
@@ -573,8 +503,8 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         source.isEdited = true
         source.linkedFaceAlbumIds = linkedFaceAlbumIds
         source.linkedAnimalAlbumIds = linkedAnimalAlbumIds
-        // 영상은 대표 사진 후보에서 제외
-        source.coverPhotoIdentifier = photos.filter { !$0.isVideo }.max(by: { $0.createdAt < $1.createdAt })?.localIdentifier
+        // 기준 앨범(source)의 대표사진을 유지 — 합쳐진 사진에 없을 때만 다시 고른다
+        source.repairCoverIfMissing()
 
         context.delete(target)
         try context.save()

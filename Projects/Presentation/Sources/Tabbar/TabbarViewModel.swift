@@ -223,6 +223,8 @@ public final class TabbarViewModel: BaseViewModel {
         case .importLibraryAlbum:
             self.onAction?(.showLibraryImportPicker(libraryAlbumImportUseCase))
         case .analysis:
+            // 분석 도중 다시 분석/재생성하면 진행률이 0으로 튀고, 쓰는 중인 앨범을 지우게 된다
+            guard !isAnalyzing else { showAnalyzingAlert(); return }
             showAlert(
                 title: String(localized: "사진 분석", bundle: .module),
                 message: String(localized: "iCloud에서 분석 용 사이즈를 받기 위해\n데이터가 소모되요.\nWi-Fi에서 진행하는 걸 권장해요.\n분석 시작할까요?", bundle: .module),
@@ -243,6 +245,8 @@ public final class TabbarViewModel: BaseViewModel {
                 ]
             )
         case .reAutoAlbum:
+            // 분석 도중 다시 분석/재생성하면 진행률이 0으로 튀고, 쓰는 중인 앨범을 지우게 된다
+            guard !isAnalyzing else { showAnalyzingAlert(); return }
             showAlert(
                 title: String(localized: "앨범 재생성", bundle: .module),
                 message: String(localized: "앨범들을 삭제 후 다시 생성해요.\n어떤 앨범을 다시 생성할까요?", bundle: .module),
@@ -370,6 +374,9 @@ public final class TabbarViewModel: BaseViewModel {
         var basicScanTask: Task<Void, Never>?
         var addressTrackTask: Task<Void, Never>?
         var labelTrackTask: Task<Void, Never>?
+        // 카테고리 패스가 사진을 "분류 완료"로 표시하면 지역 패스가 그 사진을 못 본다 — 그래서 라벨 트랙은
+        // 주소 트랙(여행+지역)이 끝난 걸 확인한 뒤에 카테고리로 넘어간다. 주소 트랙은 실패해도 완료 콜백을 부른다.
+        let (addressTrackDone, addressTrackDoneContinuation) = AsyncStream<Void>.makeStream()
 
         do {
             for try await progress in analysisUseCase.analysis(
@@ -416,6 +423,7 @@ public final class TabbarViewModel: BaseViewModel {
                             self.regionProgress = 1
                             self.recomputeAlbumProgress()
                         }
+                        addressTrackDoneContinuation.finish()
                         debugLog("⏱️ [분석] 여행+지역 앨범 생성 완료 — 구간 \(String(format: "%.1f", Date().timeIntervalSince(stepStartedAt)))초, 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                     }
                 },
@@ -423,17 +431,6 @@ public final class TabbarViewModel: BaseViewModel {
                     debugLog("⏱️ [분석] 라벨+임베딩 스트림 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                     labelTrackTask = Task.detached(priority: .userInitiated) {
                         let stepStartedAt = Date()
-
-                        // 카테고리는 라벨만 있으면 되고 얼굴/동물·중복탐지 결과가 필요 없어서 먼저 끝낸다.
-                        debugLog("⏱️ [분석] 카테고리 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
-                        try? await self?.autoAlbumUseCase.createCategoryAlbumsEarly()
-                        await MainActor.run {
-                            guard let self else { return }
-                            self.categoryProgress = 1
-                            self.recomputeAlbumProgress()
-                        }
-                        debugLog("⏱️ [분석] 카테고리 앨범 생성 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
-
                         debugLog("⏱️ [분석] 얼굴/동물 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                         // createPersonAndSimilarAlbums의 onProgress는 얼굴(0~0.5)/동물(0.5~1.0) 순서로
                         // 하나의 0~1 값에 실어 보낸다 — 여기서 그 구간을 갈라 얼굴/동물을 따로 노출한다
@@ -459,6 +456,19 @@ public final class TabbarViewModel: BaseViewModel {
                             self.recomputeAlbumProgress()
                         }
                         debugLog("⏱️ [분석] 얼굴/동물 앨범 생성 + 여행자 연결 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
+
+                        // 카테고리 패스가 사진을 "분류 완료"로 표시하므로 지역 패스(주소 트랙)가 끝난 뒤에 한다.
+                        // 얼굴/동물은 이 표시와 무관해서 기다리지 않고 먼저 돈다.
+                        for await _ in addressTrackDone {}
+
+                        debugLog("⏱️ [분석] 카테고리 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
+                        try? await self?.autoAlbumUseCase.createCategoryAlbumsEarly()
+                        await MainActor.run {
+                            guard let self else { return }
+                            self.categoryProgress = 1
+                            self.recomputeAlbumProgress()
+                        }
+                        debugLog("⏱️ [분석] 카테고리 앨범 생성 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
 
                         // 중복(비슷한) 사진 탐지 — 전체 임베딩 추출+비교가 대부분의 시간을 차지해서
                         // 분석 게이지의 몫으로 노출한다. 앨범 저장도 이 호출 안에서 같이 끝나므로,
@@ -516,6 +526,10 @@ public final class TabbarViewModel: BaseViewModel {
             self.albumCompletedSubject.send(())
             self.endAllProcess()
         } catch {
+            // 스트림이 실패해도 이미 띄운 트랙들은 계속 DB에 쓰고 있다 — 끝날 때까지 isAnalyzing을 유지해야 초기화 등이 안 겹친다
+            await basicScanTask?.value
+            await addressTrackTask?.value
+            await labelTrackTask?.value
             self.progressRatio = 1.0
             self.autoAlbumProgressRatio = 1.0
             self.isComplete = true
@@ -527,6 +541,16 @@ public final class TabbarViewModel: BaseViewModel {
         let finishedAt = Date()
         let elapsedMinutes = finishedAt.timeIntervalSince(startedAt) / 60
         debugLog("⏱️ [분석] 종료: \(finishedAt) — 총 \(String(format: "%.1f", elapsedMinutes))분 소요")
+    }
+
+    private func showAnalyzingAlert() {
+        showAlert(
+            title: String(localized: "분석이 진행 중이에요", bundle: .module),
+            message: String(localized: "분석이 끝난 뒤 다시 시도해주세요", bundle: .module),
+            buttons: [
+                AlertButtonConfig(title: String(localized: "확인", bundle: .module), style: .default, action: nil)
+            ]
+        )
     }
 
     private func runAlbumGeneration(fullRegenerate: Bool = false) async {

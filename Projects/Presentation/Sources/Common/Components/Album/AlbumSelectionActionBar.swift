@@ -24,8 +24,7 @@ final class AlbumSelectionActionBar: UIView {
 
     private let deleteButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.image = UIImage(systemName: "trash")
-        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        config.image = UIImage(named: "lucide_trash_2", in: .module, with: nil)
         config.baseForegroundColor = .white
         config.baseBackgroundColor = Theme.negative
         config.cornerStyle = .medium

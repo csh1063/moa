@@ -121,8 +121,13 @@ public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
     public func deletePhotos(_ photoIds: [String], albumId: UUID, deleteInLibrary: Bool) async throws {
         if deleteInLibrary {
             try await libraryRepository.deletePhotos(by: photoIds)
+            // 라이브러리에서 지웠으면 사진 기록 자체를 지워서 이 사진이 든 모든 앨범의 개수/커버를 같이 정리
+            for id in photoIds {
+                try photoDataRepository.delete(identifier: id)
+            }
+        } else {
+            try repository.deletePhotos(albumId: albumId, photoIdentifiers: photoIds)
         }
-        try repository.deletePhotos(albumId: albumId, photoIdentifiers: photoIds)
     }
 
     public func fetchOtherFaceAlbums(excluding albumId: UUID) async throws -> [AlbumMergeCandidate] {

@@ -119,7 +119,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
         let editableCoverTypes: Set<String> = ["face", "animal", "travel"]
         if editableCoverTypes.contains(album.from) {
             options.append(
-                OptionRowConfig(icon: "pencil.line", title: String(localized: "앨범명 변경", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_pencil_line", title: String(localized: "앨범명 변경", bundle: .module), style: .normal) { [weak self] in
                     self?.showAlbumRenameSheet(album: album)
                 }
             )
@@ -128,7 +128,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
             // 화면에서 길게 눌러 띄운 빠른 메뉴(presentAlbumMenu, 상세 화면 진입 없음)에서는 제외한다
             if viewController != nil {
                 options.append(
-                    OptionRowConfig(icon: "photo.on.rectangle.angled", title: String(localized: "대표 사진 변경", bundle: .module), style: .normal) { [weak self] in
+                    OptionRowConfig(icon: "lucide_images", title: String(localized: "대표 사진 변경", bundle: .module), style: .normal) { [weak self] in
                         self?.delegate?.changeMode(.pickCover)
                     }
                 )
@@ -137,12 +137,12 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
         if album.from == "face" || album.from == "animal" {
             options.append(
-                OptionRowConfig(icon: "person.2.crop.square.stack", title: String(localized: "앨범 합치기", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_users", title: String(localized: "앨범 합치기", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.mergeTapped()
                 }
             )
             options.append(
-                OptionRowConfig(icon: "square.on.square.dashed", title: String(localized: "앨범 분리", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_split", title: String(localized: "앨범 분리", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.splitTapped()
                 }
             )
@@ -150,17 +150,17 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
         if album.from == "travel" {
             options.append(
-                OptionRowConfig(icon: "photo.badge.plus", title: String(localized: "사진 추가", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_image_plus", title: String(localized: "사진 추가", bundle: .module), style: .normal) { [weak self] in
                     self?.showAddPhotos(album: album)
                 }
             )
             options.append(
-                OptionRowConfig(icon: "person.2.fill", title: String(localized: "여행자 관리", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_users", title: String(localized: "여행자 관리", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.travelerManagementTapped()
                 }
             )
             options.append(
-                OptionRowConfig(icon: "arrow.triangle.merge", title: String(localized: "여행 합치기", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_merge", title: String(localized: "여행 합치기", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.mergeTapped()
                 }
             )
@@ -168,13 +168,13 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
         if album.from == "similar" {
             options.append(
-                OptionRowConfig(icon: "trash", title: String(localized: "정리 완료", bundle: .module), style: .destructive) { [weak self] in
+                OptionRowConfig(icon: "lucide_trash_2", title: String(localized: "정리 완료", bundle: .module), style: .destructive) { [weak self] in
                     self?.delegate?.deleteAlert()
                 }
             )
         } else {
             options.append(
-                OptionRowConfig(icon: "trash", title: String(localized: "앨범 삭제", bundle: .module), style: .destructive) { [weak self] in
+                OptionRowConfig(icon: "lucide_trash_2", title: String(localized: "앨범 삭제", bundle: .module), style: .destructive) { [weak self] in
                     self?.delegate?.deleteAlert()
                 }
             )

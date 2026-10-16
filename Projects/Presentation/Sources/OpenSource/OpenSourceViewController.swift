@@ -67,8 +67,8 @@ final class OpenSourceViewController: UIViewController {
 
     private func binding() {
         naviView.publisher
-            .sink { _ in
-                self.navigationController?.popViewController(animated: true)
+            .sink { [weak self] _ in
+                self?.navigationController?.popViewController(animated: true)
             }
             .store(in: &cancellables)
     }

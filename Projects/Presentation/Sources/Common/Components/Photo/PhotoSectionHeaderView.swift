@@ -14,7 +14,7 @@ final class PhotoSectionHeaderView: UICollectionReusableView {
     private let countLabel = UILabel()
     private let chevronIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_chevron_down", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textSecondary
         iv.contentMode = .scaleAspectFit
         return iv

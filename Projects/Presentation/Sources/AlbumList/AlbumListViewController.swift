@@ -114,8 +114,8 @@ final class AlbumListViewController: BaseViewController {
 
     private func binding() {
         let output = viewModel.transform()
-        output.albumData.sink { data in
-            self.applySnapshot(data: data)
+        output.albumData.sink { [weak self] data in
+            self?.applySnapshot(data: data)
         }
         .store(in: &cancellables)
 

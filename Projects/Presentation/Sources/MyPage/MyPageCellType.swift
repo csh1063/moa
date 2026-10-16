@@ -58,8 +58,8 @@ enum MyPageCellStyle {
 
     var icon: String {
         switch self {
-        case .open: return "chevron.right"
-        case .link: return "arrow.up.right"
+        case .open: return "lucide_chevron_right"
+        case .link: return "lucide_arrow_up_right"
         default: return ""
         }
     }
@@ -107,29 +107,29 @@ enum MyPageCellType {
     var icon: String {
         switch self {
         case .allLibraryPhoto: return "photoLibrary"
-        case .allPhoto: return "photo.on.rectangle.angled"
-        case .unanalysisPhoto: return "lasso.badge.sparkles"
-        case .analyzedDate: return "clock.arrow.circlepath"
-        case .analysis: return "sparkles"
-        case .libraryImport: return "square.and.arrow.down"
-        case .analyzedData: return "cylinder.split.1x2"
-        case .reAutoAlbum: return "arrow.clockwise"
-        case .reset: return "eraser"
-        case .locationAnalysis: return "location.fill.viewfinder"
-        case .locationAutoAlbum: return "map.fill"
-        case .autoAnalysis: return "sparkles"
-        case .continueLocation: return "location.fill.viewfinder"
-        case .terms: return "doc.text"
-        case .privacy: return "person.2"
-        case .openSource: return "ellipsis.curlybraces"
-        case .photoPermission: return "photo.badge.checkmark"
-        case .displayMode: return "circle.lefthalf.filled.inverse"
-        case .feedback: return "questionmark.circle"
-        case .version: return "info.circle"
-        case .versionString: return "info.circle"
-        case .labels: return "testtube.2"
-        case .test: return "testtube.2"
-        case .addressCount: return "testtube.2"
+        case .allPhoto: return "lucide_images"
+        case .unanalysisPhoto: return "lucide_wand_sparkles"
+        case .analyzedDate: return "lucide_history"
+        case .analysis: return "lucide_sparkles"
+        case .libraryImport: return "lucide_download"
+        case .analyzedData: return "lucide_database"
+        case .reAutoAlbum: return "lucide_rotate_cw"
+        case .reset: return "lucide_eraser"
+        case .locationAnalysis: return "lucide_locate_fixed"
+        case .locationAutoAlbum: return "lucide_map"
+        case .autoAnalysis: return "lucide_sparkles"
+        case .continueLocation: return "lucide_locate_fixed"
+        case .terms: return "lucide_file_text"
+        case .privacy: return "lucide_users"
+        case .openSource: return "lucide_braces"
+        case .photoPermission: return "lucide_camera"
+        case .displayMode: return "lucide_contrast"
+        case .feedback: return "lucide_circle_help"
+        case .version: return "lucide_info"
+        case .versionString: return "lucide_info"
+        case .labels: return "lucide_test_tube_2"
+        case .test: return "lucide_test_tube_2"
+        case .addressCount: return "lucide_test_tube_2"
         }
     }
 

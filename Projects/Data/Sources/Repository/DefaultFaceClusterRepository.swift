@@ -66,7 +66,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         debugLog("📊 총 \(outcome.clusters.count)개 클러스터 생성 (leftover \(outcome.leftover.count)개)")
 
         let entityById = Dictionary(uniqueKeysWithValues: allEntities.map { ($0.id, $0) })
-        var personIndex = existingAlbumCount + 1
+        var personIndex = try nextAlbumNumber(context: context)
         let dim = 512
 
         for result in outcome.clusters {
@@ -161,6 +161,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         }
 
         var currentPhotoIds = Set(album.photos.map { $0.localIdentifier })
+        let excludedPhotoIds = Set(album.clusters.flatMap { $0.excludedPhotoIds })
         var currentEmbeddingIds = Set(cluster.faceEmbeddings.map { $0.id })
 
         for embedding in result.embeddings {
@@ -172,7 +173,8 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
             }
 
             guard let photo = entity.photo else { continue }
-            if !currentPhotoIds.contains(photo.localIdentifier) {
+            // 사용자가 "이 앨범에서 제외"한 사진은 전체 재클러스터링에서도 다시 넣지 않는다 (증분 경로와 같은 규칙)
+            if !excludedPhotoIds.contains(photo.localIdentifier), !currentPhotoIds.contains(photo.localIdentifier) {
                 album.photos.append(photo)
                 currentPhotoIds.insert(photo.localIdentifier)
             }
@@ -183,18 +185,8 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
 
         album.photoCount = album.photos.count
 
-        // 커버는 최신순이 아니라, 이 앨범(병합된 경우 모든 클러스터 포함) 안에서 얼굴 화질(captureQuality)이
-        // 가장 좋은 사진으로 고른다. boundingBox 크기(정규화 비율)로 고르면 저해상도 사진 속 얼굴이
-        // 고해상도 사진 속 더 작지만 실제로는 더 선명한 얼굴을 이기는 경우가 있어서 화질 점수로 바꿨다.
-        // 사용자가 대표 사진을 직접 골랐으면(coverPhotoManuallySet) 이 앨범이 재분석 때마다 다시 매칭돼도
-        // 자동으로 덮어쓰지 않는다 — 안 그러면 새 사진이 조금만 들어와도 매번 사용자 선택이 사라진다
-        if !album.coverPhotoManuallySet,
-           let bestEntity = album.clusters
-            .flatMap({ $0.faceEmbeddings })
-            .max(by: { $0.captureQuality < $1.captureQuality }),
-           let bestPhotoId = bestEntity.photo?.localIdentifier {
-            album.coverPhotoIdentifier = bestPhotoId
-        }
+        // 대표사진 규칙(직접 고른 것 유지, 아니면 화질 최고)은 AlbumEntity+Cover 참고
+        album.refreshCover()
         debugLog("✅ [\(album.name)] \(album.photoCount)장")
     }
 
@@ -346,6 +338,12 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         name.split(separator: " ").last.flatMap { Int($0) }
     }
 
+    // 앨범 "개수 + 1"로 번호를 붙이면 병합 후 분리할 때 이미 있는 번호가 또 나온다 → 가장 큰 번호 + 1
+    private func nextAlbumNumber(context: ModelContext) throws -> Int {
+        let albums = try context.fetch(FetchDescriptor<AlbumEntity>(predicate: #Predicate { $0.from == "face" }))
+        return (albums.compactMap { trailingNumber($0.name) }.max() ?? 0) + 1
+    }
+
     // MARK: - 사진 제외
 
     public func excludePhoto(photoId: String, fromAlbumId: UUID) async throws {
@@ -363,6 +361,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         album.photos.removeAll { $0.localIdentifier == photoId }
         album.photoCount = album.photos.count
         album.isEdited = true
+        album.repairCoverIfMissing()
 
         try context.save()
     }
@@ -490,10 +489,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
                 cluster.originalIsRenamed = false
             }
         } else {
-            let existingAlbumCount = try context.fetchCount(FetchDescriptor<AlbumEntity>(
-                predicate: #Predicate { $0.from == "face" }
-            ))
-            newAlbumName = "인물 \(existingAlbumCount + 1)"
+            newAlbumName = "인물 \(try nextAlbumNumber(context: context))"
             newDisplayName = newAlbumName
             newIsRenamed = false
         }
@@ -534,14 +530,9 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         newAlbum.photoCount = newAlbum.photos.count
         album.isEdited = true
 
-        if let bestEntity = album.clusters.flatMap({ $0.faceEmbeddings }).max(by: { $0.captureQuality < $1.captureQuality }),
-           let bestPhotoId = bestEntity.photo?.localIdentifier {
-            album.coverPhotoIdentifier = bestPhotoId
-        }
-        if let bestEntity = newAlbum.clusters.flatMap({ $0.faceEmbeddings }).max(by: { $0.captureQuality < $1.captureQuality }),
-           let bestPhotoId = bestEntity.photo?.localIdentifier {
-            newAlbum.coverPhotoIdentifier = bestPhotoId
-        }
+        // 원래 앨범은 직접 고른 사진이 남아 있으면 유지, 새 앨범은 화질 기준
+        album.refreshCover()
+        newAlbum.refreshCover()
 
         try context.save()
         debugLog("✂️ 분리 완료 — \(album.name): \(album.photoCount)장 / \(newAlbum.name): \(newAlbum.photoCount)장")

@@ -68,10 +68,6 @@ public final class ServiceFactory {
         AnimalClusterService()
     }()
 
-    public lazy var similarService: SimilarPhotoClusterService = {
-        SimilarPhotoClusterService()
-    }()
-
     public lazy var remoteConfigService: RemoteConfigService = {
         RemoteConfigService()
     }()

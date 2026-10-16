@@ -56,8 +56,7 @@ final class AlbumDetailViewController: BaseViewController {
 
     private let deleteButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.image = UIImage(systemName: "trash")
-        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        config.image = UIImage(named: "lucide_trash_2", in: .module, with: nil)
         config.baseForegroundColor = .white
         config.baseBackgroundColor = Theme.negative
         config.cornerStyle = .medium
@@ -68,8 +67,7 @@ final class AlbumDetailViewController: BaseViewController {
     /// 얼굴 앨범에서만 노출 — 선택한 사진을 이 인물 앨범에서 분리(블랙리스트 처리)
     private let excludeButton: UIButton = {
         var config = UIButton.Configuration.filled()
-        config.image = UIImage(systemName: "person.fill.xmark")
-        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        config.image = UIImage(named: "lucide_user_x", in: .module, with: nil)
         config.baseForegroundColor = .white
         config.baseBackgroundColor = Theme.primary
         config.cornerStyle = .medium

@@ -17,8 +17,8 @@ final class MiniProgressView: UIView {
     var cancellables = Set<AnyCancellable>()
     var onTap: (() -> Void)?
 
-    private let photoRow = MiniProgressBarRow(icon: "photo.badge.plus")
-    private let albumRow = MiniProgressBarRow(icon: "square.stack.3d.up.fill")
+    private let photoRow = MiniProgressBarRow(icon: "lucide_image_plus")
+    private let albumRow = MiniProgressBarRow(icon: "lucide_layers")
 
     // MARK: - Init
 
@@ -135,7 +135,7 @@ private final class MiniProgressBarRow: UIView {
 
     init(icon: String) {
         super.init(frame: .zero)
-        iconView.image = UIImage(systemName: icon)
+        iconView.image = UIImage(named: icon, in: .module, with: nil)
         setupLayout()
     }
 

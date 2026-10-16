@@ -26,7 +26,7 @@ final class TravelAlbumCell: UICollectionViewCell {
 
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "airplane")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_plane", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv
@@ -85,8 +85,8 @@ final class TravelAlbumCell: UICollectionViewCell {
     private func setupView() {
         contentView.backgroundColor = Theme.background
 
-        containerView.backgroundColor = Theme.surfaceWarm
-        containerView.layer.cornerRadius = 20
+        containerView.backgroundColor = Theme.surface
+        containerView.layer.cornerRadius = 16
         containerView.layer.masksToBounds = true
         containerView.addBorder(color: Theme.strokeSoft, borderWidth: 1)
         contentView.addSubview(containerView)

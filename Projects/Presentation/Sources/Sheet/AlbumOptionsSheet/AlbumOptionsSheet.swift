@@ -190,7 +190,7 @@ final class OptionRow: UIControl {
         super.init(frame: .zero)
 
         let tintColor: UIColor = config.style == .destructive ? Theme.negative : Theme.textPrimary
-        iconView.image = UIImage(systemName: config.icon)
+        iconView.image = UIImage(named: config.icon, in: .module, with: nil)
         iconView.tintColor = tintColor
         titleLabel.text = config.title
         titleLabel.textColor = tintColor

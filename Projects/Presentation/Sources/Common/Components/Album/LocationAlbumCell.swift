@@ -27,7 +27,7 @@ final class LocationAlbumCell: UICollectionViewCell {
     private let mapPreviewView = UIView()
     private let mapIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "map")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_map", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv
@@ -67,12 +67,14 @@ final class LocationAlbumCell: UICollectionViewCell {
         contentView.backgroundColor = Theme.background
 
         thumbImageView.contentMode = .scaleAspectFill
-        thumbImageView.layer.cornerRadius = 14
+        thumbImageView.layer.cornerRadius = 16
         thumbImageView.layer.masksToBounds = true
         contentView.addSubview(thumbImageView)
-//        containerView.backgroundColor = Theme.surface.withAlphaComponent(0.6)
+        // containerView는 카드 배경이 아니라 thumbImageView 위에 덮이는 반투명 스크림이다 — 안의
+        // placeLabel/subLabel/countLabel이 전부 흰색인 건 사진 위에서 읽히라고 그런 거라, 불투명
+        // 배경을 쓰면 안 된다(썼다가 사진이 가려지는 회귀가 있었음).
         containerView.backgroundColor = Theme.viewerBackground.withAlphaComponent(0.4)
-        containerView.layer.cornerRadius = 14
+        containerView.layer.cornerRadius = 16
         containerView.layer.masksToBounds = true
         containerView.addBorder(color: Theme.divider, borderWidth: 1)
         contentView.addSubview(containerView)
@@ -199,7 +201,7 @@ final class LocationAlbumCell: UICollectionViewCell {
         pinView.layer.masksToBounds = true
         containerView.addSubview(pinView)
 
-        pinIcon.image = UIImage(systemName: "mappin")?.withRenderingMode(.alwaysTemplate)
+        pinIcon.image = UIImage(named: "lucide_map_pin", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         pinIcon.tintColor = .white
         pinIcon.contentMode = .scaleAspectFit
         pinView.addSubview(pinIcon)

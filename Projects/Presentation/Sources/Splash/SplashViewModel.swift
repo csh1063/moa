@@ -151,6 +151,8 @@ public final class SplashViewModel: BaseViewModel {
         } catch {
             debugLog("error: \(error.localizedDescription)")
         }
+        // 성공/실패/unavailable 상관없이 한 번은 보내야 스플래시가 넘어간다 (사진 권한 해제 등으로 실패하면 영원히 멈췄음)
+        appearSubject.send()
     }
 
     private func syncData() async {
@@ -161,8 +163,6 @@ public final class SplashViewModel: BaseViewModel {
                     self.progress = 0.5 + ratio * 0.5
                 case .completed:
                     self.progress = 1.0
-//                    await self.start()
-                    appearSubject.send()
                 case .unavailable(let reason):
                     debugLog("syncData reason: \(reason)")
                 }

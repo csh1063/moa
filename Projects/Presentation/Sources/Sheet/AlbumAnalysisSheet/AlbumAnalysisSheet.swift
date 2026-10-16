@@ -19,8 +19,7 @@ final class AlbumAnalysisSheet: UIViewController {
 
     private let minimizeButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
-        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        button.setImage(UIImage(named: "lucide_x", in: .module, with: nil), for: .normal)
         button.tintColor = Theme.textSecondary
         return button
     }()
@@ -64,26 +63,26 @@ final class AlbumAnalysisSheet: UIViewController {
         return label
     }()
 
-    private let photoRow = ProgressRow(icon: "photo.badge.plus", title: String(localized: "사진 분석 중", bundle: .module))
-    private let albumRow = ProgressRow(icon: "square.stack.3d.up.fill", title: String(localized: "앨범 생성 중", bundle: .module))
+    private let photoRow = ProgressRow(icon: "lucide_image_plus", title: String(localized: "사진 분석 중", bundle: .module))
+    private let albumRow = ProgressRow(icon: "lucide_layers", title: String(localized: "앨범 생성 중", bundle: .module))
 
     // MARK: - 자세히 체크리스트
 
-    private let dateCheckItem = ChecklistItemRow(icon: "calendar", title: String(localized: "날짜 확인", bundle: .module))
-    private let addressConvertItem = ChecklistItemRow(icon: "location.fill", title: String(localized: "좌표를 주소로", bundle: .module))
-    private let travelSpotItem = ChecklistItemRow(icon: "suitcase.fill", title: String(localized: "여행지 확인", bundle: .module))
-    private let photoLabelItem = ChecklistItemRow(icon: "photo.fill", title: String(localized: "사진 분석", bundle: .module))
-    private let faceAnalysisItem = ChecklistItemRow(icon: "person.crop.circle", title: String(localized: "얼굴 분석", bundle: .module))
-    private let animalAnalysisItem = ChecklistItemRow(icon: "pawprint.fill", title: String(localized: "반려동물 분석", bundle: .module))
-    private let similarItem = ChecklistItemRow(icon: "square.on.square", title: String(localized: "비슷한 사진", bundle: .module))
+    private let dateCheckItem = ChecklistItemRow(icon: "lucide_calendar", title: String(localized: "날짜 확인", bundle: .module))
+    private let addressConvertItem = ChecklistItemRow(icon: "lucide_map_pin", title: String(localized: "좌표를 주소로", bundle: .module))
+    private let travelSpotItem = ChecklistItemRow(icon: "lucide_briefcase", title: String(localized: "여행지 확인", bundle: .module))
+    private let photoLabelItem = ChecklistItemRow(icon: "lucide_image", title: String(localized: "사진 분석", bundle: .module))
+    private let faceAnalysisItem = ChecklistItemRow(icon: "lucide_circle_user", title: String(localized: "얼굴 분석", bundle: .module))
+    private let animalAnalysisItem = ChecklistItemRow(icon: "lucide_paw_print", title: String(localized: "반려동물 분석", bundle: .module))
+    private let similarItem = ChecklistItemRow(icon: "lucide_copy", title: String(localized: "비슷한 사진", bundle: .module))
 
-    private let dateAlbumItem = ChecklistItemRow(icon: "calendar", title: String(localized: "날짜 앨범", bundle: .module))
-    private let travelAlbumItem = ChecklistItemRow(icon: "suitcase.fill", title: String(localized: "여행 앨범", bundle: .module))
-    private let regionAlbumItem = ChecklistItemRow(icon: "mappin.and.ellipse", title: String(localized: "지역 앨범", bundle: .module))
-    private let categoryAlbumItem = ChecklistItemRow(icon: "square.grid.2x2.fill", title: String(localized: "카테고리 앨범", bundle: .module))
-    private let faceAlbumItem = ChecklistItemRow(icon: "person.crop.circle", title: String(localized: "얼굴 앨범", bundle: .module))
-    private let animalAlbumItem = ChecklistItemRow(icon: "pawprint.fill", title: String(localized: "반려동물 앨범", bundle: .module))
-    private let duplicateAlbumItem = ChecklistItemRow(icon: "square.on.square", title: String(localized: "중복 사진 앨범", bundle: .module))
+    private let dateAlbumItem = ChecklistItemRow(icon: "lucide_calendar", title: String(localized: "날짜 앨범", bundle: .module))
+    private let travelAlbumItem = ChecklistItemRow(icon: "lucide_briefcase", title: String(localized: "여행 앨범", bundle: .module))
+    private let regionAlbumItem = ChecklistItemRow(icon: "lucide_map_pin", title: String(localized: "지역 앨범", bundle: .module))
+    private let categoryAlbumItem = ChecklistItemRow(icon: "lucide_grid_2x2", title: String(localized: "카테고리 앨범", bundle: .module))
+    private let faceAlbumItem = ChecklistItemRow(icon: "lucide_circle_user", title: String(localized: "얼굴 앨범", bundle: .module))
+    private let animalAlbumItem = ChecklistItemRow(icon: "lucide_paw_print", title: String(localized: "반려동물 앨범", bundle: .module))
+    private let duplicateAlbumItem = ChecklistItemRow(icon: "lucide_copy", title: String(localized: "중복 사진 앨범", bundle: .module))
 
     private let photoChecklistContainer = UIStackView()
     private let albumChecklistContainer = UIStackView()

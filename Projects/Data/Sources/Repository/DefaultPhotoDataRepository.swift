@@ -262,7 +262,11 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         )
         guard let album = try context.fetch(albumDescriptor).first else { return nil }
 
-        return album.photos.max(by: { $0.createdAt < $1.createdAt })?.localIdentifier
+        // 앱 켤 때마다 최신 사진으로 덮어쓰면 인물 앨범의 화질 기준 대표사진이 매번 사라진다 —
+        // 지금 대표사진이 앨범에서 없어졌을 때만 규칙대로 다시 고른다
+        album.repairCoverIfMissing()
+        try context.save()
+        return album.coverPhotoIdentifier
     }
 
     public func fetchSyncPhotoCount(byAlbum localIdentifier: UUID) throws -> Int {
@@ -279,14 +283,6 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<PhotoEntity>(
             predicate: #Predicate { $0.createdAt >= startDate && $0.createdAt <= endDate }
-        )
-        return try context.fetch(fetchDescriptor).map { $0.toDomain() }
-    }
-
-    public func fetchUnanalyzed() throws -> [Photo] {
-        let context = ModelContext(container)
-        let fetchDescriptor = FetchDescriptor<PhotoEntity>(
-            predicate: #Predicate { $0.analyzedAt == nil }
         )
         return try context.fetch(fetchDescriptor).map { $0.toDomain() }
     }
@@ -361,17 +357,11 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
             throw PhotoRepositoryError.photoNotFound
         }
 
-        for album in entity.albums where album.coverPhotoIdentifier == identifier {
-            let photos = album.photos
-                .filter { $0.localIdentifier != identifier }
-                .sorted { $0.createdAt > $1.createdAt }
-            // 영상은 대표 사진 후보에서 제외 — 단, "영상" 앨범 자체는 내용물이 전부 영상이라 예외.
-            // 그 외 앨범은 남은 사진이 전부 영상이면 대표 사진 없음(nil)으로 둔다
-            album.coverPhotoIdentifier = album.from == "video" ? photos.first?.localIdentifier : photos.first { !$0.isVideo }?.localIdentifier
-
-            for album in entity.albums {
-                album.photoCount = photos.count
-            }
+        // 관계에서 먼저 빼고 나서 개수/대표사진을 맞춘다 (delete 전엔 관계에 이 사진이 남아 있음)
+        for album in entity.albums {
+            album.photos.removeAll { $0.localIdentifier == identifier }
+            album.photoCount = album.photos.count
+            album.repairCoverIfMissing()
         }
 
         context.delete(entity)

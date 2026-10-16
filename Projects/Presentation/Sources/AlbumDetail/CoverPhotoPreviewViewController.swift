@@ -155,7 +155,7 @@ final class CoverPhotoPreviewViewController: UIViewController {
             // 정해준 뒤에 그 안에서만 그려지는 걸 전제로 만들어져서, 여기처럼 콜렉션뷰 밖에서 직접
             // 띄우면 레이아웃 타이밍상 contentView의 흰 배경 모서리가 살짝 각지게 남아 보인다.
             // 셀 자체를 통째로 둥글게 잘라서 안전하게 막는다
-            cell.layer.cornerRadius = 20
+            cell.layer.cornerRadius = 16
             cell.layer.masksToBounds = true
             previewContainer.addSubview(cell)
             cell.snp.makeConstraints { make in
@@ -311,7 +311,7 @@ private final class CoverCirclePreviewView: UIView {
     private let nameLabel = UILabel()
 
     init(isAnimal: Bool) {
-        placeholderIcon = UIImageView(image: UIImage(systemName: isAnimal ? "pawprint.fill" : "person.fill")?.withRenderingMode(.alwaysTemplate))
+        placeholderIcon = UIImageView(image: UIImage(named: isAnimal ? "lucide_paw_print" : "lucide_user", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate))
         super.init(frame: .zero)
         setupView()
     }

@@ -41,7 +41,12 @@ final class ImageViewerViewModel: BaseViewModel {
     let input = PassthroughSubject<Input, Never>()
     var onAction: ((ImageViewerViewModelAction) -> Void)?
 
-    private var imageCache: [String: UIImage] = [:]
+    // 원본 해상도라 장당 수십 MB — 무제한으로 쌓으면 수십 장 넘길 때 메모리로 앱이 죽는다. 앞뒤 몇 장만 유지
+    private let imageCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 5
+        return cache
+    }()
     private let imageUseCase: ImageViewerUseCase
     private var cancellables = Set<AnyCancellable>()
 
@@ -82,11 +87,11 @@ final class ImageViewerViewModel: BaseViewModel {
     }
 
     func loadImage(id: String, size: CGSize) async -> UIImage? {
-        if let cached = imageCache[id] { return cached }
+        if let cached = imageCache.object(forKey: id as NSString) { return cached }
         do {
             guard let cgImage: CGImage = try await imageUseCase.loadImage(id: id, type: .maxSize).cgImage else { return nil }
             let image = UIImage(cgImage: cgImage)
-            imageCache[id] = image
+            imageCache.setObject(image, forKey: id as NSString)
             return image
         } catch {
             return nil
@@ -96,7 +101,7 @@ final class ImageViewerViewModel: BaseViewModel {
     /// 화면 크기 정도의 저화질을 먼저 보여주고(빠르게 스와이프해도 안 밀리게), 뒤이어 최대 해상도로
     /// 교체한다. 캐시에는 최종 고화질만 남긴다 — 안 그러면 나중에 다시 돌아왔을 때 저화질이 뜬다.
     func loadImageProgressive(id: String, size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
-        if let cached = imageCache[id] {
+        if let cached = imageCache.object(forKey: id as NSString) {
             onImage(cached, true)
             return
         }
@@ -108,7 +113,7 @@ final class ImageViewerViewModel: BaseViewModel {
                 Task { @MainActor in
                     // 이 사이 최대 해상도가 먼저 도착해서 캐시에 이미 들어있다면, 뒤늦게 온 저화질로
                     // 덮어쓰지 않는다
-                    guard self.imageCache[id] == nil else { return }
+                    guard self.imageCache.object(forKey: id as NSString) == nil else { return }
                     onImage(image, false)
                 }
             }
@@ -117,7 +122,7 @@ final class ImageViewerViewModel: BaseViewModel {
                 guard let cgImage: CGImage = try await self.imageUseCase.loadImage(id: id, type: .maxSize).cgImage else { return }
                 let image = UIImage(cgImage: cgImage)
                 await MainActor.run {
-                    self.imageCache[id] = image
+                    self.imageCache.setObject(image, forKey: id as NSString)
                     onImage(image, true)
                 }
             } catch {

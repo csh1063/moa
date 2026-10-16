@@ -35,7 +35,7 @@ final class MyCell: UITableViewCell {
         label.textColor = Theme.textPrimary
         label.font = UIFont.systemFont(ofSize: 16)
 
-        let image = UIImage(systemName: "chevron.forward")
+        let image = UIImage(named: "lucide_chevron_right", in: .module, with: nil)
         arrowImageView.image = image?.withRenderingMode(.alwaysTemplate)
         arrowImageView.tintColor = Theme.textPrimary
 

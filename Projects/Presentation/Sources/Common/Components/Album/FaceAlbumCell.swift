@@ -32,7 +32,7 @@ final class FaceAlbumCell: UICollectionViewCell {
 
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "person.fill")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_user", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv

@@ -77,9 +77,9 @@ final class TabbarCoordinator: BaseCoordinator {
         let album = albumCoordinator.startAndReturn()
         let myPage = myPageCoordinator.startAndReturn()
 
-        self.tabbarViewController?.setTabBarItem("photo.on.rectangle.angled", vc: photo, title: String(localized: "사진첩", bundle: .module))
-        self.tabbarViewController?.setTabBarItem("square.stack", vc: album, title: String(localized: "앨범", bundle: .module))
-        self.tabbarViewController?.setTabBarItem("gearshape", vc: myPage, title: String(localized: "설정", bundle: .module))
+        self.tabbarViewController?.setTabBarItem("lucide_images", vc: photo, title: String(localized: "사진첩", bundle: .module))
+        self.tabbarViewController?.setTabBarItem("lucide_layers", vc: album, title: String(localized: "앨범", bundle: .module))
+        self.tabbarViewController?.setTabBarItem("lucide_settings", vc: myPage, title: String(localized: "설정", bundle: .module))
 
         let controllers = [photo,
                            album,
@@ -130,7 +130,6 @@ final class TabbarCoordinator: BaseCoordinator {
         // 시트를 열게 되는 경우) 중복 표시되지 않도록 먼저 치운다.
         AnalysisProgressManager.shared.hide()
         AnalysisBadgeManager.shared.hide()
-        tabbarViewController?.setBadgeModeActive(false)
 
         let sheet = AlbumAnalysisSheet(progress: progress)
         sheet.isModalInPresentation = true
@@ -156,7 +155,6 @@ final class TabbarCoordinator: BaseCoordinator {
         guard let progress = currentAnalyzeProgress else { return }
         currentTier = .mini
         AnalysisBadgeManager.shared.hide()
-        tabbarViewController?.setBadgeModeActive(false)
 
         AnalysisProgressManager.shared.show(
             locationProgress: progress.photoProgress,
@@ -173,16 +171,25 @@ final class TabbarCoordinator: BaseCoordinator {
     }
 
     /// 3단계 — 탭바 옆 활동 배지. 2단계 상태에서 사용자가 어디로든 화면을 이동하면(탭 전환/상세
-    /// 진입 등) 여기로 축소된다. 이때만 탭바가 왼쪽으로 슬라이드돼서 배지 자리를 내준다.
+    /// 진입 등) 여기로 축소된다. 탭바는 항상 이 자리를 비워두고 있어서(TabbarViewController 참고)
+    /// 움직이지 않고, 배지만 나타난다.
     private func enterBadgeTier() {
         guard currentAnalyzeProgress != nil, !isAnalysisComplete else { return }
         currentTier = .badge
-        AnalysisProgressManager.shared.hide()
-        tabbarViewController?.setBadgeModeActive(true)
+        // hide()의 delay 기본값(0.5초)은 "완료 후 잠깐 보여주다 사라지는" 용도라 여기선 안 맞는다
+        // — delay: 0을 명시해야 호출 즉시(딜레이 없이) 슬라이드아웃이 시작된다. 이걸 안 넘겨서
+        // 기본값을 그대로 쓰면 위젯이 0.5초간 가만히 있다가 그제서야 움직이기 시작해서, 그보다
+        // 먼저 나타나는 배지와 타이밍이 완전히 어긋나 보였다.
+        AnalysisProgressManager.shared.hide(delay: 0)
 
-        AnalysisBadgeManager.shared.show(onTap: { [weak self] in
-            self?.handleBadgeTap()
-        })
+        // 위젯이 오른쪽으로 슬라이드돼 사라지는 중에 배지가 같이 나타나면 "둘이 따로 움직이는"
+        // 것처럼 보인다 — 위젯의 슬라이드아웃(0.5초, 딜레이 없이 바로 시작)이 거의 끝날 즈음 배지가
+        // 같은 방향(오른쪽에서)으로 슬라이드인해야 "이어서 넘어왔다"는 느낌이 난다.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            AnalysisBadgeManager.shared.show(onTap: { [weak self] in
+                self?.handleBadgeTap()
+            })
+        }
     }
 
     /// 미니위젯(2단계)이 떠 있는 동안에만 의미가 있다 — 시트가 떠 있을 땐 모달이라 애초에 다른 화면으로
@@ -193,11 +200,10 @@ final class TabbarCoordinator: BaseCoordinator {
     }
 
     /// 배지를 탭했을 때 — 아직 진행 중이면 미니위젯(2단계)으로 복귀, 이미 완료 상태("완료" 텍스트로
-    /// 바뀐 뒤)라면 그냥 치우고 탭바를 원래(가운데) 위치로 되돌린다.
+    /// 바뀐 뒤)라면 그냥 치운다.
     private func handleBadgeTap() {
         if isAnalysisComplete {
             AnalysisBadgeManager.shared.hide()
-            tabbarViewController?.setBadgeModeActive(false)
             currentTier = nil
             currentAnalyzeProgress = nil
         } else {

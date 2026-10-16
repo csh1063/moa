@@ -33,7 +33,7 @@ final class CategoryAlbumCell: UICollectionViewCell {
 
     private let chevronIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "chevron.right")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_chevron_right", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv
@@ -170,7 +170,7 @@ final class CategoryAlbumCell: UICollectionViewCell {
     func configure(with viewModel: CategoryAlbumCellViewModel) {
         assetIdentifier = viewModel.localIdentifier
 
-        iconView.image = UIImage(systemName: viewModel.systemIconName)?.withRenderingMode(.alwaysTemplate)
+        iconView.image = UIImage(named: viewModel.systemIconName, in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iconWrapView.backgroundColor = viewModel.iconColor
         nameLabel.text  = viewModel.displayName
         countLabel.text = String(localized: "사진 \(viewModel.photoCount.formatted())장", bundle: .module)

@@ -295,7 +295,7 @@ final class ConsentViewController: UIViewController {
         view.layer.borderColor = Theme.strokeSoft.cgColor
         view.backgroundColor = .white
 
-        let checkmark = UIImageView(image: UIImage(systemName: "checkmark"))
+        let checkmark = UIImageView(image: UIImage(named: "lucide_check", in: .module, with: nil))
         checkmark.tintColor = .white
         checkmark.contentMode = .scaleAspectFit
         checkmark.isHidden = true

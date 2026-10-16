@@ -3199,6 +3199,40 @@
           }
         }
       }
+    },
+    "분석이 진행 중이에요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analysis in progress"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "분석이 진행 중이에요"
+          }
+        }
+      }
+    },
+    "분석이 끝난 뒤 다시 시도해주세요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please try again after the analysis finishes."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "분석이 끝난 뒤 다시 시도해주세요"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

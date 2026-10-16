@@ -24,7 +24,7 @@ final class TravelerHeaderView: UICollectionReusableView {
 
     private let iconView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "person.2.fill")
+        iv.image = UIImage(named: "lucide_users", in: .module, with: nil)
         iv.tintColor = Theme.primary
         iv.contentMode = .scaleAspectFit
         return iv

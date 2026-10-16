@@ -12,10 +12,10 @@ enum AlbumSection: Int, CaseIterable {
     case travel
     case face
     case library
-    case similar
     case category
     case location
     case date
+    case similar
 
     var title: String {
         switch self {

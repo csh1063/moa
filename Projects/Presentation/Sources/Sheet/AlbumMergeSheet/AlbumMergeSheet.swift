@@ -440,7 +440,7 @@ private final class AlbumMergeCell: UICollectionViewCell {
         faceCellView.layer.borderColor = Theme.primary.cgColor
         animalCellView.layer.borderWidth = isSelected ? 3 : 0
         animalCellView.layer.borderColor = Theme.primary.cgColor
-        checkmarkView.image = UIImage(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+        checkmarkView.image = UIImage(named: isSelected ? "lucide_circle_check" : "lucide_circle", in: .module, with: nil)
         checkmarkView.tintColor = isSelected ? Theme.primary : .white
     }
 

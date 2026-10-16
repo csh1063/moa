@@ -21,7 +21,13 @@ extension ImageLoadable {
     func loadImageProgressive(id: String, size: CGSize, onImage: @escaping (UIImage?, Bool) -> Void) {
         Task {
             let image = await loadImage(id: id, size: size)
-            onImage(image, true)
+            // loadImage(id:size:)가 내부적으로 백그라운드 스레드에서 완료될 수 있어서(PhotoKit
+            // 콜백 등), 여기서 명시적으로 메인으로 다시 보내야 한다 — 안 그러면 onImage 안에서
+            // UIView를 건드릴 때 "백그라운드 스레드에서 레이아웃 변경" 크래시가 난다. 다른 ImageLoadable
+            // 채택 타입들(AlbumViewModel 등)은 이미 다 이렇게 오버라이드해뒀는데 이 기본 구현만 빠져있었다.
+            await MainActor.run {
+                onImage(image, true)
+            }
         }
     }
 }

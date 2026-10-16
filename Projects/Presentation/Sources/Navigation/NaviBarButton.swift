@@ -21,12 +21,10 @@ final class NaviBarButton: UIView {
 //    }
 
     private let button = UIButton()
-    private let dot: UIImageView = {
-        let image = UIImage(systemName: "circle.fill")
-        image?.withTintColor(.red, renderingMode: .alwaysTemplate)
-        let imageView =  UIImageView(image: image)
-
-        return imageView
+    private let dot: UIView = {
+        let view = UIView()
+        view.backgroundColor = .red
+        return view
     }()
 
     let type: NaviBarButtonType
@@ -60,6 +58,8 @@ final class NaviBarButton: UIView {
         self.backgroundColor = .clear
 
         dot.isHidden = true
+        dot.layer.cornerRadius = 2
+        dot.layer.masksToBounds = true
 
         button.layer.masksToBounds = true
 
@@ -80,8 +80,12 @@ final class NaviBarButton: UIView {
         }
 
         if type.imageName != "" {
-            let image = UIImage(systemName: type.imageName)?.withRenderingMode(.alwaysTemplate)
-            self.button.setImage(image, for: .normal)
+            var image = UIImage(named: type.imageName, in: .module, with: nil)
+            // 뒤로가기만 다른 아이콘들보다 존재감이 작게 느껴져서 더 키운다
+            if type == .back, let original = image {
+                image = original.resized(to: CGSize(width: 28, height: 28))
+            }
+            self.button.setImage(image?.withRenderingMode(.alwaysTemplate), for: .normal)
         }
 
         if let text = type.text {
@@ -104,6 +108,14 @@ final class NaviBarButton: UIView {
                 self.button.addBorder(color: Theme.strokeSoft, borderWidth: 1)
 //            }
             button.layer.cornerRadius = 16
+        }
+    }
+}
+
+private extension UIImage {
+    func resized(to size: CGSize) -> UIImage {
+        UIGraphicsImageRenderer(size: size).image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }

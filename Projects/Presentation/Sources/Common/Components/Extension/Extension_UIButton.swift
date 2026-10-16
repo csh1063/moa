@@ -153,52 +153,6 @@ extension UIButton {
         }
     }
 
-    func setNaviButtonForm(title: String, color: UIColor = Theme.textPrimary,
-                           image: UIImage, disabledImage: UIImage? = nil,
-                           contentHorizontalAlignment: UIControl.ContentHorizontalAlignment = .left) {
-        let label = UILabel().withText(title).withTextColor(color)
-                             .withFont(UIFont.regularLocalizedFont(ofSize: 16))
-        label.tag = 100
-        addSubview(label)
-        label.snp.makeConstraints { make in
-            switch contentHorizontalAlignment {
-            case .left:
-                make.left.equalTo(self).offset(20)
-                make.right.equalTo(self)
-            case .right:
-                make.left.equalTo(self)
-                make.right.equalTo(self).offset(-20)
-            default:
-                make.left.equalTo(self)
-                make.right.equalTo(self)
-            }
-            make.centerY.equalTo(self)
-        }
-
-        setImage(image, for: .normal)
-        setImage(disabledImage, for: .disabled)
-
-        self.contentHorizontalAlignment = contentHorizontalAlignment
-    }
-
-    func withNaviButtonForm(title: String, image: UIImage, disabledImage: UIImage? = nil,
-                            contentHorizontalAlignment: UIControl.ContentHorizontalAlignment = .left) -> UIButton {
-        setNaviButtonForm(title: title, image: image, disabledImage: disabledImage,
-                          contentHorizontalAlignment: contentHorizontalAlignment)
-        return self
-    }
-
-    func editNaviButtonForm(color: UIColor, image: UIImage, disabledImage: UIImage? = nil) {
-        for subview in subviews {
-            if let label = subview.viewWithTag(100) as? UILabel {
-                label.setTextColor(color)
-            }
-        }
-
-        setImage(image, for: .normal)
-        setImage(disabledImage, for: .disabled)
-    }
-
     func withContentAlignment(_ alignment: UIControl.ContentHorizontalAlignment) -> UIButton {
         contentHorizontalAlignment = alignment
         return self

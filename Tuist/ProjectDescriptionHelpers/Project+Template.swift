@@ -26,7 +26,8 @@ extension Project {
     public static func framework(module: Module,
                                  dependencies: [TargetDependency] = [],
                                  resources: ProjectDescription.ResourceFileElements? = nil,
-                                 coreDataModels: [CoreDataModel] = []
+                                 coreDataModels: [CoreDataModel] = [],
+                                 hasTests: Bool = false
     ) -> Project {
         return makeProject(
             module: module,
@@ -34,7 +35,8 @@ extension Project {
             bundleId: bundleId + ".\(module.name)",
             dependencies: dependencies,
             resources: resources,
-            coreDataModels: coreDataModels)
+            coreDataModels: coreDataModels,
+            hasTests: hasTests)
     }
 
     // MARK: - Private
@@ -46,7 +48,32 @@ extension Project {
         destinations: Destinations = .iOS,
         dependencies: [TargetDependency] = [],
         resources: ProjectDescription.ResourceFileElements? = nil,
-        coreDataModels: [CoreDataModel] = []) -> Project {
+        coreDataModels: [CoreDataModel] = [],
+        hasTests: Bool = false) -> Project {
+            var targets = [
+                makeTarget(
+                    module: module,
+                    product: product,
+                    bundleId: bundleId,
+                    destinations: destinations,
+                    sources: ["Sources/**"],
+                    resources: resources,
+                    dependencies: dependencies,
+                    coreDataModels: coreDataModels
+                )
+            ]
+            if hasTests {
+                targets.append(.target(
+                    name: "\(module.name)Tests",
+                    destinations: destinations,
+                    product: .unitTests,
+                    bundleId: bundleId + "Tests",
+                    deploymentTargets: .iOS(self.iosVersion),
+                    infoPlist: .default,
+                    sources: ["Tests/**"],
+                    dependencies: [.target(name: module.name)]
+                ))
+            }
             return Project(
                 name: module.name,
                 organizationName: "sanghyeon",
@@ -55,28 +82,7 @@ extension Project {
                         .debug(name: "Debug"),
                         .release(name: "Release")
                     ]),
-                targets: [
-                    makeTarget(
-                        module: module,
-                        product: product,
-                        bundleId: bundleId,
-                        destinations: destinations,
-                        sources: ["Sources/**"],
-                        resources: resources,
-                        dependencies: dependencies,
-                        coreDataModels: coreDataModels
-                    )
-//                    makeTarget(
-//                        name: "\(name)Tests",
-//                        product: .unitTests,
-//                        bundleId: bundleId,
-//                        sources: ["Tests/**"],
-//                        resources: nil,
-//                        dependencies: [
-//                            .target(name: "\(name)")
-//                        ]
-//                    ),
-                ],
+                targets: targets,
                 schemes: schemes)
         }
 

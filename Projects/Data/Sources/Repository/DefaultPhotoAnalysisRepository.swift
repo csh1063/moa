@@ -230,13 +230,6 @@ public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
         return try await self.analysisService.analyze(image: cgImage)
     }
 
-    public func analyzeFaceEmbedding(photoId: String) async throws -> [FaceEmbedding] {
-        guard let cgImage = try? await loadImage(photoId: photoId, size: 2048) else {
-            return []
-        }
-        return await self.faceEmbeddingService.extractEmbeddings(from: cgImage)
-    }
-
     // MARK: - Private
     private func loadImage(photoId: String, size: CGFloat = 2048) async throws -> CGImage? {
         try await libraryService.loadImage(

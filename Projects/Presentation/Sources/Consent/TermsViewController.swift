@@ -313,8 +313,7 @@ final class TermsRowView: UIView {
 
     private let chevronButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        button.setImage(UIImage(systemName: "chevron.right", withConfiguration: config), for: .normal)
+        button.setImage(UIImage(named: "lucide_chevron_right", in: .module, with: nil), for: .normal)
         button.tintColor = Theme.textTertiary
         return button
     }()

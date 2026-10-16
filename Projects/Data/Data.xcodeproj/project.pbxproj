@@ -12,9 +12,9 @@
 		0599293CB23CF9741B3EC12F /* MoaSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459DC6E74B0FFED9987F1B4B /* MoaSchema.swift */; };
 		08AECF29330879460FAE72AE /* HomeZoneEntityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4789F7EA343579B3C2EBD3E /* HomeZoneEntityMapper.swift */; };
 		0C1859700CD4ED6A601F413E /* AnimalClusterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB794BCBB1B82FF5F9C0096 /* AnimalClusterService.swift */; };
-		0E3CFA737ED1D1EDB6FD7C0B /* SimilarPhotoClusterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC6018B2D57F22AA80B35CA /* SimilarPhotoClusterService.swift */; };
 		0FF0E6DF64B0C4AB71FF5A9C /* AlbumKeywordEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 556D3CDB34B766589911C18B /* AlbumKeywordEntity.swift */; };
 		113EC0295E5F35367F42DFB8 /* ProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF420FD928A623DCD3CA5C99 /* ProviderFactory.swift */; };
+		18C33019EB6CA3C1AA21BC01 /* AlbumEntity+Cover.swift in Sources */ = {isa = PBXBuildFile; fileRef = E082691F450F54AD88854E36 /* AlbumEntity+Cover.swift */; };
 		1989135D2D6A2C2BA17A6B60 /* PhotoAssetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1818CB29A1914B6416E20D3E /* PhotoAssetEntity.swift */; };
 		1A9938F2B9F9AD2825A0FC20 /* DefaultPhotoLabelDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76713B0DD0063DA264DCB484 /* DefaultPhotoLabelDataRepository.swift */; };
 		1F93F0012FE2FE74A4C4929A /* DefaultRemoteConfigRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE479F3785C45E481DE2590E /* DefaultRemoteConfigRepository.swift */; };
@@ -177,6 +177,7 @@
 		D5F1B4F35516C5C0AD4BCD5A /* AnimalEmbeddingEntityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalEmbeddingEntityMapper.swift; sourceTree = "<group>"; };
 		D9E50197DB829A87EBA37CC8 /* BaseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseProvider.swift; sourceTree = "<group>"; };
 		DEFF1B7BD3B9906178E054AD /* HomeZoneEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeZoneEntity.swift; sourceTree = "<group>"; };
+		E082691F450F54AD88854E36 /* AlbumEntity+Cover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AlbumEntity+Cover.swift"; sourceTree = "<group>"; };
 		E1A31A4B6A99AA268BBD96B2 /* DefaultFaceClusterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultFaceClusterRepository.swift; sourceTree = "<group>"; };
 		E33F6688B6A751C4C72CD11E /* PhotoEntityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoEntityMapper.swift; sourceTree = "<group>"; };
 		E38D43CEE696BFEF020903BE /* Moya.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Moya.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -185,7 +186,6 @@
 		E5344C50DA80E761F09B49D0 /* ClusterBlacklistEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClusterBlacklistEntity.swift; sourceTree = "<group>"; };
 		E59ACAB8AA8E582CA0A62794 /* GeoJsonAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJsonAPI.swift; sourceTree = "<group>"; };
 		FA2C733233FE6C2AD8240B99 /* BaseDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseDTO.swift; sourceTree = "<group>"; };
-		FAC6018B2D57F22AA80B35CA /* SimilarPhotoClusterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimilarPhotoClusterService.swift; sourceTree = "<group>"; };
 		FCB794BCBB1B82FF5F9C0096 /* AnimalClusterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalClusterService.swift; sourceTree = "<group>"; };
 		FE479F3785C45E481DE2590E /* DefaultRemoteConfigRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultRemoteConfigRepository.swift; sourceTree = "<group>"; };
 		FEAA1AC6205E4DF7B7D79D6F /* DefaultLegacyAccessRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultLegacyAccessRepository.swift; sourceTree = "<group>"; };
@@ -284,6 +284,7 @@
 			isa = PBXGroup;
 			children = (
 				35D810417D088186C5EF9D88 /* AlbumEntity.swift */,
+				E082691F450F54AD88854E36 /* AlbumEntity+Cover.swift */,
 				556D3CDB34B766589911C18B /* AlbumKeywordEntity.swift */,
 				5F0055783E23C6E049DD0832 /* AnimalClusterBlacklistEntity.swift */,
 				6CEAD78CDAA6297333451610 /* AnimalClusterEntity.swift */,
@@ -359,7 +360,6 @@
 				69864E8955090C5B3C4E7CF2 /* PhotoLibararyService.swift */,
 				B9E8EF953CC3787BDF03C44B /* RemoteConfigService.swift */,
 				90F6C7ACBF6ED2FAD561E78D /* ServiceFactory.swift */,
-				FAC6018B2D57F22AA80B35CA /* SimilarPhotoClusterService.swift */,
 				4D1CCABEC1645F0152B5B6D4 /* UserDefaultsService.swift */,
 			);
 			path = Service;
@@ -536,8 +536,8 @@
 				C5E3901016A28982EE6D8EC0 /* PhotoLibararyService.swift in Sources */,
 				F714E6051A80ADF0CF49C7A9 /* RemoteConfigService.swift in Sources */,
 				63D44D51A5150AE02FB8D98E /* ServiceFactory.swift in Sources */,
-				0E3CFA737ED1D1EDB6FD7C0B /* SimilarPhotoClusterService.swift in Sources */,
 				565C1DBED68ECA6870BD0038 /* UserDefaultsService.swift in Sources */,
+				18C33019EB6CA3C1AA21BC01 /* AlbumEntity+Cover.swift in Sources */,
 				E6236BC642F4816FB3AF2C80 /* AlbumEntity.swift in Sources */,
 				0FF0E6DF64B0C4AB71FF5A9C /* AlbumKeywordEntity.swift in Sources */,
 				AA60DCAB95710FCA4B263E78 /* AnimalClusterBlacklistEntity.swift in Sources */,

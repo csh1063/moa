@@ -235,7 +235,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
             }
 
             album.photoCount = album.photos.count
-            album.coverPhotoIdentifier = album.photos.sorted { $0.createdAt > $1.createdAt }.first?.localIdentifier
+            album.refreshCover()
             debugLog("📝 [SimilarPhoto] [\(albumName)] +\(added)장 / 총 \(album.photoCount)장")
         }
 
@@ -457,7 +457,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
             }
 
             album.photoCount = album.photos.count
-            album.coverPhotoIdentifier = album.photos.sorted { $0.createdAt > $1.createdAt }.first?.localIdentifier
+            album.refreshCover()
             debugLog("📝 [SimilarPhoto] [\(album.name)] +\(added)장 / 총 \(album.photoCount)장")
         }
 

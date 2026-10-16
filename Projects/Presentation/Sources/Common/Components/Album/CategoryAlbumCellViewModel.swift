@@ -35,34 +35,34 @@ struct CategoryAlbumCellViewModel: AlbumCellViewModel {
         // album.name == 카테고리 key
         switch album.name {
         case "food":
-            systemIconName = "fork.knife"
+            systemIconName = "lucide_utensils"
             iconColor = Theme.primary
         case "nature":
-            systemIconName = "leaf.fill"
+            systemIconName = "lucide_leaf"
             iconColor = Theme.positive
         case "city":
-            systemIconName = "building.2.fill"
+            systemIconName = "lucide_building_2"
             iconColor = Theme.secondary
         case "event":
-            systemIconName = "star.fill"
+            systemIconName = "lucide_star"
             iconColor = Theme.accent
         case "animal":
-            systemIconName = "pawprint.fill"
+            systemIconName = "lucide_paw_print"
             iconColor = UIColor("#A0784E")
         case "text_document":
-            systemIconName = "doc.text.fill"
+            systemIconName = "lucide_file_text"
             iconColor = Theme.textSecondary
         case "sports":
-            systemIconName = "figure.run"
+            systemIconName = "lucide_activity"
             iconColor = Theme.warning
         case "vehicle":
-            systemIconName = "car.fill"
+            systemIconName = "lucide_car"
             iconColor = UIColor("#6B7AFF")
         case "video":
-            systemIconName = "video.fill"
+            systemIconName = "lucide_video"
             iconColor = UIColor("#3A3A3C")
         default:
-            systemIconName = "photo.fill"
+            systemIconName = "lucide_image"
             iconColor = Theme.textTertiary
         }
     }

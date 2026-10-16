@@ -41,7 +41,7 @@ final class AlbumEmtpyView: UIView {
         var config = UIButton.Configuration.filled()
         config.baseBackgroundColor = .white
         config.baseForegroundColor = Theme.primary
-        config.image = UIImage(systemName: "sparkles")
+        config.image = UIImage(named: "lucide_sparkles", in: .module, with: nil)
         config.title = String(localized: "분석 시작", bundle: .module)
         config.imagePadding = 8
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18)
@@ -59,7 +59,7 @@ final class AlbumEmtpyView: UIView {
     private var progressiveView = UIView(backgroundColor: Theme.surface)
     private var coverView = UIView(backgroundColor: Theme.surfaceCool)
     private var iconImageView: UIImageView = {
-        let icon = UIImage(systemName: "square.stack.3d.up.fill")?.withRenderingMode(.alwaysTemplate)
+        let icon = UIImage(named: "lucide_layers", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         let imageView = UIImageView(image: icon)
         imageView.tintColor = Theme.secondary
         return imageView
@@ -91,7 +91,7 @@ final class AlbumEmtpyView: UIView {
             c.font = .systemFont(ofSize: 14, weight: .medium)
             return c
         }
-        config.image = UIImage(systemName: "square.and.arrow.down")
+        config.image = UIImage(named: "lucide_download", in: .module, with: nil)
         config.imagePadding = 6
         config.imagePlacement = .leading
         return UIButton(configuration: config)

@@ -24,9 +24,6 @@ public protocol AutoAlbumUseCase {
     /// 여행 앨범 생성(빈 여행자로) + 지역 앨범 분류 — 지오코딩(주소) 스트림이 끝나는 대로 부른다.
     /// 지역 분류는 주소 데이터만 있으면 되고 라벨을 안 써서, 라벨 스트림을 기다릴 필요가 없다.
     func createTravelAlbumsEarly() async throws
-    /// 이미 만들어진 여행 앨범들에 얼굴/동물 앨범 연결 정보를 채운다 — 얼굴/동물 클러스터링이 끝난 뒤
-    /// 부른다. 여러 번 불러도 안전하다.
-    func linkTravelersToExistingTravelAlbums() async throws
     /// 카테고리 앨범 분류(+날짜 안전망, "분류 완료" 표시까지) — 라벨+임베딩 스트림이 끝나는 대로,
     /// 얼굴/동물·중복탐지보다 먼저 부른다. 카테고리는 라벨만 있으면 되므로 그 둘을 기다릴 필요가 없다.
     func createCategoryAlbumsEarly() async throws
@@ -47,7 +44,6 @@ public protocol AutoAlbumUseCase {
     func createAnimalAlbums() async throws
     func createTravelAutoAlbum() -> AsyncThrowingStream<ProgressAlbum, Error>
     func createSimilarAlbum() async throws
-    func syncPhotoCount() async throws
     func deletePhotos() async throws
     func deleteAutoAlbums() async throws
 }
@@ -69,10 +65,6 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     private let faceClusterRepository: FaceClusterRepository
     private let animalClusterRepository: AnimalClusterRepository
     private let similarRepository: SimilarPhotoClusterRepository
-
-    private let reanalyzePeriod: TimeInterval = 90 * 24 * 60 * 60  // 3개월
-    private let gridSize: Double = 50                               // 10km
-    private let maxHomeZones: Int = 5
 
     // 날짜/주소/카테고리 분류 시 페이지 단위로 끊어서 처리 (전체를 한 번에 메모리에 올리면 사진이 많을 때 오래 걸림)
     private let classificationPageSize = 300
@@ -111,6 +103,8 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
 
                     try Task.checkCancellation()
                     try await classifyNewPhotosCore(fullRegenerate: fullRegenerate)
+                    // 영상 앨범도 isAuto라 전체 재생성 때 지워지므로 여기서 다시 만든다
+                    try createVideoAlbumCore()
                     continuation.yield(ProgressAlbum(step: .creatingAlbums, ratio: 1 / totalSteps))
 
                     try Task.checkCancellation()
@@ -174,18 +168,16 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         // 지역 분류는 주소만 있으면 되고 라벨이 필요 없어서, 라벨 스트림을 기다리지 않고 여행 앨범
         // 바로 다음에 처리한다(둘 다 "주소 트랙"이 끝나야 의미 있는 작업이라 같이 묶었다).
         try await classifyLocationOnlyCore()
+        // 얼굴/동물 앨범이 여행 앨범보다 먼저 끝났을 수 있어서 여기서도 여행자 연결 (반대 순서는 createPersonAndSimilarAlbums가 맡음)
+        try await linkTravelersToTravelAlbumsCore()
         try albumDataRepository.syncAlbums()
         try await userDefaultRepository.saveLocationAnalyzedDate()
     }
 
-    public func linkTravelersToExistingTravelAlbums() async throws {
-        try await linkTravelersToTravelAlbumsCore()
-    }
-
     // 카테고리는 라벨만 있으면 되고 얼굴/동물 클러스터링이나 중복탐지 결과가 필요 없어서, 그 둘보다
     // 먼저 처리한다. classifyCategoryAndFinalizeCore가 날짜 안전망 처리 + markAlbumsGenerated로
-    // "분류 완료" 표시까지 담당한다(지역 패스는 이 표시를 안 하므로 순서가 바뀌어도 안전 — 카테고리가
-    // 실질적으로 항상 나중에 끝나는 쪽이라 여기서 최종 표시를 맡는다).
+    // "분류 완료" 표시까지 담당한다. 표시된 사진은 지역 패스가 못 보므로, 호출하는 쪽(TabbarViewModel)이
+    // 여행+지역(createTravelAlbumsEarly)이 끝난 뒤에 이걸 부른다.
     public func createCategoryAlbumsEarly() async throws {
         try await classifyCategoryAndFinalizeCore()
         try albumDataRepository.syncAlbums()
@@ -260,10 +252,6 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                 }
             }
         }
-    }
-
-    public func syncPhotoCount() async throws {
-        try albumDataRepository.syncPhotoCount()
     }
 
     public func deletePhotos() async throws {
@@ -536,18 +524,21 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                 categoryAlbumPhotoMap[album.id, default: []].append(contentsOf: matched)
             }
 
+            // 앨범에 먼저 넣고 나서 "처리 완료" 표시 — 반대 순서면 중간에 앱이 죽었을 때 이 페이지 사진이 영영 앨범에 안 들어감
+            for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
+                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            }
+            dateAlbumPhotoMap.removeAll()
+            for (albumId, photoIdentifiers) in locationAlbumPhotoMap {
+                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            }
+            locationAlbumPhotoMap.removeAll()
+            for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
+                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            }
+            categoryAlbumPhotoMap.removeAll()
             try photoDataRepository.markAlbumsGenerated(identifiers: photos.map { $0.localIdentifier })
             if fullRegenerate { offset += photos.count }
-        }
-
-        for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
-            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-        }
-        for (albumId, photoIdentifiers) in locationAlbumPhotoMap {
-            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-        }
-        for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
-            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
         }
     }
 
@@ -674,15 +665,17 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                 categoryAlbumPhotoMap[album.id, default: []].append(contentsOf: matched)
             }
 
+            // 앨범에 먼저 넣고 나서 "처리 완료" 표시 — 반대 순서면 중간에 앱이 죽었을 때 이 페이지 사진이 영영 앨범에 안 들어감
+            for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
+                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            }
+            dateAlbumPhotoMap.removeAll()
+            for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
+                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            }
+            categoryAlbumPhotoMap.removeAll()
             try photoDataRepository.markAlbumsGenerated(identifiers: photos.map { $0.localIdentifier })
             if fullRegenerate { offset += photos.count }
-        }
-
-        for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
-            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-        }
-        for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
-            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
         }
     }
 
@@ -741,7 +734,7 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         }
 
         // 홈존 만들기
-        try analyzeIfNeeded(from: targetPhotos)
+        try analyzeIfNeeded()
 
         let homeZones = try fetchHomeZones()
         debugLog("🏠 이번 여행 판정에 사용되는 홈존 \(homeZones.count)개")
@@ -750,6 +743,14 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         }
 
         let clusters = try await travelRepository.detect(from: targetPhotos, homeZones: homeZones)
+
+        // 사용자가 손댄(이름/대표사진 변경, 병합, 사진 빼기) 마지막 여행은 지우고 다시 만들면 편집이 날아간다 —
+        // 지우지 않고 이어지는 새 사진만 더한다
+        if let lastTravelAlbum, let lastEndDate = lastTravelAlbum.endDate, albumIdToReplace != nil,
+           lastTravelAlbum.isRenamed || lastTravelAlbum.coverPhotoManuallySet || lastTravelAlbum.isEdited {
+            try await extendEditedTravelAlbum(lastTravelAlbum, lastEndDate: lastEndDate, clusters: clusters, existingTravelAlbums: existingTravelAlbums)
+            return
+        }
 
         // 여기서부터 삭제 → 재저장이 시작된다 — 이 사이에 앱이 죽으면 다음 실행이 safeAnchorForCheckpoint
         // 기준으로 안전하게 복구할 수 있도록 체크포인트를 남긴다(성공하면 맨 끝에서 지운다)
@@ -764,13 +765,7 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         // 다른(이번에 안 건드리는) 여행 앨범과 내부 식별용 name이 겹치지 않도록, 기존 앨범들의
         // "장소 N" 카운트를 먼저 읽어와 이어서 매긴다 — 안 그러면 saveAlbum(returnExist: true)이
         // 이름이 겹치는 엉뚱한 기존 앨범에 이번 사진들을 잘못 합쳐버릴 수 있다.
-        var placeCounts: [String: Int] = [:]
-        for album in existingTravelAlbums where album.id != albumIdToReplace {
-            guard let lastSpaceIndex = album.name.lastIndex(of: " "),
-                  let count = Int(album.name[album.name.index(after: lastSpaceIndex)...]) else { continue }
-            let place = String(album.name[..<lastSpaceIndex])
-            placeCounts[place] = max(placeCounts[place] ?? 0, count + 1)
-        }
+        var placeCounts = placeCounts(of: existingTravelAlbums.filter { $0.id != albumIdToReplace })
 
         try await saveTravelClusters(clusters, placeCounts: &placeCounts)
 
@@ -804,7 +799,7 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             targetPhotos = try photoDataRepository.fetchHasCoordinators().map { PhotoLocationSnapshot(from: $0) }
         }
 
-        try analyzeIfNeeded(from: targetPhotos)
+        try analyzeIfNeeded()
         let homeZones = try fetchHomeZones()
         debugLog("🏠 [여행 앨범 복구] 이번 여행 판정에 사용되는 홈존 \(homeZones.count)개")
 
@@ -812,22 +807,61 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
 
         // anchorDate 이후 앨범은 위에서 이미 다 지웠으므로 추가로 지울 게 없다 — anchorDate 이전(안전한)
         // 앨범들의 "장소 N" 카운트만 이어받는다
-        var placeCounts: [String: Int] = [:]
         let remainingAlbums = existingTravelAlbums.filter { album in
             guard let anchorDate else { return false }
             return (album.endDate ?? .distantPast) <= anchorDate
         }
-        for album in remainingAlbums {
-            guard let lastSpaceIndex = album.name.lastIndex(of: " "),
-                  let count = Int(album.name[album.name.index(after: lastSpaceIndex)...]) else { continue }
-            let place = String(album.name[..<lastSpaceIndex])
-            placeCounts[place] = max(placeCounts[place] ?? 0, count + 1)
-        }
+        var placeCounts = placeCounts(of: remainingAlbums)
 
         try await saveTravelClusters(clusters, placeCounts: &placeCounts)
 
         try albumDataRepository.syncAlbums()
         try? await userDefaultRepository.clearTravelAlbumCheckpoint()
+    }
+
+    /// 여행 앨범 내부 이름 "장소 N"에서 장소별 다음 번호를 뽑는다 — 새 앨범 이름이 기존 앨범과 겹치지 않게
+    private func placeCounts(of albums: [Album]) -> [String: Int] {
+        var placeCounts: [String: Int] = [:]
+        for album in albums {
+            guard let lastSpaceIndex = album.name.lastIndex(of: " "),
+                  let count = Int(album.name[album.name.index(after: lastSpaceIndex)...]) else { continue }
+            let place = String(album.name[..<lastSpaceIndex])
+            placeCounts[place] = max(placeCounts[place] ?? 0, count + 1)
+        }
+        return placeCounts
+    }
+
+    /// 편집된 마지막 여행 앨범을 유지한 채 갱신 — 그 앨범 사진이 섞인 클러스터는 "이어지는 여행"으로 보고
+    /// 끝 날짜 이후 사진만 더하고(사용자가 뺀 예전 사진은 안 돌아옴), 새 사진만으로 된 클러스터는 새 여행으로 저장한다
+    private func extendEditedTravelAlbum(_ album: Album, lastEndDate: Date, clusters: [TravelCluster], existingTravelAlbums: [Album]) async throws {
+        let albumPhotoIds = Set(try albumDataRepository.fetchPhotos(by: album.id).map { $0.localIdentifier })
+        var newTripClusters: [TravelCluster] = []
+
+        for cluster in clusters {
+            guard cluster.photos.contains(where: { albumPhotoIds.contains($0.localIdentifier) }) else {
+                newTripClusters.append(cluster)
+                continue
+            }
+            // 좌표 없는 사진도 기간 안이면 같이 넣는 건 saveTravelClusters와 같은 규칙
+            let periodPhotos = try photoDataRepository.fetchPhotos(from: lastEndDate, to: cluster.endDate)
+            let addedIds = Set(cluster.photos.filter { $0.createdAt > lastEndDate }.map { $0.localIdentifier })
+                .union(periodPhotos.filter { $0.createdAt > lastEndDate }.map { $0.localIdentifier })
+            guard !addedIds.isEmpty else { continue }
+            try albumDataRepository.addPhotos(albumId: album.id, photoIdentifiers: Array(addedIds))
+
+            // 이름을 직접 안 바꿨으면 기간이 늘어난 데 맞춰 "나들이"/"여행"만 다시 정한다
+            if !album.isRenamed,
+               var updated = try albumDataRepository.fetchAlbum(id: album.id),
+               let start = updated.startDate, let end = updated.endDate,
+               let lastSpaceIndex = album.name.lastIndex(of: " ") {
+                updated.displayName = TravelAlbumNaming.displayName(place: String(album.name[..<lastSpaceIndex]), startDate: start, endDate: end)
+                try albumDataRepository.updateAlbum(album: updated)
+            }
+        }
+
+        var placeCounts = placeCounts(of: existingTravelAlbums)
+        try await saveTravelClusters(newTripClusters, placeCounts: &placeCounts)
+        try albumDataRepository.syncAlbums()
     }
 
     /// 클러스터링 결과를 여행 앨범으로 저장하는 공통 로직 — 정상 경로/체크포인트 복구 경로가 같이 쓴다
@@ -936,50 +970,25 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     // MARK: - 여행 관련 함수
 
     // 홈존 분석 필요 여부 체크 후 실행
-    private func analyzeIfNeeded(from photos: [PhotoLocationSnapshot]) throws {
+    // 여행 판정 대상(증분이면 일부 사진뿐)이 아니라 전체 좌표 사진으로 본다 — 일부만 보면 홈존이 0개로 나와 기존 홈존을 지워버림
+    private func analyzeIfNeeded() throws {
         let existing = try homeZoneRepository.fetchHomeZones()
-        if let last = existing.first, Date().timeIntervalSince(last.analyzedAt) < reanalyzePeriod {
+        if let last = existing.first, Date().timeIntervalSince(last.analyzedAt) < HomeZoneDetection.reanalyzePeriod {
             debugLog("🏠 홈존 재분석 스킵 (마지막 분석: \(last.analyzedAt), 아직 3개월 안 지남)")
             return
         }
-        try analyze(from: photos)
+        try analyze(from: photoDataRepository.fetchHasCoordinators().map { PhotoLocationSnapshot(from: $0) })
     }
 
     // 강제 재분석
     private func analyze(from photos: [PhotoLocationSnapshot]) throws {
-        let threeMonthsAgo = Date().addingTimeInterval(-reanalyzePeriod)
-        let recent = photos.filter { $0.createdAt >= threeMonthsAgo }
-
-        guard !recent.isEmpty else { return }
-
-        let grid = Dictionary(grouping: recent) { photo -> String in
-            let latKey = (photo.latitude * Double(gridSize)).rounded()
-            let lngKey = (photo.longitude * Double(gridSize)).rounded()
-            return "\(latKey),\(lngKey)"
-        }
-
-        let zones = grid
-            .filter { $0.value.count >= 5 }
-            .filter { _, photos in
-                let uniqueWeeks = Set(photos.map {
-                    Calendar.current.component(.weekOfYear, from: $0.createdAt)
-                }).count
-                return uniqueWeeks >= 3
-            }
-            .sorted { $0.value.count > $1.value.count }
-            .prefix(maxHomeZones)
-            .compactMap { _, photos -> HomeZone? in
-                guard let first = photos.first else { return nil }
-                return HomeZone(
-                    latitude: first.latitude,
-                    longitude: first.longitude,
-                    analyzedAt: Date()
-                )
-            }
+        let zones = HomeZoneDetection.zones(from: photos)
 
         debugLog("🏠 홈존 분석 결과 → \(zones.count)개")
+        // 0개면 기존 홈존을 유지 — 지우면 이후 동네 사진이 전부 여행으로 잡힌다
+        guard !zones.isEmpty else { return }
         for zone in zones {
-            debugLog("   - \(zone.addressDescription(in: recent))")
+            debugLog("   - \(zone.addressDescription(in: photos))")
         }
 
         try homeZoneRepository.saveHomeZones(zones)

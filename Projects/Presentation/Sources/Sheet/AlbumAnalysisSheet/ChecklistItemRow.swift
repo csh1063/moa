@@ -48,8 +48,7 @@ final class ChecklistItemRow: UIView {
     }()
 
     private let checkIcon: UIImageView = {
-        let config = UIImage.SymbolConfiguration(pointSize: 9, weight: .bold)
-        let imageView = UIImageView(image: UIImage(systemName: "checkmark", withConfiguration: config))
+        let imageView = UIImageView(image: UIImage(named: "lucide_check", in: .module, with: nil))
         imageView.tintColor = Theme.positive
         return imageView
     }()
@@ -72,7 +71,7 @@ final class ChecklistItemRow: UIView {
 
     init(icon: String, title: String) {
         super.init(frame: .zero)
-        iconView.image = UIImage(systemName: icon)
+        iconView.image = UIImage(named: icon, in: .module, with: nil)
         titleLabel.text = title
         setupLayout()
         apply(state: .waiting)

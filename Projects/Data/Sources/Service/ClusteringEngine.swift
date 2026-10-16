@@ -61,7 +61,7 @@ public struct ClusteringConfig {
     public static let faceDefault = ClusteringConfig(
         similarityThreshold: 0.64,
         minimumClusterSize: 2,
-        minimumMergedClusterSize: 10,
+        minimumMergedClusterSize: 5,
         minimumClusterQuality: 0.50,
         maxIterations: 3,
         mergeThreshold: 0.60,
@@ -385,6 +385,10 @@ public final class ClusteringEngine<Item: ClusterableEmbedding> {
     }
 
     private func logClusterSummary(_ items: [Item]) {
+        // 로그 한 줄을 위해 n×n 행렬을 만드는 함수라 릴리스에선 통째로 건너뛴다
+        #if !DEBUG
+        return
+        #endif
         guard items.count > 1 else {
             debugLog("✅ [\(logTag)] 클러스터 \(items.count)장")
             return

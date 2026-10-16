@@ -156,7 +156,7 @@ private final class LibraryAlbumPickerCell: UITableViewCell {
     /// 대신 저장/다운로드 느낌의 트레이 아이콘을 쓴다
     private let importIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "tray.and.arrow.down.fill")
+        iv.image = UIImage(named: "lucide_inbox", in: .module, with: nil)
         iv.tintColor = Theme.textTertiary
         iv.contentMode = .scaleAspectFit
         return iv
@@ -210,7 +210,7 @@ private final class LibraryAlbumPickerImportAllRow: UIView {
 
     private let icon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "tray.full.fill")
+        iv.image = UIImage(named: "lucide_archive", in: .module, with: nil)
         iv.tintColor = Theme.primary
         iv.contentMode = .scaleAspectFit
         return iv
@@ -226,7 +226,7 @@ private final class LibraryAlbumPickerImportAllRow: UIView {
 
     private let importIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "tray.and.arrow.down.fill")
+        iv.image = UIImage(named: "lucide_inbox", in: .module, with: nil)
         iv.tintColor = Theme.primary
         iv.contentMode = .scaleAspectFit
         return iv

@@ -40,8 +40,7 @@ final class ImageViewerViewController: UIViewController {
 
     private let dismissButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .bold)
-        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        button.setImage(UIImage(named: "lucide_x", in: .module, with: nil), for: .normal)
         button.tintColor = .white
         button.layer.cornerRadius = 20
         button.clipsToBounds = true
@@ -50,8 +49,7 @@ final class ImageViewerViewController: UIViewController {
 
     private let checkButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
-        button.setImage(UIImage(systemName: "circle", withConfiguration: config), for: .normal)
+        button.setImage(UIImage(named: "lucide_circle", in: .module, with: nil), for: .normal)
         button.tintColor = .white
         button.isHidden = true
         return button
@@ -272,9 +270,8 @@ final class ImageViewerViewController: UIViewController {
 
         let currentId = viewModel.photoDetails[safe: currentIndex]?.id ?? ""
         let isSelected = selectedIdentifiers.contains(currentId)
-        let imageName = isSelected ? "checkmark.circle.fill" : "circle"
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
-        checkButton.setImage(UIImage(systemName: imageName, withConfiguration: config), for: .normal)
+        let imageName = isSelected ? "lucide_circle_check" : "lucide_circle"
+        checkButton.setImage(UIImage(named: imageName, in: .module, with: nil), for: .normal)
         checkButton.tintColor = isSelected ? Theme.primary : .white
     }
 
@@ -296,12 +293,12 @@ final class ImageViewerViewController: UIViewController {
                 }
 
             if components.isEmpty {
-                locationIcon.image = UIImage(systemName: "location.slash")
+                locationIcon.image = UIImage(named: "lucide_map_pin_off", in: .module, with: nil)
                 locationIcon.tintColor = .white.withAlphaComponent(0.72)
                 locationLabel.text = String(localized: "위치 정보 없음", bundle: .module)
                 locationLabel.textColor = .white.withAlphaComponent(0.82)
             } else {
-                locationIcon.image = UIImage(systemName: "location.fill")
+                locationIcon.image = UIImage(named: "lucide_map_pin", in: .module, with: nil)
                 locationIcon.tintColor = Theme.secondary
                 locationLabel.text = components.joined(separator: " ")
                 locationLabel.textColor = .white.withAlphaComponent(0.92)
@@ -312,7 +309,7 @@ final class ImageViewerViewController: UIViewController {
             label.isHidden = true
             albumBadge.isHidden = false
             albumBadgeLabel.text = String(localized: "미분석", bundle: .module)
-            locationIcon.image = UIImage(systemName: "location.slash")
+            locationIcon.image = UIImage(named: "lucide_map_pin_off", in: .module, with: nil)
             locationIcon.tintColor = .white.withAlphaComponent(0.72)
             locationLabel.text = String(localized: "아직 분석하지 않은 사진이에요", bundle: .module)
             locationLabel.textColor = .white.withAlphaComponent(0.82)

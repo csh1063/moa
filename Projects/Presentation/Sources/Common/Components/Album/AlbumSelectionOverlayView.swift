@@ -29,7 +29,7 @@ final class AlbumSelectionOverlayView: UIImageView {
     }
 
     func setSelected(_ isSelected: Bool) {
-        image = UIImage(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+        image = UIImage(named: isSelected ? "lucide_circle_check" : "lucide_circle", in: .module, with: nil)
         tintColor = isSelected ? Theme.primary : .white
     }
 }

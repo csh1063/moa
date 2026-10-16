@@ -45,7 +45,7 @@ final class PhotoCell: UICollectionViewCell {
 
     private let checkImageView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "checkmark")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_check", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = .white
         iv.contentMode = .scaleAspectFit
         iv.isHidden = true
@@ -55,7 +55,7 @@ final class PhotoCell: UICollectionViewCell {
     /// 사진/영상 구분 — 재생 버튼이 아니라 그냥 "이건 영상이다" 표시용 아이콘(오른쪽 아래)
     private let videoIndicatorIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "video.fill")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(named: "lucide_video", in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = .white
         iv.contentMode = .scaleAspectFit
         iv.layer.shadowColor = UIColor.black.cgColor

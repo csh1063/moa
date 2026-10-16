@@ -30,8 +30,7 @@ final class CardStackLoadingView: UIView {
 
     private let dismissButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
-        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        button.setImage(UIImage(named: "lucide_x", in: .module, with: nil), for: .normal)
         button.tintColor = .white
         button.backgroundColor = UIColor.black.withAlphaComponent(0.3)
         button.layer.cornerRadius = 10

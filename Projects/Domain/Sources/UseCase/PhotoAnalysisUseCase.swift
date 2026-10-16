@@ -18,7 +18,6 @@ public protocol PhotoAnalysisUseCase {
         onAddressStreamCompleted: @escaping @Sendable () -> Void,
         onLabelStreamCompleted: @escaping @Sendable () -> Void
     ) -> AsyncThrowingStream<ProgressAnalysis, Error>
-    func locationAnalysis() -> AsyncThrowingStream<ProgressAnalysis, Error>
 }
 
 extension PhotoAnalysisUseCase {
@@ -115,11 +114,6 @@ public final class DefaultPhotoAnalysisUseCase: PhotoAnalysisUseCase {
                 }
             }
         }
-    }
-
-    // 주소 변환만 단독으로 (외부 단독 트리거용으로 프로토콜에 유지)
-    public func locationAnalysis() -> AsyncThrowingStream<ProgressAnalysis, Error> {
-        addressStream()
     }
 
     // MARK: - Private

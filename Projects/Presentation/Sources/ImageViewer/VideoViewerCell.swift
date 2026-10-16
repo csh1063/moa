@@ -28,9 +28,8 @@ final class VideoViewerCell: UICollectionViewCell {
     }()
 
     private let playPauseButton: UIButton = {
-        let config = UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)
         let btn = UIButton(type: .system)
-        btn.setImage(UIImage(systemName: "play.fill", withConfiguration: config), for: .normal)
+        btn.setImage(UIImage(named: "lucide_play", in: .module, with: nil), for: .normal)
         btn.tintColor = .white
         btn.backgroundColor = UIColor.black.withAlphaComponent(0.35)
         btn.layer.cornerRadius = 34
@@ -75,8 +74,7 @@ final class VideoViewerCell: UICollectionViewCell {
         let slider = UISlider()
         slider.minimumTrackTintColor = .white
         slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.3)
-        let thumb = UIImage(systemName: "circle.fill")?
-            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 10))
+        let thumb = UIImage(named: "lucide_circle", in: .module, with: nil)
         slider.setThumbImage(thumb, for: .normal)
         slider.tintColor = .white
         return slider
@@ -121,6 +119,17 @@ final class VideoViewerCell: UICollectionViewCell {
         currentTimeLabel.text = "0:00"
         durationLabel.text = "0:00"
         progressSlider.value = 0
+        removeEndObserver()
+    }
+
+    deinit {
+        // 블록 옵저버는 지우기 전까지 NotificationCenter가 붙잡고 있어서, 셀이 사라질 때도 직접 지워야 한다
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+        }
+    }
+
+    private func removeEndObserver() {
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
             self.endObserver = nil
@@ -207,11 +216,14 @@ final class VideoViewerCell: UICollectionViewCell {
         // 갱신하고(화면엔 안 보이지만) 재생 상태는 건드리지 않는다
         guard !isPlaying else { return }
         posterImageView.isHidden = false
-        playPauseButton.setImage(UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)), for: .normal)
+        playPauseButton.setImage(UIImage(named: "lucide_play", in: .module, with: nil), for: .normal)
     }
 
     func setPlayerItem(_ playerItem: AVPlayerItem?) {
         guard let playerItem else { return }
+        // 빠르게 넘겼다 돌아오면 두 번 불릴 수 있어서, 이전 옵저버를 먼저 정리해야 덮어쓰며 새지 않는다
+        removeTimeObserver()
+        removeEndObserver()
         let player = AVPlayer(playerItem: playerItem)
         self.player = player
         playerLayer.player = player
@@ -226,9 +238,9 @@ final class VideoViewerCell: UICollectionViewCell {
             forName: .AVPlayerItemDidPlayToEndTime,
             object: playerItem,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self, weak player] _ in
             self?.pause()
-            player.seek(to: .zero)
+            player?.seek(to: .zero)
         }
 
         timeObserver = player.addPeriodicTimeObserver(
@@ -265,7 +277,7 @@ final class VideoViewerCell: UICollectionViewCell {
         isFastForwarding = false
         fastForwardBadge.alpha = 0
         playPauseButton.isHidden = false
-        playPauseButton.setImage(UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)), for: .normal)
+        playPauseButton.setImage(UIImage(named: "lucide_play", in: .module, with: nil), for: .normal)
     }
 
     /// 상단바/하단정보와 같은 그룹으로 묶여서 화면 탭할 때 같이 사라졌다 나타난다. 숨겨진 동안은
@@ -306,7 +318,7 @@ final class VideoViewerCell: UICollectionViewCell {
             posterImageView.isHidden = true
             player.play()
             isPlaying = true
-            playPauseButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 32, weight: .bold)), for: .normal)
+            playPauseButton.setImage(UIImage(named: "lucide_pause", in: .module, with: nil), for: .normal)
         }
     }
 
