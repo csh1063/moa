@@ -16,7 +16,6 @@ public struct AlbumRule: Decodable {
     let type: String
     let minConfidence: Float
     let matchTags: [String]
-    let excludeTags: [String]
     let mustHaveOneOf: [String]?
     let labelFilters: [LabelFilter]?
 
@@ -24,7 +23,6 @@ public struct AlbumRule: Decodable {
         case type
         case minConfidence = "min_confidence"
         case matchTags = "match_tags"
-        case excludeTags = "exclude_tags"
         case mustHaveOneOf = "must_have_one_of"
         case labelFilters = "label_filters"
     }

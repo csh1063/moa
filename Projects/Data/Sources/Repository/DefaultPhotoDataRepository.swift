@@ -347,24 +347,34 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         try context.save()
     }
 
-    public func delete(identifier: String) throws {
+    public func deleteBatch(identifiers: [String]) throws {
+        guard !identifiers.isEmpty else { return }
         let context = ModelContext(container)
+        let idSet = Set(identifiers)
         let fetchDescriptor = FetchDescriptor<PhotoEntity>(
-            predicate: #Predicate { $0.localIdentifier == identifier }
+            predicate: #Predicate { idSet.contains($0.localIdentifier) }
         )
+        let entities = try context.fetch(fetchDescriptor)
+        guard !entities.isEmpty else { return }
 
-        guard let entity = try context.fetch(fetchDescriptor).first else {
-            throw PhotoRepositoryError.photoNotFound
+        // 영향받는 앨범을 먼저 한 번만 모아서, 앨범당 스캔/대표사진 재계산을 사진 개수가 아니라
+        // 앨범 개수만큼만 하게 한다 (예전엔 사진마다 소속 앨범을 매번 통째로 다시 스캔했음)
+        var touchedAlbums: [UUID: AlbumEntity] = [:]
+        for entity in entities {
+            for album in entity.albums {
+                touchedAlbums[album.id] = album
+            }
         }
 
-        // 관계에서 먼저 빼고 나서 개수/대표사진을 맞춘다 (delete 전엔 관계에 이 사진이 남아 있음)
-        for album in entity.albums {
-            album.photos.removeAll { $0.localIdentifier == identifier }
+        for entity in entities {
+            context.delete(entity)
+        }
+
+        for album in touchedAlbums.values {
+            album.photos.removeAll { idSet.contains($0.localIdentifier) }
             album.photoCount = album.photos.count
             album.repairCoverIfMissing()
         }
-
-        context.delete(entity)
 
         try context.save()
     }

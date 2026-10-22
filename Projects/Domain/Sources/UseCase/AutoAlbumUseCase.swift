@@ -1005,15 +1005,6 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         // 1. 전체 태그 맵 생성 (이름 검색 속도 최적화 및 원본 점수 보존)
         let labelMap = Dictionary(uniqueKeysWithValues: photo.labels.map { ($0.name, $0.confidence) })
 
-        // [검증 1] exclude_tags (최소한의 유의미한 점수 이상일 때만 제외 처리를 하는 것이 안전함, 여기선 0.3 기준)
-        let validExcludeTags = photo.labels
-            .filter { $0.confidence >= 0.3 } // 노이즈 태그로 인한 억울한 탈락 방지
-            .map { $0.name }
-
-        if !Set(validExcludeTags).isDisjoint(with: Set(rule.excludeTags)) {
-            return false
-        }
-
         // [검증 2] label_filters (특정 태그의 수치 범위 제한 검사 - minConfidence 제한을 받지 않음)
         if let filters = rule.labelFilters {
             let passed = filters.allSatisfy { filter in

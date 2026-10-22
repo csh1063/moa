@@ -303,8 +303,8 @@ final class ImageViewerViewController: UIViewController {
                 locationLabel.text = components.joined(separator: " ")
                 locationLabel.textColor = .white.withAlphaComponent(0.92)
             }
-            label.isHidden = true
-//            label.text = photoDetail.id + "\n" + photoDetail.labels.map { "\($0.name): \($0.confidence)" }.joined(separator: ", ")
+            label.isHidden = false
+            label.text = photoDetail.id + "\n" + photoDetail.labels.map { "\($0.name): \($0.confidence)" }.joined(separator: "\n")
         } else {
             label.isHidden = true
             albumBadge.isHidden = false

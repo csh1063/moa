@@ -30,7 +30,9 @@ public protocol PhotoDataRepository {
     func markSimilarChecked(identifiers: [String]) throws
     func fetchSyncPhotoId(byAlbum localIdentifier: UUID) throws -> String?
     func fetchSyncPhotoCount(byAlbum localIdentifier: UUID) throws -> Int
-    func delete(identifier: String) throws
+    /// 여러 장을 한 번에 지운다 — 사진 1장마다 관계를 다시 스캔/저장하면 대형 앨범이 걸릴 때 급격히
+    /// 느려져서, 영향받는 앨범별로 한 번씩만 정리하고 저장도 한 번만 한다
+    func deleteBatch(identifiers: [String]) throws
     /// 날짜 범위(양끝 포함) 안의 분석된 사진 전체 — 여행 앨범 합치기에서 두 여행 사이 기간의 사진을
     /// 위치 유무와 상관없이 전부 다시 모을 때 사용
     func fetchPhotos(from startDate: Date, to endDate: Date) throws -> [Photo]

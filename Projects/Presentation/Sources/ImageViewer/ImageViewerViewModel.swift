@@ -167,7 +167,7 @@ final class ImageViewerViewModel: BaseViewModel {
         currentIndex = index
         let detail = photoDetails[index]
         currentPhoto = detail
-//        await loadLabels(by: detail.id)
+        await loadLabels(by: detail.id)
         if isAction {
             onAction?(.pageChanged(detail.id))
         }

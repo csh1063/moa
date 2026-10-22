@@ -37,9 +37,9 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
         async let objectLabels = classifyImage(image)   // 방법 3 - Vision 분류기
         async let faceLabels = detectFace(image)        // 방법 2 - 얼굴 감지
         async let textLabels = detectText(image)        // 방법 2 - 텍스트 감지
-//        async let barcodeLabels = detectBarcode(image)  // 방법 2 - 바코드 감지
+        async let barcodeLabels = detectBarcode(image)  // 방법 2 - 바코드 감지
 
-        let all = try await objectLabels + faceLabels + textLabels // + barcodeLabels
+        let all = try await objectLabels + faceLabels + textLabels + barcodeLabels
 
         // 중복 제거 (같은 name이면 confidence 높은 것 유지)
         return deduplicated(all)
@@ -106,12 +106,13 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
                         labels.append(PhotoLabel(name: "people_\(index)", confidence: face.confidence))
                     }
 
-                    // 사람 존재 여부 (binary)
-                    labels.append(PhotoLabel(name: "people", confidence: 1.0))
+                    // 얼굴이 기하학적으로 확정됐는지 (binary) — classifyImage의 "people"(장면 기반 추정치,
+                    // 실측 확률이라 1.0까지 잘 안 감)과는 성질이 다른 값이라 이름을 분리해 겹치지 않게 한다
+                    labels.append(PhotoLabel(name: "has_people", confidence: 1.0))
 
                     // 다수 여부 (binary)
                     if validFaces.count >= 2 {
-                        labels.append(PhotoLabel(name: "peoples", confidence: 1.0))
+                        labels.append(PhotoLabel(name: "many_people", confidence: 1.0))
                     }
 
                     // 가장 큰 얼굴 기준 부각 정도

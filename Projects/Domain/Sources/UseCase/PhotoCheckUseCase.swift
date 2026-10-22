@@ -62,12 +62,8 @@ public class DefaultPhotoCheckUseCase: PhotoCheckUseCase {
 
                     debugLog("deletedPhoto \(deletedPhoto.count)")
 
-                    for (index, localIdentifier) in deletedPhoto.enumerated() {
-                        try photoDataRepository.delete(identifier: localIdentifier)
-
-                        let ratio = Double(index) / Double(deletedPhoto.count) * 0.2 + 0.8
-                        continuation.yield(.progress(ratio))
-                    }
+                    continuation.yield(.progress(0.9))
+                    try photoDataRepository.deleteBatch(identifiers: deletedPhoto)
                     continuation.yield(.progress(1.0))
                     continuation.yield(.completed)
                     continuation.finish()
