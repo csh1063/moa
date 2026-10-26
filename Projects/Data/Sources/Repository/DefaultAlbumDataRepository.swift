@@ -316,8 +316,11 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 
         let fetchedPhotos = try context.fetch(photoDescriptor)
 
-        let existingIds = Set(album.photos.map { $0.localIdentifier })
-        let uniqueNewPhotos = fetchedPhotos.filter { !existingIds.contains($0.localIdentifier) }
+        // album.photos 전체를 훑어서 Set을 만들면, 카테고리처럼 사진이 많이 몰리는 앨범에선 호출할
+        // 때마다(페이지마다) 그 앨범의 기존 사진 전체를 다시 읽어와야 해서 갈수록 느려진다(카테고리
+        // 규칙을 넓힌 뒤로 체감될 만큼). 대신 사진 쪽(이번에 추가하려는 몇백 장뿐이라 훨씬 작음)의
+        // albums 관계를 봐서 "이 앨범에 이미 들어있는지"를 확인한다 — 결과는 같고 비용만 줄어든다.
+        let uniqueNewPhotos = fetchedPhotos.filter { photo in !photo.albums.contains { $0.id == albumId } }
 
         guard !uniqueNewPhotos.isEmpty else { return }
 

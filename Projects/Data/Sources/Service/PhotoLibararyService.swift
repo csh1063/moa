@@ -219,6 +219,11 @@ public final class PhotoLibraryService {
         }
     }
 
+    // assetsd 등 시스템 문제로 PHImageManager 콜백이 영영 안 올 수 있다 — 타임아웃 없이 걸리면 이
+    // continuation이 영원히 안 풀려서, 분석이 20장씩 동시처리하는 배치 구조라 그 배치 전체가 멈추고
+    // 이후 배치는 시작도 못 한다(DefaultSimilarPhotoClusterRepository.extractFeatureVector와 동일한 문제/해법).
+    private static let loadImageTimeout: TimeInterval = 8
+
     public func loadImage(id: String, type: LoadPhotoOptionType) async throws -> CGImage? {
         guard let asset = await getAsset(id: id) else { return nil }
 
@@ -248,6 +253,20 @@ public final class PhotoLibraryService {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
+            let lock = NSLock()
+            var didResume = false
+            func resumeOnce(_ work: () -> Void) {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !didResume else { return }
+                didResume = true
+                work()
+            }
+
+            DispatchQueue.global().asyncAfter(deadline: .now() + Self.loadImageTimeout) {
+                resumeOnce { continuation.resume(returning: nil) }
+            }
+
             imageManager.requestImage(
                 for: asset,
                 targetSize: size,
@@ -257,10 +276,10 @@ public final class PhotoLibraryService {
                     if isDegraded { return }  // 저화질 중간 콜백은 무시(위 주석 참고)
 
                     if let error = info?[PHImageErrorKey] as? Error {
-                        continuation.resume(throwing: error)
+                        resumeOnce { continuation.resume(throwing: error) }
                         return
                     }
-                    continuation.resume(returning: image?.cgImage)
+                    resumeOnce { continuation.resume(returning: image?.cgImage) }
             }
         }
     }

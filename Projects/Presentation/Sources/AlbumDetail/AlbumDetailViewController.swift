@@ -83,6 +83,35 @@ final class AlbumDetailViewController: BaseViewController {
         return lb
     }()
 
+    private let shareButton: UIButton = {
+        var config = UIButton.Configuration.filled()
+        config.image = UIImage(named: "lucide_share_2", in: .module, with: nil)
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = Theme.primary
+        config.cornerStyle = .medium
+        let btn = UIButton(configuration: config)
+        return btn
+    }()
+
+    /// 여행 앨범 전용 — 날짜순/분류순 토글
+    private lazy var modeSegmentedControl = UISegmentedControl(items: [
+        String(localized: "날짜순", bundle: .module),
+        String(localized: "분류순", bundle: .module)
+    ])
+
+    private let categoryScrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.showsVerticalScrollIndicator = false
+        return sv
+    }()
+
+    private let categoryStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 20
+        return stack
+    }()
+
     // MARK: - Properties
 
     private var dataSource: UICollectionViewDiffableDataSource<Int, PhotoCellItemViewModel>!
@@ -96,6 +125,8 @@ final class AlbumDetailViewController: BaseViewController {
     private var pageMode: AlbumDetailPageMode = .list {
         didSet { updateModeUI() }
     }
+    /// 분류순에서 "선택"을 눌렀을 때 날짜순으로 돌려놓을지 판단하는 용도로 로컬에도 들고 있는다
+    private var currentDisplayTab: AlbumDetailViewModel.DisplayTab = .date
     private var isSelectionMode: Bool { pageMode != .list }
     /// 여러 장을 체크해서 지우기/제외하기 같은 "다중 선택" UI(체크박스, 하단 바)가 필요한 모드인지 —
     /// pickCover는 탭 한 번으로 바로 끝나는 단일 동작이라 여기 포함하지 않는다
@@ -148,18 +179,53 @@ final class AlbumDetailViewController: BaseViewController {
 
         view.addSubview(naviView)
         view.addSubview(collectionView)
+        view.addSubview(categoryScrollView)
+        categoryScrollView.addSubview(categoryStackView)
         view.addSubview(bottomBar)
         bottomBar.addSubview(selectedCountLabel)
         bottomBar.addSubview(excludeButton)
         bottomBar.addSubview(deleteButton)
+        bottomBar.addSubview(shareButton)
 
         naviView.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
         }
-        collectionView.snp.makeConstraints { make in
-            make.top.equalTo(naviView.snp.bottom)
-            make.leading.trailing.bottom.equalToSuperview()
+
+        // 여행 앨범일 때만 날짜순/분류순 토글을 끼워 넣는다 — 분류순 더보기로 들어간 화면(실제
+        // 앨범 아님, isTravelAlbum == false)은 토글 없이 기존처럼 바로 그리드가 나온다
+        if viewModel.isTravelAlbum {
+            // UISegmentedControl은 기본값이 0이 아니라 -1(선택 없음)이다 — 이걸 명시적으로 0(날짜순)으로
+            // 맞춰두지 않으면, 아래 selectedPublisher 구독이 이 -1을 그대로 읽어서 "분류순"으로 오인하고
+            // 그걸 ViewModel에 보내버려 화면이 항상 분류순으로 잘못 시작하는 버그가 있었다
+            modeSegmentedControl.selectedSegmentIndex = 0
+            view.addSubview(modeSegmentedControl)
+            modeSegmentedControl.snp.makeConstraints { make in
+                make.top.equalTo(naviView.snp.bottom).offset(8)
+                make.leading.trailing.equalToSuperview().inset(16)
+            }
+            collectionView.snp.makeConstraints { make in
+                make.top.equalTo(modeSegmentedControl.snp.bottom).offset(8)
+                make.leading.trailing.bottom.equalToSuperview()
+            }
+            categoryScrollView.snp.makeConstraints { make in
+                make.top.equalTo(modeSegmentedControl.snp.bottom).offset(8)
+                make.leading.trailing.bottom.equalToSuperview()
+            }
+        } else {
+            collectionView.snp.makeConstraints { make in
+                make.top.equalTo(naviView.snp.bottom)
+                make.leading.trailing.bottom.equalToSuperview()
+            }
+            categoryScrollView.snp.makeConstraints { make in
+                make.top.equalTo(naviView.snp.bottom)
+                make.leading.trailing.bottom.equalToSuperview()
+            }
         }
+        categoryStackView.snp.makeConstraints { make in
+            make.edges.equalToSuperview().inset(16)
+            make.width.equalTo(categoryScrollView).offset(-32)
+        }
+
         bottomBar.snp.makeConstraints { make in
             make.leading.trailing.bottom.equalToSuperview()
             make.height.equalTo(88)
@@ -180,11 +246,19 @@ final class AlbumDetailViewController: BaseViewController {
             make.height.equalTo(44)
             make.width.equalTo(44)
         }
+        shareButton.snp.makeConstraints { make in
+            make.trailing.equalTo(excludeButton.snp.leading).offset(-12)
+            make.centerY.equalTo(deleteButton)
+            make.height.equalTo(44)
+            make.width.equalTo(44)
+        }
 
         bottomBar.isHidden = true
+        categoryScrollView.isHidden = true
         excludeButton.isHidden = !viewModel.isFaceAlbum
         deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
         excludeButton.addTarget(self, action: #selector(excludeButtonTapped), for: .touchUpInside)
+        shareButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
     }
 
     private func setupBindings() {
@@ -227,6 +301,47 @@ final class AlbumDetailViewController: BaseViewController {
             .sink { [weak self] info in self?.travelerInfo = info }
             .store(in: &cancellables)
 
+        output.displayTab
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] tab in
+                guard let self else { return }
+                currentDisplayTab = tab
+                modeSegmentedControl.selectedSegmentIndex = tab == .date ? 0 : 1
+                collectionView.isHidden = tab == .category
+                categoryScrollView.isHidden = tab == .date
+            }
+            .store(in: &cancellables)
+
+        output.categorySections
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] sections in
+                guard let self else { return }
+                categoryStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+                for section in sections {
+                    let row = CompanionCategoryRowView()
+                    row.configure(section: section, imageLoader: viewModel)
+                    row.onTapMore = { [weak self] in
+                        self?.viewModel.send(.tapMore(sectionId: section.id))
+                    }
+                    categoryStackView.addArrangedSubview(row)
+                }
+            }
+            .store(in: &cancellables)
+
+        if viewModel.isTravelAlbum {
+            modeSegmentedControl.selectedPublisher
+                .sink { [weak self] index in
+                    // selectedSegmentIndex는 output.displayTab 바인딩에서도 코드로 세팅하는데, 그것도
+                    // KVO라 여기로 다시 흘러든다 — 실제로 값이 바뀐 경우(사용자가 탭한 경우)에만 보내서
+                    // 무한 루프를 끊는다
+                    guard let self else { return }
+                    let tab: AlbumDetailViewModel.DisplayTab = index == 0 ? .date : .category
+                    guard tab != currentDisplayTab else { return }
+                    viewModel.send(.switchTab(tab))
+                }
+                .store(in: &cancellables)
+        }
+
         bindNaviActions()
     }
 
@@ -237,7 +352,13 @@ final class AlbumDetailViewController: BaseViewController {
                 switch type {
                 case .back:   viewModel.send(.dismiss)
                 case .more:   viewModel.send(.more)
-                case .select: viewModel.changeMode(.select)
+                case .select:
+                    // 분류순(가로 줄 여러 개)은 체크박스로 고를 수 있는 단일 그리드가 아니라서,
+                    // 선택 모드로 들어가기 전에 팝업 없이 날짜순으로 돌려놓는다
+                    if currentDisplayTab == .category {
+                        viewModel.send(.enterSelectModeFromCategoryTab)
+                    }
+                    viewModel.changeMode(.select)
                 case .cancel: exitSelectionMode()
                 default: break
                 }
@@ -329,6 +450,8 @@ final class AlbumDetailViewController: BaseViewController {
         deleteButton.alpha = count > 0 ? 1.0 : 0.4
         excludeButton.isEnabled = count > 0
         excludeButton.alpha = count > 0 ? 1.0 : 0.4
+        shareButton.isEnabled = count > 0
+        shareButton.alpha = count > 0 ? 1.0 : 0.4
     }
 
     // MARK: - Actions
@@ -341,6 +464,11 @@ final class AlbumDetailViewController: BaseViewController {
     @objc private func excludeButtonTapped() {
         guard !selectedIdentifiers.isEmpty else { return }
         viewModel.send(.excludeSelected(ids: Array(selectedIdentifiers)))
+    }
+
+    @objc private func shareButtonTapped() {
+        guard !selectedIdentifiers.isEmpty else { return }
+        viewModel.send(.shareSelected(ids: Array(selectedIdentifiers)))
     }
 
     // MARK: - Scroll

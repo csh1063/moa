@@ -56,6 +56,9 @@ public protocol AlbumDetailUseCase {
     func fetchOtherTravelAlbums(excluding albumId: UUID) async throws -> [AlbumMergeCandidate]
     /// 여행 앨범 병합 — target을 source로 합치고 target은 삭제
     func mergeTravelAlbums(sourceId: UUID, targetId: UUID) async throws
+
+    /// 분류순 보기용 — 전역 카테고리 앨범(자연/음식/공간 등) 조회
+    func fetchAll(from: String) async throws -> [Album]
 }
 
 public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
@@ -337,5 +340,9 @@ public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
             linkedAnimalAlbumIds: linkedAnimalAlbumIds
         )
         try repository.syncAlbums()
+    }
+
+    public func fetchAll(from: String) async throws -> [Album] {
+        try repository.fetchAll(from: from)
     }
 }

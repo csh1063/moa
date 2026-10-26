@@ -49,10 +49,22 @@ public final class AlbumDetailDIContainer {
             repository: photoLibraryRepository
         )
 
-        return AlbumDetailViewModel(album: album,
+        return AlbumDetailViewModel(source: .album(album),
                                     imageUseCase: imageUseCase,
                                     detailUseCase: makeAlbumDetailUseCase(),
                                     startInSelectionMode: isSelectMode)
+    }
+
+    /// 여행 앨범 "분류순" 보기의 더보기 — 실제 앨범이 아니라 (여행 사진) ∩ (사람/카테고리 앨범 사진)
+    /// 교집합만 보여주는 화면용. sourceAlbumId는 삭제/제외가 실제로 반영될 진짜 여행 앨범을 가리킨다.
+    func makeAlbumDetailViewModel(filteredTitle: String, photos: [Photo], sourceAlbumId: UUID) -> AlbumDetailViewModel {
+        let imageUseCase = DefaultPhotoImageUseCase(
+            repository: photoLibraryRepository
+        )
+
+        return AlbumDetailViewModel(source: .filtered(title: filteredTitle, photos: photos, sourceAlbumId: sourceAlbumId),
+                                    imageUseCase: imageUseCase,
+                                    detailUseCase: makeAlbumDetailUseCase())
     }
 
     func makeImageUseCase() -> PhotoImageUseCase {

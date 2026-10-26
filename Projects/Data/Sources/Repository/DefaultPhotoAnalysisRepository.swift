@@ -88,7 +88,7 @@ public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
 
                                         labels = try await self.analysisService.analyze(image: image)
 
-                                        if labels.contains(where: { $0.name == "has_people" }) {
+                                        if labels.contains(where: { $0.name == "has_people" || $0.name == "people" || $0.name == "many_people" }) {
                                             if labels.contains(where: { $0.name ==  "sunglasses" || $0.name == "goggles" }) {
                                                 embedding = await self.faceEmbeddingService.extractEmbeddings(from: image, hasGlass: true)
                                             } else {

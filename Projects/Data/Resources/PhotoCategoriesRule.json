@@ -35,7 +35,7 @@
         "min_confidence": 0.55,
         "label_filters": [
             { "name": "person_focus", "max": 0.2 },
-            { "name": "people", "max": 0.3 },
+            { "name": "people", "max": 0.3 }
         ],
         "match_tags": ["document", "text", "barcode", "qrcode"]
     },

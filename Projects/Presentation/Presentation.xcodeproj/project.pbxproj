@@ -162,6 +162,7 @@
 		F93F7D9DB90707845B44657C /* SimilarAlbumCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BBA3F3365AD93BF4DC9BE96 /* SimilarAlbumCell.swift */; };
 		F9E6A3D8031A6501ED265135 /* TravelerHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0D384585E6C77D06018FFC /* TravelerHeaderView.swift */; };
 		FD72876B346CBB1594A8774A /* PhotoTestCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D037E2C431D0650FE179B1 /* PhotoTestCoordinator.swift */; };
+		FDCDCCF55E2C2F1A1E9F3E57 /* CompanionCategoryRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27AF44F8783961F7FABF18B /* CompanionCategoryRowView.swift */; };
 		FFDB23C771BFE626931A589E /* PhotoTestDIContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F687BDB1C5A5D939130A0D13 /* PhotoTestDIContainer.swift */; };
 /* End PBXBuildFile section */
 
@@ -322,6 +323,7 @@
 		DA704CC81D0F97A19AA5B775 /* PhotoHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoHeader.swift; sourceTree = "<group>"; };
 		DF23FE86270662BD0A6F651D /* AnimalAlbumCellViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalAlbumCellViewModel.swift; sourceTree = "<group>"; };
 		E1152274F01C03475C1D2962 /* ImageViewerCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewerCell.swift; sourceTree = "<group>"; };
+		E27AF44F8783961F7FABF18B /* CompanionCategoryRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionCategoryRowView.swift; sourceTree = "<group>"; };
 		E474256CB4A9464026CD7F10 /* BaseCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseCoordinator.swift; sourceTree = "<group>"; };
 		E6E47C332389E708A696E253 /* AlertViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertViewController.swift; sourceTree = "<group>"; };
 		E80ABCE343B8363B4B538628 /* AnalyticsTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTracker.swift; sourceTree = "<group>"; };
@@ -718,6 +720,7 @@
 				D8BAD0070B04CDF1EAB02CFB /* AlbumDetailDIContainer.swift */,
 				FDE0D246DE24CB8D997BAF99 /* AlbumDetailViewController.swift */,
 				A5B5DDF86843F2E3695365DF /* AlbumDetailViewModel.swift */,
+				E27AF44F8783961F7FABF18B /* CompanionCategoryRowView.swift */,
 				DA33087FA4476DB2F62EE471 /* CoverPhotoPreviewViewController.swift */,
 			);
 			path = AlbumDetail;
@@ -979,6 +982,7 @@
 				47532F25612067B672BDF8F2 /* AlbumDetailDIContainer.swift in Sources */,
 				8F411F69699B691647FC02A2 /* AlbumDetailViewController.swift in Sources */,
 				68F7B92E595CE29E2B5D931A /* AlbumDetailViewModel.swift in Sources */,
+				FDCDCCF55E2C2F1A1E9F3E57 /* CompanionCategoryRowView.swift in Sources */,
 				8D770BF136E0FAF89A9C4650 /* CoverPhotoPreviewViewController.swift in Sources */,
 				59A50E712EE67BD7E93271EF /* AlbumListCoordinator.swift in Sources */,
 				11FD13A94151C1E00EFBFD22 /* AlbumListDIContainer.swift in Sources */,

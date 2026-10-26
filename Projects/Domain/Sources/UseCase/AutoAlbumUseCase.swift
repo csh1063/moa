@@ -100,9 +100,13 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             let task = Task {
                 do {
                     let totalSteps = 5.0
+                    let overallStartedAt = Date()
+                    debugLog("🚀 [전체 재생성] 시작 — fullRegenerate: \(fullRegenerate), \(overallStartedAt)")
 
                     try Task.checkCancellation()
-                    try await classifyNewPhotosCore(fullRegenerate: fullRegenerate)
+                    try await classifyNewPhotosCore(fullRegenerate: fullRegenerate) { ratio in
+                        continuation.yield(ProgressAlbum(step: .creatingAlbums, ratio: ratio * (1 / totalSteps)))
+                    }
                     // 영상 앨범도 isAuto라 전체 재생성 때 지워지므로 여기서 다시 만든다
                     try createVideoAlbumCore()
                     continuation.yield(ProgressAlbum(step: .creatingAlbums, ratio: 1 / totalSteps))
@@ -135,9 +139,12 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                     try await userDefaultRepository.saveAnalyzedDate()
                     try await userDefaultRepository.saveLocationAnalyzedDate()
 
+                    let finishedAt = Date()
+                    debugLog("🚀 [전체 재생성] 완료 — \(finishedAt), 총 \(String(format: "%.1f", finishedAt.timeIntervalSince(overallStartedAt)))초")
                     continuation.yield(ProgressAlbum(step: .completed, ratio: 1.0))
                     continuation.finish()
                 } catch {
+                    debugLog("🚀 [전체 재생성] 실패 — \(Date())")
                     continuation.finish(throwing: error)
                 }
             }
@@ -309,7 +316,11 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     // 하나에 그냥 다 모은다 — saveAlbum(returnExist: true)라 이미 있으면 그 앨범에 새 영상만 이어붙임
     private func createVideoAlbumCore() throws {
         let videoPhotos = try photoDataRepository.fetchVideos()
-        guard !videoPhotos.isEmpty else { return }
+        guard !videoPhotos.isEmpty else {
+            debugLog("🎬 [영상 앨범] 대상 없음")
+            return
+        }
+        debugLog("🎬 [영상 앨범] \(videoPhotos.count)개 처리 시작")
 
         let album = Album(
             name: "video",
@@ -321,6 +332,7 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         if let saved = try albumDataRepository.saveAlbum(album: album, returnExist: true) {
             try albumDataRepository.addPhotos(albumId: saved.id, photoIdentifiers: videoPhotos.map { $0.localIdentifier })
         }
+        debugLog("🎬 [영상 앨범] 완료")
     }
 
     private func createLocationAlbumsCore() throws {
@@ -424,7 +436,7 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     // "자동 앨범 재생성" 버튼이 날짜/주소/카테고리 앨범을 지워도 이 플래그는 그대로 남아있어서 아무것도
     // 다시 안 만들어지는 문제 때문에 필요. 전체 사진을 nil로 리셋하는 대신 이 조회 방식만 바꾸는 쪽이
     // 불필요한 전체 테이블 갱신 없이 같은 결과를 낸다.
-    private func classifyNewPhotosCore(fullRegenerate: Bool = false) async throws {
+    private func classifyNewPhotosCore(fullRegenerate: Bool = false, onProgress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
         let ruleCategories: [String: AlbumRule] = try await photoCategoryRepository.fetchRuleCategories()
 
         var dateAlbums = try albumDataRepository.fetchAll(from: "date")
@@ -435,11 +447,18 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         var locationAlbumPhotoMap: [UUID: [String]] = [:]
         var categoryAlbumPhotoMap: [UUID: [String]] = [:]
 
+        // 전체 재생성일 때만 전체 사진 수를 알 수 있어서(증분 경로는 "아직 안 된 것만" 조회라 총량을 모름)
+        // 그때만 페이지 단위로 진행률을 보고한다 — 안 그러면 이 단계는 끝날 때까지 진행률 표시가 안 움직인다
+        let totalCount = fullRegenerate ? ((try? photoDataRepository.fetchPhotoCount()) ?? 0) : 0
+        debugLog("📅 [날짜/지역/카테고리] 시작 — fullRegenerate: \(fullRegenerate), 전체 \(totalCount)장")
+        let classifyStartedAt = Date()
+
+        var allProcessedIdentifiers: [String] = []
         var offset = 0
         while true {
             let photos = fullRegenerate
                 ? try photoDataRepository.fetchAllForClassification(limit: classificationPageSize, offset: offset)
-                : try photoDataRepository.fetchAlbumUnclassified(limit: classificationPageSize)
+                : try photoDataRepository.fetchAlbumUnclassified(limit: classificationPageSize, offset: offset)
             if photos.isEmpty { break }
 
             // 날짜
@@ -524,39 +543,50 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                 categoryAlbumPhotoMap[album.id, default: []].append(contentsOf: matched)
             }
 
-            // 앨범에 먼저 넣고 나서 "처리 완료" 표시 — 반대 순서면 중간에 앱이 죽었을 때 이 페이지 사진이 영영 앨범에 안 들어감
-            for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
-                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            allProcessedIdentifiers.append(contentsOf: photos.map { $0.localIdentifier })
+            offset += photos.count
+            if fullRegenerate, totalCount > 0 {
+                onProgress(min(Double(offset) / Double(totalCount) * 0.8, 0.8))
             }
-            dateAlbumPhotoMap.removeAll()
-            for (albumId, photoIdentifiers) in locationAlbumPhotoMap {
-                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-            }
-            locationAlbumPhotoMap.removeAll()
-            for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
-                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-            }
-            categoryAlbumPhotoMap.removeAll()
-            try photoDataRepository.markAlbumsGenerated(identifiers: photos.map { $0.localIdentifier })
-            if fullRegenerate { offset += photos.count }
+            debugLog("📅 [날짜/지역/카테고리] 스캔 \(photos.count)장(누적 \(offset)/\(totalCount)) — 누적 \(String(format: "%.1f", Date().timeIntervalSince(classifyStartedAt)))초")
         }
+
+        // 스캔이 끝난 뒤 앨범마다 한 번씩만 모아서 쓴다 — 페이지마다 쓰면 그때마다 그 앨범의 기존 사진
+        // 배열 전체를 다시 건드려서 앨범이 커질수록 느려진다. 완료 표시는 쓰기가 다 끝난 뒤에 해서, 중간에
+        // 죽으면 다음 실행에서 처음부터 다시 처리된다(addPhotos가 중복을 걸러서 안전).
+        debugLog("📅 [날짜/지역/카테고리] 스캔 완료, 앨범에 쓰기 시작 — 날짜 \(dateAlbumPhotoMap.count)개/지역 \(locationAlbumPhotoMap.count)개/카테고리 \(categoryAlbumPhotoMap.count)개 앨범")
+        for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
+            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            debugLog("📅 [날짜] '\(dateAlbums.first { $0.id == albumId }?.displayName ?? albumId.uuidString)'에 \(photoIdentifiers.count)장 추가")
+        }
+        for (albumId, photoIdentifiers) in locationAlbumPhotoMap {
+            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            debugLog("📍 [지역] '\(locationAlbums.first { $0.id == albumId }?.displayName ?? albumId.uuidString)'에 \(photoIdentifiers.count)장 추가")
+        }
+        for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
+            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            debugLog("🏷️ [카테고리] '\(categoryAlbums.first { $0.id == albumId }?.displayName ?? albumId.uuidString)'에 \(photoIdentifiers.count)장 추가")
+        }
+        try photoDataRepository.markAlbumsGenerated(identifiers: allProcessedIdentifiers)
+        if fullRegenerate { onProgress(1.0) }
+        debugLog("📅 [날짜/지역/카테고리] 완료 — 총 \(String(format: "%.1f", Date().timeIntervalSince(classifyStartedAt)))초")
     }
 
     // classifyPhotosFinal()에서만 쓰는, 진행률 표시를 위해 지역만 먼저 분류하는 패스 — 카테고리 패스가
     // 끝난 뒤에만 markAlbumsGenerated로 "처리 완료"를 표시하므로(classifyCategoryAndFinalizeCore 참고),
     // 이 패스만 끝나고 앱이 죽어도 다음 실행에서 지역+카테고리가 다시 시도된다.
     private func classifyLocationOnlyCore(fullRegenerate: Bool = false) async throws {
+        debugLog("📍 [지역 전용] 시작")
+        let locationStartedAt = Date()
         var locationAlbums = try albumDataRepository.fetchAll(from: "location")
         var locationAlbumPhotoMap: [UUID: [String]] = [:]
 
         // 이 패스는 markAlbumsGenerated를 안 부른다(카테고리 패스가 끝난 뒤에만 최종 표시하려고 일부러
-        // 미룸, classifyCategoryAndFinalizeCore 참고) — 그런데 fetchAlbumUnclassified(limit:)는 offset이
-        // 없고 "아직 처리 안 됨" 플래그로만 걸러서, 마킹 없이 그대로 반복 호출하면 매번 똑같은 첫
-        // 페이지만 돌려줘서 무한루프에 빠진다(실제로 "최종 분류 시작" 이후 멈추는 버그로 나타났음).
-        // 그래서 대상 목록은 한 번만 통째로 가져오고, 페이지 분할은 메모리 안에서만 한다.
+        // 미룸, classifyCategoryAndFinalizeCore 참고). 대상 목록은 한 번만 통째로 가져오고, 페이지
+        // 분할은 메모리 안에서만 한다.
         let allTargetPhotos = fullRegenerate
             ? try photoDataRepository.fetchAllForClassification(limit: Int.max, offset: 0)
-            : try photoDataRepository.fetchAlbumUnclassified(limit: Int.max)
+            : try photoDataRepository.fetchAlbumUnclassified(limit: Int.max, offset: 0)
 
         for pageStart in stride(from: 0, to: allTargetPhotos.count, by: classificationPageSize) {
             let photos = Array(allTargetPhotos[pageStart..<min(pageStart + classificationPageSize, allTargetPhotos.count)])
@@ -593,11 +623,14 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                 guard !matched.isEmpty else { continue }
                 locationAlbumPhotoMap[album.id, default: []].append(contentsOf: matched)
             }
+            debugLog("📍 [지역 전용] \(photos.count)장 처리 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(locationStartedAt)))초")
         }
 
         for (albumId, photoIdentifiers) in locationAlbumPhotoMap {
             try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            debugLog("📍 [지역] '\(locationAlbums.first { $0.id == albumId }?.displayName ?? albumId.uuidString)'에 \(photoIdentifiers.count)장 추가")
         }
+        debugLog("📍 [지역 전용] 완료 — 총 \(String(format: "%.1f", Date().timeIntervalSince(locationStartedAt)))초")
     }
 
     // classifyPhotosFinal()에서만 쓰는, 지역 패스 다음에 도는 카테고리 패스 — 날짜는 createDateAlbumsEarly로
@@ -605,18 +638,21 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     // dedup이라 중복 호출해도 안전). 지역+날짜+카테고리가 전부 끝난 이 시점에만 markAlbumsGenerated로
     // "처리 완료"를 표시한다.
     private func classifyCategoryAndFinalizeCore(fullRegenerate: Bool = false) async throws {
+        debugLog("🏷️ [카테고리] 시작 — fullRegenerate: \(fullRegenerate)")
+        let categoryStartedAt = Date()
         let ruleCategories: [String: AlbumRule] = try await photoCategoryRepository.fetchRuleCategories()
 
         var dateAlbums = try albumDataRepository.fetchAll(from: "date")
         var categoryAlbums = try albumDataRepository.fetchAll(from: "category")
         var dateAlbumPhotoMap: [UUID: [String]] = [:]
         var categoryAlbumPhotoMap: [UUID: [String]] = [:]
+        var allProcessedIdentifiers: [String] = []
         var offset = 0
 
         while true {
             let photos = fullRegenerate
                 ? try photoDataRepository.fetchAllForClassification(limit: classificationPageSize, offset: offset)
-                : try photoDataRepository.fetchAlbumUnclassified(limit: classificationPageSize)
+                : try photoDataRepository.fetchAlbumUnclassified(limit: classificationPageSize, offset: offset)
             if photos.isEmpty { break }
 
             let years = Set(photos.compactMap { $0.year })
@@ -665,28 +701,40 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
                 categoryAlbumPhotoMap[album.id, default: []].append(contentsOf: matched)
             }
 
-            // 앨범에 먼저 넣고 나서 "처리 완료" 표시 — 반대 순서면 중간에 앱이 죽었을 때 이 페이지 사진이 영영 앨범에 안 들어감
-            for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
-                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-            }
-            dateAlbumPhotoMap.removeAll()
-            for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
-                try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
-            }
-            categoryAlbumPhotoMap.removeAll()
-            try photoDataRepository.markAlbumsGenerated(identifiers: photos.map { $0.localIdentifier })
-            if fullRegenerate { offset += photos.count }
+            allProcessedIdentifiers.append(contentsOf: photos.map { $0.localIdentifier })
+            offset += photos.count
+            debugLog("🏷️ [카테고리] 스캔 \(photos.count)장 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(categoryStartedAt)))초")
         }
+
+        // 스캔이 끝난 뒤 앨범마다 한 번씩만 모아서 쓴다 — classifyNewPhotosCore와 같은 이유
+        debugLog("🏷️ [카테고리] 스캔 완료, 앨범에 쓰기 시작 — 날짜 \(dateAlbumPhotoMap.count)개/카테고리 \(categoryAlbumPhotoMap.count)개 앨범")
+        for (albumId, photoIdentifiers) in dateAlbumPhotoMap {
+            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            debugLog("📅 [날짜] '\(dateAlbums.first { $0.id == albumId }?.displayName ?? albumId.uuidString)'에 \(photoIdentifiers.count)장 추가")
+        }
+        for (albumId, photoIdentifiers) in categoryAlbumPhotoMap {
+            try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            debugLog("🏷️ [카테고리] '\(categoryAlbums.first { $0.id == albumId }?.displayName ?? albumId.uuidString)'에 \(photoIdentifiers.count)장 추가")
+        }
+        // 쓰기가 다 끝난 뒤에 표시 — 중간에 죽으면 다음 실행에서 처음부터 다시 처리된다
+        try photoDataRepository.markAlbumsGenerated(identifiers: allProcessedIdentifiers)
+        debugLog("🏷️ [카테고리] 완료 — 총 \(String(format: "%.1f", Date().timeIntervalSince(categoryStartedAt)))초")
     }
 
     private func createFaceAlbumsCore(onProgress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
+        debugLog("🙂 [얼굴 앨범] 시작")
+        let faceStartedAt = Date()
         try await faceClusterRepository.clusterAndSaveAlbums(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
+        debugLog("🙂 [얼굴 앨범] 완료 — \(String(format: "%.1f", Date().timeIntervalSince(faceStartedAt)))초")
     }
 
     private func createAnimalAlbumsCore(onProgress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
+        debugLog("🐾 [동물 앨범] 시작")
+        let animalStartedAt = Date()
         try await animalClusterRepository.clusterAndSaveAlbums(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
+        debugLog("🐾 [동물 앨범] 완료 — \(String(format: "%.1f", Date().timeIntervalSince(animalStartedAt)))초")
     }
 
     private func createTravelAlbumsCore() async throws {
@@ -742,7 +790,10 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             debugLog("   - \(zone.addressDescription(in: targetPhotos)) (분석일: \(zone.analyzedAt))")
         }
 
+        debugLog("🧳 [여행앨범] 감지 시작 — 대상 사진 \(targetPhotos.count)장")
+        let travelDetectStartedAt = Date()
         let clusters = try await travelRepository.detect(from: targetPhotos, homeZones: homeZones)
+        debugLog("🧳 [여행앨범] 감지 완료 — 클러스터 \(clusters.count)개, \(String(format: "%.1f", Date().timeIntervalSince(travelDetectStartedAt)))초")
 
         // 사용자가 손댄(이름/대표사진 변경, 병합, 사진 빼기) 마지막 여행은 지우고 다시 만들면 편집이 날아간다 —
         // 지우지 않고 이어지는 새 사진만 더한다
@@ -803,7 +854,10 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         let homeZones = try fetchHomeZones()
         debugLog("🏠 [여행 앨범 복구] 이번 여행 판정에 사용되는 홈존 \(homeZones.count)개")
 
+        debugLog("🧳 [여행앨범] 감지 시작 — 대상 사진 \(targetPhotos.count)장")
+        let travelDetectStartedAt = Date()
         let clusters = try await travelRepository.detect(from: targetPhotos, homeZones: homeZones)
+        debugLog("🧳 [여행앨범] 감지 완료 — 클러스터 \(clusters.count)개, \(String(format: "%.1f", Date().timeIntervalSince(travelDetectStartedAt)))초")
 
         // anchorDate 이후 앨범은 위에서 이미 다 지웠으므로 추가로 지울 게 없다 — anchorDate 이전(안전한)
         // 앨범들의 "장소 N" 카운트만 이어받는다
@@ -910,7 +964,12 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     /// (매번 다시 계산해서 덮어쓰는 단순 patch라 중복/누락 걱정 없음).
     private func linkTravelersToTravelAlbumsCore() async throws {
         let travelAlbums = try albumDataRepository.fetchAll(from: "travel")
-        guard !travelAlbums.isEmpty else { return }
+        guard !travelAlbums.isEmpty else {
+            debugLog("🔗 [여행자 연결] 대상 여행 앨범 없음")
+            return
+        }
+        debugLog("🔗 [여행자 연결] 시작 — 여행 앨범 \(travelAlbums.count)개")
+        let linkStartedAt = Date()
 
         // 얼굴 앨범들의 사진 id 집합을 미리 한 번만 만들어둔다 — 여행 앨범마다 매번 다시 조회하지 않도록.
         // "누가 포함되는지"는 이 시점에 고정되고(재생성해야 갱신), 그 사람 이름은 항상 얼굴 앨범을
@@ -937,6 +996,7 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             let linkedAnimalAlbumIds = TravelerLinking.linkedAlbumIds(tripPhotoIds: travelPhotoIds, candidates: animalAlbumPhotoSets)
             try albumDataRepository.updateLinkedAnimalAlbums(albumId: travelAlbum.id, animalAlbumIds: linkedAnimalAlbumIds)
         }
+        debugLog("🔗 [여행자 연결] 완료 — \(String(format: "%.1f", Date().timeIntervalSince(linkStartedAt)))초")
     }
 
     private func createSimilarAlbumsCore(
@@ -961,10 +1021,16 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     ) async throws {
         let allPhotos = try photoDataRepository.fetchPhotos()
         let newPhotos = fullRegenerate ? allPhotos : try photoDataRepository.fetchSimilarUnchecked()
-        guard !newPhotos.isEmpty else { return }
+        guard !newPhotos.isEmpty else {
+            debugLog("🪞 [비슷한 사진] 대상 없음")
+            return
+        }
+        debugLog("🪞 [비슷한 사진] 시작 — 대상 \(newPhotos.count)장 / 전체 \(allPhotos.count)장")
+        let similarStartedAt = Date()
 
         try await similarRepository.clusterNewPhotos(newPhotos: newPhotos, allPhotos: allPhotos, onProgress: onProgress)
         try photoDataRepository.markSimilarChecked(identifiers: newPhotos.map { $0.localIdentifier })
+        debugLog("🪞 [비슷한 사진] 완료 — \(String(format: "%.1f", Date().timeIntervalSince(similarStartedAt)))초")
     }
 
     // MARK: - 여행 관련 함수

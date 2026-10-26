@@ -226,8 +226,8 @@ final class MyPageCell: UITableViewCell {
             }
         }
 
-        let icon = UIImage(named: data.type.icon, in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
-        iconView.image = icon
+        let icon = data.type.icon == "" ? nil:UIImage(named: data.type.icon, in: .module, with: nil)
+        iconView.image = icon?.withRenderingMode(.alwaysTemplate)
         titleLabel.text = data.type.text
         valueLabel.text = data.value
         switchView.isOn = data.isOn
@@ -244,7 +244,6 @@ final class MyPageCell: UITableViewCell {
             valueLabel.isHidden = true
         }
 
-        let styleIcon = UIImage(named: data.type.style.icon, in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
         switch data.type.style {
         case .info:
             hasStyle = false
@@ -256,6 +255,7 @@ final class MyPageCell: UITableViewCell {
             }
             titleLabel.textColor = Theme.textPrimary
         case .open:
+            let styleIcon = UIImage(named: data.type.style.icon, in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
             hasStyle = true
             switchView.isHidden = true
             valueLabel.isHidden = false
@@ -272,6 +272,7 @@ final class MyPageCell: UITableViewCell {
             styleIconView.isHidden = true
             titleLabel.textColor = Theme.textPrimary
         case .link:
+            let styleIcon = UIImage(named: data.type.style.icon, in: .module, with: nil)?.withRenderingMode(.alwaysTemplate)
             hasStyle = true
             switchView.isHidden = true
             valueLabel.isHidden = false

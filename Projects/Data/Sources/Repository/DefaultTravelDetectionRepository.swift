@@ -152,7 +152,9 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
 
         if !withoutAddress.isEmpty {
             let samples = sampleByGrid(withoutAddress)
-            for snapshot in samples {
+            debugLog("🗺️ [여행감지] 지오코딩 시작 — 대상 \(samples.count)개")
+            let geocodeStartedAt = Date()
+            for (index, snapshot) in samples.enumerated() {
                 let location = CLLocation(latitude: snapshot.latitude, longitude: snapshot.longitude)
                 if let photoLocation = try? await geocoderService.fetchAddress(from: location, locale: Locale(identifier: "ko")) {
                     if let s = photoLocation.subLocality { geocodedSubLocalities.append(s) }
@@ -161,7 +163,9 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
                     if let c = photoLocation.country { geocodedCountries.append(c) }
                     if let i = photoLocation.isoCountryCode { geocodedIsoCodes.append(i) }
                 }
+                debugLog("🗺️ [여행감지] 지오코딩 \(index + 1)/\(samples.count) — 누적 \(String(format: "%.1f", Date().timeIntervalSince(geocodeStartedAt)))초")
             }
+            debugLog("🗺️ [여행감지] 지오코딩 완료 — 총 \(String(format: "%.1f", Date().timeIntervalSince(geocodeStartedAt)))초")
         }
 
         let allSubLocalities = subLocalities + geocodedSubLocalities
