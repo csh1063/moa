@@ -159,6 +159,7 @@ final class TabbarCoordinator: BaseCoordinator {
         AnalysisProgressManager.shared.show(
             locationProgress: progress.photoProgress,
             albumProgress: progress.albumProgress,
+            showsPhotoProgress: progress.mode == .analysis,
             onTap: { [weak self] in
                 // 슬라이드-아웃 애니메이션이 실제로 끝난 뒤에 시트를 띄운다 — 바로 present하면
                 // 위젯이 사라지는 게 아니라 새로 뜬 시트에 그냥 가려져서 애니메이션이 안 보였다.
@@ -182,9 +183,9 @@ final class TabbarCoordinator: BaseCoordinator {
         // 먼저 나타나는 배지와 타이밍이 완전히 어긋나 보였다.
         AnalysisProgressManager.shared.hide(delay: 0)
 
-        // 위젯이 오른쪽으로 슬라이드돼 사라지는 중에 배지가 같이 나타나면 "둘이 따로 움직이는"
+        // 위젯이 왼쪽으로 슬라이드돼 사라지는 중에 배지가 같이 나타나면 "둘이 따로 움직이는"
         // 것처럼 보인다 — 위젯의 슬라이드아웃(0.5초, 딜레이 없이 바로 시작)이 거의 끝날 즈음 배지가
-        // 같은 방향(오른쪽에서)으로 슬라이드인해야 "이어서 넘어왔다"는 느낌이 난다.
+        // 같은 방향(왼쪽에서)으로 슬라이드인해야 "이어서 넘어왔다"는 느낌이 난다.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             AnalysisBadgeManager.shared.show(onTap: { [weak self] in
                 self?.handleBadgeTap()

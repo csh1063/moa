@@ -92,6 +92,10 @@ final class ProgressRow: UIView {
         }
     }
 
+    func setDetailToggleHidden(_ hidden: Bool) {
+        detailToggleButton.isHidden = hidden
+    }
+
     func setTitle(_ title: String) {
         titleLabel.text = title
         fillLabel.text = title

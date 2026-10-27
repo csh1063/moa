@@ -103,6 +103,7 @@ enum MyPageCellType {
     case labels
     case test
     case addressCount
+    case homeZone
 
     var icon: String {
         switch self {
@@ -130,6 +131,7 @@ enum MyPageCellType {
         case .labels: return "lucide_test_tube_2"
         case .test: return "lucide_test_tube_2"
         case .addressCount: return "lucide_test_tube_2"
+        case .homeZone: return "lucide_test_tube_2"
         }
     }
 
@@ -159,6 +161,7 @@ enum MyPageCellType {
         case .labels: return "사진 라벨 목록"
         case .test: return "연구소"
         case .addressCount: return "주소별 사진 수"
+        case .homeZone: return "홈존 보기"
         }
     }
 
@@ -184,7 +187,7 @@ enum MyPageCellType {
             return .open
         case .version, .photoPermission:
             return .link
-        case .labels, .test, .addressCount:
+        case .labels, .test, .addressCount, .homeZone:
             return .open
         }
     }

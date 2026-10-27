@@ -37,15 +37,17 @@ public protocol AutoAlbumUseCase {
     /// 마지막 단계로 노출하기 위해 여기서 부른다.
     func detectDuplicatePhotos(onProgress: @escaping @Sendable (Double) -> Void) async throws
 
-    func createDateAlbums() async throws
-    func createLocationAlbums() async throws
-    func createCategoryAlbums() async throws
-    func createFaceAlbums() async throws
-    func createAnimalAlbums() async throws
-    func createTravelAutoAlbum() -> AsyncThrowingStream<ProgressAlbum, Error>
-    func createSimilarAlbum() async throws
-    func deletePhotos() async throws
-    func deleteAutoAlbums() async throws
+    // 개별 재생성 — onProgress는 각자 0~1
+    func createDateAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func createLocationAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func createCategoryAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func createFaceAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func createAnimalAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func createTravelAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func createSimilarAlbum(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    func deletePhotos(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    /// types의 자동 앨범을 순서대로 지운다 — "all"이면 전체 자동 앨범
+    func deleteAutoAlbums(from types: [String], onProgress: @escaping @Sendable (Double) -> Void) async throws
 }
 
 extension AutoAlbumUseCase {
@@ -212,71 +214,72 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     // "앨범 재생성" 버튼용 — 여행/비슷한사진과 동일하게, 해당 타입 앨범을 전부 지우고 나서 다시 만든다.
     // (generateAllAlbums()의 증분 경로는 이 함수들이 아니라 classifyNewPhotosCore/createFaceAlbumsCore를
     // 직접 쓰고 있어서, 여기서 삭제를 추가해도 이어서분석 흐름에는 영향이 없다)
-    public func createDateAlbums() async throws {
+    public func createDateAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "date")
-        try createDateAlbumsCore()
+        try createDateAlbumsCore(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
     }
 
-    public func createLocationAlbums() async throws {
+    public func createLocationAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "location")
-        try createLocationAlbumsCore()
+        try createLocationAlbumsCore(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
     }
 
-    public func createCategoryAlbums() async throws {
+    public func createCategoryAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "category")
-        try await createCategoryAlbumsCore()
+        try await createCategoryAlbumsCore(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
     }
 
-    public func createFaceAlbums() async throws {
+    public func createFaceAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "face")
-        try await createFaceAlbumsCore()
+        try await createFaceAlbumsCore(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
     }
 
-    public func createAnimalAlbums() async throws {
+    public func createAnimalAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "animal")
-        try await createAnimalAlbumsCore()
+        try await createAnimalAlbumsCore(onProgress: onProgress)
         try albumDataRepository.syncAlbums()
     }
 
-    public func createSimilarAlbum() async throws {
+    public func createSimilarAlbum(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         let allPhotos = try photoDataRepository.fetchPhotos()
-        try await createSimilarAlbumsCore(from: allPhotos)
+        try await createSimilarAlbumsCore(from: allPhotos, onProgress: onProgress)
     }
 
-    public func createTravelAutoAlbum() -> AsyncThrowingStream<ProgressAlbum, Error> {
-        AsyncThrowingStream { continuation in
-            Task {
-                do {
-                    try await createTravelAlbumsCore()
-                    continuation.yield(ProgressAlbum(step: .completed, ratio: 1.0))
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-        }
+    public func createTravelAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
+        try await createTravelAlbumsCore(onProgress: onProgress)
     }
 
-    public func deletePhotos() async throws {
-        try self.albumDataRepository.deleteAll()
+    public func deletePhotos(onProgress: @escaping @Sendable (Double) -> Void) async throws {
+        try self.albumDataRepository.deleteAll(onProgress: onProgress)
         try await userDefaultRepository.resetAnalyzedDate()
     }
 
-    public func deleteAutoAlbums() async throws {
-        try self.albumDataRepository.deleteAutoAlbums()
+    public func deleteAutoAlbums(from types: [String], onProgress: @escaping @Sendable (Double) -> Void) async throws {
+        for (index, type) in types.enumerated() {
+            try albumDataRepository.deleteAutoAlbums(by: type) { ratio in
+                onProgress((Double(index) + ratio) / Double(types.count))
+            }
+        }
     }
 
     // MARK: - 앨범 생성 코어 로직
 
     // 라벨이 필요 없는 분류(날짜/주소)는 라벨을 실어오지 않는 가벼운 fetchPhotos로 페이지 단위 처리
-    private func createDateAlbumsCore() throws {
+    /// 개별 재생성 진행률 중 페이지 스캔 몫 — 스캔 80% / 앨범에 쓰기 20%
+    private func scanRatio(processed: Int, total: Int) -> Double {
+        guard total > 0 else { return 0.8 }
+        return min(Double(processed) / Double(total), 1) * 0.8
+    }
+
+    private func createDateAlbumsCore(onProgress: (Double) -> Void = { _ in }) throws {
         var albums = try albumDataRepository.fetchAll(from: "date")
         var albumPhotoMap: [UUID: [String]] = [:]
         var page = 0
+        let totalCount = (try? photoDataRepository.fetchPhotoCount()) ?? 0
 
         while true {
             let photos = try photoDataRepository.fetchPhotos(page: page, pageSize: classificationPageSize)
@@ -305,10 +308,12 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             }
 
             page += 1
+            onProgress(scanRatio(processed: page * classificationPageSize, total: totalCount))
         }
 
-        for (albumId, photoIdentifiers) in albumPhotoMap {
+        for (index, (albumId, photoIdentifiers)) in albumPhotoMap.enumerated() {
             try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            onProgress(0.8 + 0.2 * Double(index + 1) / Double(albumPhotoMap.count))
         }
     }
 
@@ -335,10 +340,11 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         debugLog("🎬 [영상 앨범] 완료")
     }
 
-    private func createLocationAlbumsCore() throws {
+    private func createLocationAlbumsCore(onProgress: (Double) -> Void = { _ in }) throws {
         var albums = try albumDataRepository.fetchAll(from: "location")
         var albumPhotoMap: [UUID: [String]] = [:]
         var page = 0
+        let totalCount = (try? photoDataRepository.fetchPhotoCount()) ?? 0
 
         while true {
             let photos = try photoDataRepository.fetchPhotos(page: page, pageSize: classificationPageSize)
@@ -379,19 +385,22 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             }
 
             page += 1
+            onProgress(scanRatio(processed: page * classificationPageSize, total: totalCount))
         }
 
-        for (albumId, photoIdentifiers) in albumPhotoMap {
+        for (index, (albumId, photoIdentifiers)) in albumPhotoMap.enumerated() {
             try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            onProgress(0.8 + 0.2 * Double(index + 1) / Double(albumPhotoMap.count))
         }
     }
 
     // 카테고리는 라벨이 필요해서 fetchAll(라벨 포함)로 페이지 단위 처리
-    private func createCategoryAlbumsCore() async throws {
+    private func createCategoryAlbumsCore(onProgress: (Double) -> Void = { _ in }) async throws {
         let ruleCategories: [String: AlbumRule] = try await photoCategoryRepository.fetchRuleCategories()
         var albums = try albumDataRepository.fetchAll(from: "category")
         var albumPhotoMap: [UUID: [String]] = [:]
         var page = 0
+        let totalCount = (try? photoDataRepository.fetchPhotoCount()) ?? 0
 
         while true {
             let photos = try photoDataRepository.fetchAll(page: page, pageSize: classificationPageSize)
@@ -422,10 +431,12 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
             }
 
             page += 1
+            onProgress(scanRatio(processed: page * classificationPageSize, total: totalCount))
         }
 
-        for (albumId, photoIdentifiers) in albumPhotoMap {
+        for (index, (albumId, photoIdentifiers)) in albumPhotoMap.enumerated() {
             try albumDataRepository.addPhotos(albumId: albumId, photoIdentifiers: photoIdentifiers)
+            onProgress(0.8 + 0.2 * Double(index + 1) / Double(albumPhotoMap.count))
         }
     }
 
@@ -737,7 +748,8 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         debugLog("🐾 [동물 앨범] 완료 — \(String(format: "%.1f", Date().timeIntervalSince(animalStartedAt)))초")
     }
 
-    private func createTravelAlbumsCore() async throws {
+    /// onProgress: 홈존 10% / 여행 후보 처리 70% / 앨범 저장 20% (편집된 마지막 여행을 이어붙이는 경로는 저장 몫 생략)
+    private func createTravelAlbumsCore(onProgress: (Double) -> Void = { _ in }) async throws {
         // 지난 실행이 "삭제 → 재클러스터링 → 재저장" 도중에 죽었으면(체크포인트가 남아있으면), 여기
         // DB에 남아있는 여행 앨범 상태를 못 믿는다 — 별도 복구 경로로 처리한다.
         if let pendingCheckpoint = try? await userDefaultRepository.fetchTravelAlbumCheckpoint() {
@@ -789,10 +801,13 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         for zone in homeZones {
             debugLog("   - \(zone.addressDescription(in: targetPhotos)) (분석일: \(zone.analyzedAt))")
         }
+        onProgress(0.1)
 
         debugLog("🧳 [여행앨범] 감지 시작 — 대상 사진 \(targetPhotos.count)장")
         let travelDetectStartedAt = Date()
-        let clusters = try await travelRepository.detect(from: targetPhotos, homeZones: homeZones)
+        let clusters = try await travelRepository.detect(from: targetPhotos, homeZones: homeZones) { ratio in
+            onProgress(0.1 + 0.7 * ratio)
+        }
         debugLog("🧳 [여행앨범] 감지 완료 — 클러스터 \(clusters.count)개, \(String(format: "%.1f", Date().timeIntervalSince(travelDetectStartedAt)))초")
 
         // 사용자가 손댄(이름/대표사진 변경, 병합, 사진 빼기) 마지막 여행은 지우고 다시 만들면 편집이 날아간다 —
@@ -818,7 +833,9 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
         // 이름이 겹치는 엉뚱한 기존 앨범에 이번 사진들을 잘못 합쳐버릴 수 있다.
         var placeCounts = placeCounts(of: existingTravelAlbums.filter { $0.id != albumIdToReplace })
 
-        try await saveTravelClusters(clusters, placeCounts: &placeCounts)
+        try await saveTravelClusters(clusters, placeCounts: &placeCounts) { ratio in
+            onProgress(0.8 + 0.2 * ratio)
+        }
 
         try albumDataRepository.syncAlbums()
         try? await userDefaultRepository.clearTravelAlbumCheckpoint()
@@ -919,8 +936,13 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     }
 
     /// 클러스터링 결과를 여행 앨범으로 저장하는 공통 로직 — 정상 경로/체크포인트 복구 경로가 같이 쓴다
-    private func saveTravelClusters(_ clusters: [TravelCluster], placeCounts: inout [String: Int]) async throws {
-        for cluster in clusters {
+    private func saveTravelClusters(
+        _ clusters: [TravelCluster],
+        placeCounts: inout [String: Int],
+        onProgress: (Double) -> Void = { _ in }
+    ) async throws {
+        for (index, cluster) in clusters.enumerated() {
+            defer { onProgress(Double(index + 1) / Double(clusters.count)) }
             // 하루짜리 여행은 "여행"보다 "나들이"가 더 자연스럽다 (출발/도착 구분이 무의미한 짧은 일정)
             let isSingleDay = Calendar.current.isDate(cluster.startDate, inSameDayAs: cluster.endDate)
             let duration = cluster.endDate.timeIntervalSince(cluster.startDate)

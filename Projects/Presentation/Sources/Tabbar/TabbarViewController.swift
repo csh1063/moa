@@ -47,11 +47,11 @@ final class TabbarViewController: CustomTabBarController {
 //        self.setLayoutMargin(height: 68,
 //                             margin: .init(leading: 0, trailing: 0, bottom: 0),
 //                             padding: .init(leading: 12, trailing: 12))
-        // 분석 배지 자리를 항상 비워두도록 .left로 고정 — 배지가 뜨고 질 때 탭바는 움직이지 않고
+        // 분석 배지 자리(왼쪽)를 항상 비워두도록 .right로 고정 — 배지가 뜨고 질 때 탭바는 움직이지 않고
         // 배지 자신만 그 자리에서 나타났다 사라진다(AnalysisBadgeManager 참고).
-        self.setAlign(.left)
+        self.setAlign(.right)
         self.setLayoutMargin(height: 56, itemWidth: 80,
-                             margin: .init(leading: 20, bottom: 4),
+                             margin: .init(trailing: 20, bottom: 4),
                              padding: .zero, cornerRadius: 28)
 
         self.setShadow(color: .black, alpha: 0.3, x: 0, y: 4, blur: 16)

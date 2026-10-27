@@ -66,6 +66,10 @@ final class MiniProgressView: UIView {
         }
     }
 
+    func setPhotoRowHidden(_ hidden: Bool) {
+        photoRow.isHidden = hidden
+    }
+
     // MARK: - Bind
 
     func bind(
