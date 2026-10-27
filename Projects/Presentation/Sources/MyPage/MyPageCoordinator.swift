@@ -66,6 +66,11 @@ public final class MyPageCoordinator: BaseCoordinator {
                     self?.navigationController.pushViewController(vc, animated: true)
                 case .test:
                     self?.moveTest()
+                case .homeZone:
+                    guard let self else { return }
+                    let vc = self.diContainer.makeHomeZoneLabViewController()
+                    self.hideTabBar?()
+                    self.navigationController.pushViewController(vc, animated: true)
                 default: break
                 }
             }

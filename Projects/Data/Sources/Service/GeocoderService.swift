@@ -24,6 +24,11 @@ public final class GeocoderService {
         return dict
     }()
 
+    // CLGeocoder가 응답을 영영 안 줄 수 있다(레이트리밋/네트워크 문제 등) — 타임아웃 없이 걸리면
+    // 이걸 순차로 돌리는 여행 감지 파이프라인 전체가 멈춘다. 비슷한 사진 쪽 PHImageManager 콜백에
+    // 이미 걸어둔 것과 같은 이유의 같은 종류 안전장치
+    private static let geocodeTimeout: TimeInterval = 8
+
     public init() {
 
     }
@@ -33,10 +38,9 @@ public final class GeocoderService {
 
         let geocoder = CLGeocoder()
         do {
-            let placemarks = try await geocoder.reverseGeocodeLocation(
-                location,
-                preferredLocale: locale
-            )
+            let placemarks = try await withTimeout(Self.geocodeTimeout) {
+                try await geocoder.reverseGeocodeLocation(location, preferredLocale: locale)
+            }
 
             guard let data = placemarks.first else { return PhotoLocation() }
 
@@ -52,10 +56,12 @@ public final class GeocoderService {
 
         let geocoder = CLGeocoder()
         do {
-            let placemarks = try await geocoder.reverseGeocodeLocation(
-                CLLocation(latitude: latitude, longitude: longitude),
-                preferredLocale: locale
-            )
+            let placemarks = try await withTimeout(Self.geocodeTimeout) {
+                try await geocoder.reverseGeocodeLocation(
+                    CLLocation(latitude: latitude, longitude: longitude),
+                    preferredLocale: locale
+                )
+            }
 
             guard let data = placemarks.first else { return PhotoLocation() }
 
@@ -68,6 +74,18 @@ public final class GeocoderService {
     }
 
     // MARK: - Private
+
+    private func withTimeout<T: Sendable>(_ seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask { try await operation() }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw GeocodeTimeoutError()
+            }
+            defer { group.cancelAll() }
+            return try await group.next()!
+        }
+    }
     private func replaceAddress(_ string: String?) -> String {
         guard let string else { return "" }
 
@@ -102,3 +120,5 @@ public final class GeocoderService {
             )
     }
 }
+
+private struct GeocodeTimeoutError: Error {}

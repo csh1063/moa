@@ -3233,6 +3233,74 @@
           }
         }
       }
+    },
+    "초기화 중" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetting"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "초기화 중"
+          }
+        }
+      }
+    },
+    "기존 앨범 삭제 중" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleting existing albums"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기존 앨범 삭제 중"
+          }
+        }
+      }
+    },
+    "앨범 다시 만드는 중" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuilding Albums"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앨범 다시 만드는 중"
+          }
+        }
+      }
+    },
+    "분석된 사진으로 앨범을 다시 만들고 있어요\\n완료될 때까지 조금만 기다려주세요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuilding albums from your analyzed photos.\\nPlease wait a moment until it's done"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "분석된 사진으로 앨범을 다시 만들고 있어요\\n완료될 때까지 조금만 기다려주세요"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

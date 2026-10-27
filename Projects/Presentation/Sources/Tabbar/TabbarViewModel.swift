@@ -15,7 +15,17 @@ enum TabbarViewModelAction {
     case showLibraryImportPicker(LibraryAlbumImportUseCase)
 }
 
+/// 분석 시트를 분석하기/재생성이 같이 쓴다 — 재생성은 사진 분석 줄을 숨긴다
+enum AnalyzeMode {
+    case analysis
+    /// 전체 재생성 — 앨범 줄 "자세히" 유지
+    case regenerateAll
+    /// 개별 앨범 재생성 — 앨범 줄 "자세히" 숨김
+    case regenerateSingle
+}
+
 struct AnalyzeProgress {
+    let mode: AnalyzeMode
     let photoProgress: AnyPublisher<Double, Never>
     let photoCompleted: AnyPublisher<Void, Never>
     let albumProgress: AnyPublisher<Double, Never>
@@ -183,8 +193,9 @@ public final class TabbarViewModel: BaseViewModel {
         .store(in: &cancellables)
     }
 
-    private func makeAnalyzeProgress() -> AnalyzeProgress {
+    private func makeAnalyzeProgress(mode: AnalyzeMode = .analysis) -> AnalyzeProgress {
         AnalyzeProgress(
+            mode: mode,
             photoProgress: $progressRatio.eraseToAnyPublisher(),
             photoCompleted: photoCompletedSubject.eraseToAnyPublisher(),
             albumProgress: $autoAlbumProgressRatio.eraseToAnyPublisher(),
@@ -255,17 +266,25 @@ public final class TabbarViewModel: BaseViewModel {
                     AlertButtonConfig(title: String(localized: "전체 자동 앨범", bundle: .module), style: .default) { [weak self] in
                         Task {
                             guard let self else {return}
-                            self.isLoading = true
+                            let startedAt = Date()
+                            debugLog("⏱️ [재생성] 시작: \(startedAt)")
+                            self.isAnalyzing = true
+                            defer { self.isAnalyzing = false }
+
                             await self.albumClear()
-                            self.isLoading = false
+                            debugLog("⏱️ [재생성] 기존 앨범 삭제 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
 
                             self.autoAlbumProgressRatio = 0
-                            self.onAction?(.progressSheet(self.makeAnalyzeProgress()))
+                            self.onAction?(.progressSheet(self.makeAnalyzeProgress(mode: .regenerateAll)))
 
                             // 이 플로우는 사진 분석 없이 앨범 생성만 다시 하므로, 사진 분석 단계는 곧바로 완료 처리한다
                             self.progressRatio = 1.0
                             self.photoCompletedSubject.send(())
                             await self.runAlbumGeneration(fullRegenerate: true)
+
+                            let finishedAt = Date()
+                            let elapsedMinutes = finishedAt.timeIntervalSince(startedAt) / 60
+                            debugLog("⏱️ [재생성] 종료: \(finishedAt) — 총 \(String(format: "%.1f", elapsedMinutes))분 소요")
                         }
                     },
                     AlertButtonConfig(title: String(localized: "날짜 앨범", bundle: .module), style: .default) { [weak self] in
@@ -324,9 +343,7 @@ public final class TabbarViewModel: BaseViewModel {
                     AlertButtonConfig(title: String(localized: "취소", bundle: .module), style: .cancel, action: nil),
                     AlertButtonConfig(title: String(localized: "삭제", bundle: .module), style: .destructive) { [weak self] in
                         Task {
-                            LoadingManager.shared.show(allowDismiss: false)
                             await self?.clear()
-                            LoadingManager.shared.hide()
                         }
                     }
                 ]
@@ -434,15 +451,17 @@ public final class TabbarViewModel: BaseViewModel {
                         debugLog("⏱️ [분석] 얼굴/동물 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                         // createPersonAndSimilarAlbums의 onProgress는 얼굴(0~0.5)/동물(0.5~1.0) 순서로
                         // 하나의 0~1 값에 실어 보낸다 — 여기서 그 구간을 갈라 얼굴/동물을 따로 노출한다
-                        // (자세히 체크리스트에서 둘을 별개 행으로 보여주기 위함).
+                        // (자세히 체크리스트에서 둘을 별개 행으로 보여주기 위함). faceProgress/animalProgress는
+                        // 이미 라벨 스트림 단계에서 0~0.5(추출 중)까지 채워져 있으므로, 여기(클러스터링)는
+                        // 그 이어서 0.5~1.0만 채운다 — 처음부터 다시 0에서 시작하지 않는다.
                         try? await self?.autoAlbumUseCase.createPersonAndSimilarAlbums { ratio in
                             Task { @MainActor in
                                 guard let self else { return }
                                 if ratio <= 0.5 {
-                                    self.faceProgress = max(self.faceProgress, ratio * 2)
+                                    self.faceProgress = max(self.faceProgress, 0.5 + ratio)
                                 } else {
                                     self.faceProgress = 1
-                                    self.animalProgress = max(self.animalProgress, (ratio - 0.5) * 2)
+                                    self.animalProgress = max(self.animalProgress, ratio)
                                 }
                                 self.recomputeAlbumProgress()
                             }
@@ -495,7 +514,18 @@ public final class TabbarViewModel: BaseViewModel {
                 switch progress.state {
                 case .progress(let ratio):
                     self.streamProgress = max(self.streamProgress, ratio)
+                    // 사진 1장당 라벨 분류랑 같이 얼굴/동물 임베딩 추출, 지오코딩도 이미 같은 루프
+                    // 안에서 같이 돌고 있다(detectFace가 people 게이트로 얼굴분석 돌릴지 정하던 구조,
+                    // 주소 트랙도 라벨 트랙이랑 병렬) — 그런데 체크리스트는 이 스트림이 통째로 끝나야만
+                    // "좌표를 주소로"/"얼굴"/"동물"이 움직이기 시작해서, 실제로는 다 같이 진행 중인데
+                    // "대기중"으로만 보였다. 스트림이 도는 동안 같이 올려서 "여러 개가 동시에 진행중"으로
+                    // 보이게 한다 — 얼굴/동물은 절반(추출)만, 나머지 절반(클러스터링)은 스트림이 끝난
+                    // 뒤 onLabelStreamCompleted 쪽에서 마저 채운다.
+                    self.addressProgress = max(self.addressProgress, ratio)
+                    self.faceProgress = max(self.faceProgress, ratio * 0.5)
+                    self.animalProgress = max(self.animalProgress, ratio * 0.5)
                     self.recomputePhotoProgress()
+                    self.recomputeAlbumProgress()
                 case .completed:
                     self.streamProgress = 1
                     self.recomputePhotoProgress()
@@ -555,11 +585,16 @@ public final class TabbarViewModel: BaseViewModel {
 
     private func runAlbumGeneration(fullRegenerate: Bool = false) async {
         self.isComplete = false
+        // 이전 분석/재생성이 끝나며 7항목이 전부 1로 남아있거나(이번 세션에 분석을 한 번도 안 했으면
+        // 0으로 남아있거나) 해서, "자세히"를 열면 실제 진행과 무관하게 전부 완료/전부 대기로 보이던 버그
+        self.resetAlbumProgressComponents()
         do {
             for try await progress in autoAlbumUseCase.generateAllAlbums(fullRegenerate: fullRegenerate) {
                 self.autoAlbumProgressRatio = progress.ratio
+                self.updateAlbumChecklist(ratio: progress.ratio)
                 if case .completed = progress.step {
                     self.autoAlbumProgressRatio = 1.0
+                    self.completeAlbumChecklist()
                     self.isComplete = true
                     self.albumCompletedSubject.send(())
                     self.endAllProcess()
@@ -567,116 +602,155 @@ public final class TabbarViewModel: BaseViewModel {
             }
         } catch {
             self.autoAlbumProgressRatio = 1.0
+            self.completeAlbumChecklist()
             self.isComplete = true
             self.albumCompletedSubject.send(())
         }
     }
 
+    private func resetAlbumProgressComponents() {
+        dateAlbumProgress = 0; travelProgress = 0; regionProgress = 0
+        faceProgress = 0; animalProgress = 0; categoryProgress = 0; dupSaveProgress = 0
+    }
+
+    private func completeAlbumChecklist() {
+        dateAlbumProgress = 1; travelProgress = 1; regionProgress = 1
+        faceProgress = 1; animalProgress = 1; categoryProgress = 1; dupSaveProgress = 1
+    }
+
+    /// generateAllAlbums의 5단계(날짜+지역+카테고리 → 얼굴 → 동물 → 여행 → 중복사진, 각자 1/5씩)를
+    /// "자세히" 체크리스트 7항목에 맞춰 반영한다. 1단계는 안에서 세 가지가 한 번에 처리돼서 그보다
+    /// 더 세밀하게 쪼갤 신호가 없어 셋을 같이 올린다
+    private func updateAlbumChecklist(ratio: Double) {
+        let step1 = min(ratio / 0.2, 1.0)
+        dateAlbumProgress = max(dateAlbumProgress, step1)
+        regionProgress = max(regionProgress, step1)
+        categoryProgress = max(categoryProgress, step1)
+
+        if ratio > 0.2 {
+            faceProgress = max(faceProgress, min((ratio - 0.2) / 0.2, 1.0))
+        }
+        if ratio > 0.4 {
+            animalProgress = max(animalProgress, min((ratio - 0.4) / 0.2, 1.0))
+        }
+        if ratio > 0.6 {
+            travelProgress = max(travelProgress, min((ratio - 0.6) / 0.2, 1.0))
+        }
+        if ratio > 0.8 {
+            dupSaveProgress = max(dupSaveProgress, min((ratio - 0.8) / 0.2, 1.0))
+        }
+    }
+
     // MARK: - 개별 앨범 (재)생성
 
-    private func createTravelAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
+    /// 삭제 카드 → 분석 시트(앨범 줄만, 이 앨범 하나의 진행이 0~100%). 도는 동안 다른 분석/재생성/초기화는 막는다
+    private func regenerateSingleAlbum(
+        deleting types: [String],
+        _ work: (@escaping @Sendable (Double) -> Void) async throws -> Void
+    ) async {
+        isAnalyzing = true
+        defer { isAnalyzing = false }
 
-            for try await progress in autoAlbumUseCase.createTravelAutoAlbum() {
-                if case .completed = progress.step {
-                    self.isLoading = false
-                    self.isComplete = true
+        if !types.isEmpty {
+            await albumClear(types)
+        }
+
+        isComplete = false
+        autoAlbumProgressRatio = 0
+        onAction?(.progressSheet(makeAnalyzeProgress(mode: .regenerateSingle)))
+
+        do {
+            try await work { [weak self] ratio in
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.autoAlbumProgressRatio = max(self.autoAlbumProgressRatio, ratio)
                 }
             }
         } catch {
-            self.isLoading = false
-            self.isComplete = true
+            debugLog("error: \(error.localizedDescription)")
+        }
+
+        autoAlbumProgressRatio = 1.0
+        isComplete = true
+        albumCompletedSubject.send(())
+        endAllProcess()
+    }
+
+    private func createTravelAutoAlbum() async {
+        // 여행은 최근 여행만 다시 계산하는 증분 방식이라 통째로 지우는 단계가 없다
+        await regenerateSingleAlbum(deleting: []) { onProgress in
+            try await self.autoAlbumUseCase.createTravelAlbums(onProgress: onProgress)
         }
     }
 
     private func createSimilarAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
-            try await autoAlbumUseCase.createSimilarAlbum()
-            self.isLoading = false
-            self.isComplete = true
-        } catch {
-            self.isLoading = false
-            self.isComplete = true
+        await regenerateSingleAlbum(deleting: ["similar"]) { onProgress in
+            try await self.autoAlbumUseCase.createSimilarAlbum(onProgress: onProgress)
         }
     }
 
     private func createDateAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
-            try await autoAlbumUseCase.createDateAlbums()
-            self.isLoading = false
-            self.isComplete = true
-        } catch {
-            self.isLoading = false
-            self.isComplete = true
+        await regenerateSingleAlbum(deleting: ["date"]) { onProgress in
+            try await self.autoAlbumUseCase.createDateAlbums(onProgress: onProgress)
         }
     }
 
     private func createLocationAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
-            try await autoAlbumUseCase.createLocationAlbums()
-            self.isLoading = false
-            self.isComplete = true
-        } catch {
-            self.isLoading = false
-            self.isComplete = true
+        await regenerateSingleAlbum(deleting: ["location"]) { onProgress in
+            try await self.autoAlbumUseCase.createLocationAlbums(onProgress: onProgress)
         }
     }
 
     private func createCategoryAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
-            try await autoAlbumUseCase.createCategoryAlbums()
-            self.isLoading = false
-            self.isComplete = true
-        } catch {
-            self.isLoading = false
-            self.isComplete = true
+        await regenerateSingleAlbum(deleting: ["category"]) { onProgress in
+            try await self.autoAlbumUseCase.createCategoryAlbums(onProgress: onProgress)
         }
     }
 
     // 메인 앨범 화면에서 얼굴/동물이 이미 하나의 섹션(AlbumSection.faceSectionFromValues)으로
     // 합쳐져 보여지고 있어서, 재생성 메뉴도 같은 단위로 묶어 하나의 버튼/동작으로 처리한다
     private func createFaceAnimalAutoAlbum() async {
-        self.isComplete = false
-        do {
-            self.isLoading = true
-            try await autoAlbumUseCase.createFaceAlbums()
-            try await autoAlbumUseCase.createAnimalAlbums()
-            self.isLoading = false
-            self.isComplete = true
-        } catch {
-            self.isLoading = false
-            self.isComplete = true
+        await regenerateSingleAlbum(deleting: ["face", "animal"]) { onProgress in
+            try await self.autoAlbumUseCase.createFaceAlbums { onProgress($0 * 0.5) }
+            try await self.autoAlbumUseCase.createAnimalAlbums { onProgress(0.5 + $0 * 0.5) }
         }
     }
 
     private func clear() async {
         do {
             self.isComplete = false
-            try await self.autoAlbumUseCase.deletePhotos()
+            try await withDeletionProgress(title: String(localized: "초기화 중", bundle: .module)) { onProgress in
+                try await self.autoAlbumUseCase.deletePhotos(onProgress: onProgress)
+            }
             self.isComplete = true
         } catch {
             debugLog("error: \(error.localizedDescription)")
         }
     }
 
-    private func albumClear() async {
+    // 재생성 직전 단계라 isComplete는 안 건드린다 — 여기서 완료를 보내면 마이페이지가 새로고침하며 공용
+    // 로딩 화면을 켰다 끄는데, 그 페이드아웃 도중엔 바로 이어지는 재생성 로딩 화면이 무시돼서 안 뜬다
+    private func albumClear(_ types: [String] = ["all"]) async {
         do {
-            self.isComplete = false
-            try await self.autoAlbumUseCase.deleteAutoAlbums()
-            self.isComplete = true
+            try await withDeletionProgress(title: String(localized: "기존 앨범 삭제 중", bundle: .module)) { onProgress in
+                try await self.autoAlbumUseCase.deleteAutoAlbums(from: types, onProgress: onProgress)
+            }
         } catch {
             debugLog("error: \(error.localizedDescription)")
         }
+    }
+
+    /// 삭제 도중 다른 조작이 끼면 안 돼서, 닫을 수 없는 진행률 카드를 띄운 채로 실행한다
+    private func withDeletionProgress(
+        title: String,
+        _ work: (@escaping @Sendable (Double) -> Void) async throws -> Void
+    ) async throws {
+        ProgressAlertManager.shared.show(title: title)
+        defer { ProgressAlertManager.shared.hide() }
+        try await work { ratio in
+            DispatchQueue.main.async { ProgressAlertManager.shared.update(ratio) }
+        }
+        ProgressAlertManager.shared.update(1.0)
     }
 
     private func checkConsent() async {

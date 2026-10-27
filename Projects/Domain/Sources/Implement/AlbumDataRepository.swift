@@ -29,11 +29,11 @@ public protocol AlbumDataRepository {
     /// 사용자가 앨범 대표(커버) 사진을 직접 고른 경우 저장
     func updateCoverPhoto(id: UUID, identifier: String) throws
     func delete(id: UUID) throws
-    func deleteAutoAlbums(by from: String) throws  // 자동 앨범만 삭제
+    func deleteAutoAlbums(by from: String, onProgress: (Double) -> Void) throws  // 자동 앨범만 삭제
     func addPhotos(albumId: UUID, photoIdentifiers: [String]) throws
     func deletePhotos(albumId: UUID, photoIdentifiers: [String]) throws
     func syncAlbums() throws
-    func deleteAll() throws
+    func deleteAll(onProgress: (Double) -> Void) throws
     func dataStoreSize() -> Int64
     func pruneOldHistory()
 
@@ -69,6 +69,6 @@ extension AlbumDataRepository {
     }
 
     func deleteAutoAlbums(by from: String = "all") throws {
-        try self.deleteAutoAlbums(by: from)
+        try self.deleteAutoAlbums(by: from, onProgress: { _ in })
     }
 }

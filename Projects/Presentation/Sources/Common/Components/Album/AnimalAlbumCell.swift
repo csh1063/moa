@@ -27,7 +27,7 @@ final class AnimalAlbumCell: UICollectionViewCell {
         return iv
     }()
 
-    private let countBadge = UILabel()
+    private let countBadge = CountBadgeLabel()
     private let nameLabel  = UILabel()
 
     private var currentIdentifier: String?
@@ -107,7 +107,7 @@ final class AnimalAlbumCell: UICollectionViewCell {
 
     func configure(with viewModel: AnimalAlbumCellViewModel) {
         currentIdentifier = viewModel.localIdentifier
-        countBadge.text   = "\(viewModel.photoCount)"
+        countBadge.text   = viewModel.photoCount.formatted()
 
         if viewModel.isNamed {
             nameLabel.text      = viewModel.displayName

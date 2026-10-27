@@ -38,7 +38,7 @@ final class FaceAlbumCell: UICollectionViewCell {
         return iv
     }()
 
-    private let countBadge = UILabel()
+    private let countBadge = CountBadgeLabel()
     private let nameLabel  = UILabel()
 
     private var currentIdentifier: String?
@@ -120,7 +120,7 @@ final class FaceAlbumCell: UICollectionViewCell {
 
     func configure(with viewModel: FaceAlbumCellViewModel) {
         currentIdentifier = viewModel.localIdentifier
-        countBadge.text   = "\(viewModel.photoCount)"
+        countBadge.text   = viewModel.photoCount.formatted()
 
         if viewModel.isNamed {
             nameLabel.text      = viewModel.displayName

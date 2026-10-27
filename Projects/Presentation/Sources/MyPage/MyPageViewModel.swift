@@ -195,15 +195,13 @@ final class MyPageViewModel: BaseViewModel {
             [
                 MyCellData(type: .analyzedDate, value: analyzedDate),
                 MyCellData(type: .analyzedData, value: analyzedDataSize),
-                MyCellData(type: .analysis),
-                MyCellData(type: .libraryImport)
+                MyCellData(type: .analysis)
             ]
         } else {
             [
                 MyCellData(type: .analyzedDate, value: analyzedDate),
                 MyCellData(type: .analyzedData, value: analyzedDataSize),
                 MyCellData(type: .analysis),
-                MyCellData(type: .libraryImport),
                 MyCellData(type: .reAutoAlbum)
             ]
         }
@@ -216,7 +214,8 @@ final class MyPageViewModel: BaseViewModel {
         self.cellTypes = [
             MyCellHeader(name: String(localized: "내 라이브러리", bundle: .module), order: 0): [
                 MyCellData(type: .allPhoto, value: String(localized: "\(photoCount.formatted())장", bundle: .module)),
-                MyCellData(type: .unanalysisPhoto, value: String(localized: "\(unanalysisCount.formatted())장", bundle: .module))
+                MyCellData(type: .unanalysisPhoto, value: String(localized: "\(unanalysisCount.formatted())장", bundle: .module)),
+                MyCellData(type: .libraryImport)
             ],
             MyCellHeader(name: String(localized: "사진 분석", bundle: .module), order: 10): analyzedItems,
 //            MyCellHeader(name: "백 그라운드 작업", order: 20): [
@@ -244,7 +243,8 @@ final class MyPageViewModel: BaseViewModel {
         self.cellTypes[MyCellHeader(name: "실험실", order: 60)] = [
             MyCellData(type: .labels),
             MyCellData(type: .test),
-            MyCellData(type: .addressCount)
+            MyCellData(type: .addressCount),
+            MyCellData(type: .homeZone)
         ]
         #endif
     }

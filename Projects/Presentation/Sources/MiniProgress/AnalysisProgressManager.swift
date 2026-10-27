@@ -21,6 +21,7 @@ final class AnalysisProgressManager {
     func show(
         locationProgress: AnyPublisher<Double, Never>,
         albumProgress: AnyPublisher<Double, Never>,
+        showsPhotoProgress: Bool = true,
         onTap: (() -> Void)? = nil
     ) {
         guard !isPresenting else {return}
@@ -28,6 +29,7 @@ final class AnalysisProgressManager {
         isPresenting = true
 
         let view = MiniProgressView()
+        view.setPhotoRowHidden(!showsPhotoProgress)
         view.bind(locationProgress: locationProgress, albumProgress: albumProgress)
         view.onTap = onTap
 
@@ -38,11 +40,13 @@ final class AnalysisProgressManager {
 
         window.addSubview(view)
 
+        // 왼쪽 화면 밖(위젯 폭 176 + 여유)에서 시작해 슬라이드-인 — 탭바가 오른쪽이라 위젯/배지는 왼쪽에 둔다
         view.snp.makeConstraints { make in
-            make.trailing.equalTo(184)
+            make.leading.equalTo(-184)
             make.bottom.equalTo(window).offset(-120)
             make.width.equalTo(176)
-            make.height.equalTo(72)
+            // 진행바 한 줄(재생성)이면 두 줄(분석)일 때보다 낮게
+            make.height.equalTo(showsPhotoProgress ? 72 : 46)
         }
         window.layoutIfNeeded()
 
@@ -50,7 +54,7 @@ final class AnalysisProgressManager {
         self.floatingView = view
 
         view.snp.updateConstraints { make in
-            make.trailing.equalTo(-20)
+            make.leading.equalTo(20)
         }
 
         UIView.animate(withDuration: 0.5) {
@@ -79,7 +83,7 @@ final class AnalysisProgressManager {
         }
 
         self.floatingView?.snp.updateConstraints { make in
-            make.trailing.equalTo(184)
+            make.leading.equalTo(-184)
         }
 
         UIView.animate(withDuration: 0.5, delay: delay) {

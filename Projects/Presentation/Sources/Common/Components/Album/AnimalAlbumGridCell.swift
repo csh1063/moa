@@ -28,7 +28,7 @@ final class AnimalAlbumGridCell: UICollectionViewCell {
     }()
 
     private let countBadge: UILabel = {
-        let lb = UILabel()
+        let lb = CountBadgeLabel()
         lb.backgroundColor = Theme.primary
         lb.textColor = .white
         lb.font = .systemFont(ofSize: 10, weight: .bold)
@@ -115,7 +115,7 @@ final class AnimalAlbumGridCell: UICollectionViewCell {
 
     func configure(with viewModel: AnimalAlbumCellViewModel) {
         currentIdentifier = viewModel.localIdentifier
-        countBadge.text = "\(viewModel.photoCount)"
+        countBadge.text = viewModel.photoCount.formatted()
 
         gradientView.isHidden = !viewModel.isNamed
         nameLabel.text = viewModel.isNamed ? viewModel.displayName : nil

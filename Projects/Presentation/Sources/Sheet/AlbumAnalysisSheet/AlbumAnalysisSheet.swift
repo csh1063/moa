@@ -168,6 +168,13 @@ final class AlbumAnalysisSheet: UIViewController {
         let photoGroup = UIStackView(arrangedSubviews: [photoRow, photoChecklistWrapper])
         photoGroup.axis = .vertical
         photoGroup.spacing = 10
+        // 재생성은 사진 분석 없이 앨범만 다시 만든다
+        photoGroup.isHidden = progress.mode != .analysis
+        albumRow.setDetailToggleHidden(progress.mode == .regenerateSingle)
+        if progress.mode != .analysis {
+            titleLabel.text = String(localized: "앨범 다시 만드는 중", bundle: .module)
+            subtitleLabel.text = String(localized: "분석된 사진으로 앨범을 다시 만들고 있어요\n완료될 때까지 조금만 기다려주세요", bundle: .module)
+        }
 
         let albumGroup = UIStackView(arrangedSubviews: [albumRow, albumChecklistWrapper])
         albumGroup.axis = .vertical

@@ -59,6 +59,8 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
             switch action {
             case .options(let album):
                 self?.showAlbumOptions(album: album)
+            case .optionsFiltered(let photos):
+                self?.showFilteredOptions(photos: photos)
             case .pop:
                 self?.pop()
             case .selectPhoto(let photoDetails, let index, let inSelectionMode):
@@ -71,6 +73,10 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
                 self?.showTravelerManagement(travelers: travelers, others: others)
             case .previewCover(let album, let candidateId):
                 self?.showCoverPreview(album: album, candidateId: candidateId)
+            case .showFiltered(let title, let photos, let sourceAlbumId):
+                self?.startFiltered(title: title, photos: photos, sourceAlbumId: sourceAlbumId)
+            case .share(let photos):
+                self?.presentShareSheet(for: photos)
             }
         }
 
@@ -162,6 +168,15 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
             options.append(
                 OptionRowConfig(icon: "lucide_merge", title: String(localized: "여행 합치기", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.mergeTapped()
+                }
+            )
+        }
+
+        // 대표 사진 변경과 같은 이유로 그리드가 실제로 떠 있어야 공유할 사진 목록을 알 수 있다
+        if viewController != nil {
+            options.append(
+                OptionRowConfig(icon: "lucide_share_2", title: String(localized: "전체 공유", bundle: .module), style: .normal) { [weak self] in
+                    self?.delegate?.shareAllTapped()
                 }
             )
         }
@@ -417,4 +432,69 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
         navigationController.present(vc, animated: true)
     }
 
+    // MARK: - 분류순 "더보기" (실제 앨범 아님, 여행 사진 ∩ 사람/카테고리 사진만 보여주는 화면)
+
+    func startFiltered(title: String, photos: [Photo], sourceAlbumId: UUID) {
+        let viewModel = diContainer.makeAlbumDetailViewModel(filteredTitle: title, photos: photos, sourceAlbumId: sourceAlbumId)
+        wireActions(of: viewModel)
+
+        let vc = AlbumDetailViewController(viewModel: viewModel)
+        navigationController.pushViewController(vc, animated: true)
+        // 이 코디네이터는 여행 앨범 화면과 더보기로 들어간 화면을 전부 혼자 처리한다(자식 코디네이터
+        // 없음) — viewController는 "지금 맨 위에 떠 있는 AlbumDetailViewController"를 계속 가리켜야
+        // showAlbumOptions의 viewController != nil 가드, showCoverPreview의 캐스팅 등이 맞게 동작한다
+        self.viewController = vc
+    }
+
+    /// 더보기로 들어간 화면의 "..." — 실제 앨범이 아니라서 병합/삭제 등은 없고 공유 한 줄뿐
+    func showFilteredOptions(photos: [Photo]) {
+        let options = [
+            OptionRowConfig(icon: "lucide_share_2", title: String(localized: "전체 공유", bundle: .module), style: .normal) { [weak self] in
+                self?.presentShareSheet(for: photos)
+            }
+        ]
+        let sheet = SelectionSheet(title: String(localized: "공유", bundle: .module), options: options)
+
+        if let presentation = sheet.sheetPresentationController {
+            presentation.detents = [.custom { _ in sheet.preferredDetentHeight }]
+            presentation.preferredCornerRadius = 28
+        }
+
+        navigationController.present(sheet, animated: true)
+    }
+
+    // MARK: - 공유
+
+    func presentShareSheet(for photos: [Photo]) {
+        guard !photos.isEmpty else { return }
+
+        LoadingManager.shared.show(allowDismiss: false)
+        let imageUseCase = diContainer.makeImageUseCase()
+
+        Task { [weak self] in
+            guard let self else { return }
+            var images: [UIImage] = []
+            // shortcut: 한 번에 최대 50장만 공유 — 더 필요해지면 그때 늘린다
+            for photo in photos.prefix(50) {
+                guard let cgImage: CGImage = try? await imageUseCase.loadImage(id: photo.localIdentifier, type: .maxSize).cgImage else { continue }
+                images.append(UIImage(cgImage: cgImage))
+            }
+
+            LoadingManager.shared.hide()
+
+            guard !images.isEmpty else {
+                let alert = UIAlertController(
+                    title: nil,
+                    message: String(localized: "공유할 사진을 불러오지 못했어요", bundle: .module),
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: String(localized: "확인", bundle: .module), style: .default))
+                navigationController.present(alert, animated: true)
+                return
+            }
+
+            let activityVC = UIActivityViewController(activityItems: images, applicationActivities: nil)
+            navigationController.present(activityVC, animated: true)
+        }
+    }
 }

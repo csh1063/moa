@@ -30,7 +30,7 @@ final class VideoViewerCell: UICollectionViewCell {
     private let playPauseButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setImage(UIImage(named: "lucide_play", in: .module, with: nil), for: .normal)
-        btn.tintColor = .white
+        btn.tintColor = Theme.primary
         btn.backgroundColor = UIColor.black.withAlphaComponent(0.35)
         btn.layer.cornerRadius = 34
         btn.layer.masksToBounds = true
@@ -72,13 +72,24 @@ final class VideoViewerCell: UICollectionViewCell {
 
     private let progressSlider: UISlider = {
         let slider = UISlider()
-        slider.minimumTrackTintColor = .white
+        slider.minimumTrackTintColor = Theme.primary
         slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.3)
-        let thumb = UIImage(named: "lucide_circle", in: .module, with: nil)
-        slider.setThumbImage(thumb, for: .normal)
-        slider.tintColor = .white
+        slider.setThumbImage(VideoViewerCell.filledThumbImage(), for: .normal)
+        slider.tintColor = Theme.primary
         return slider
     }()
+
+    /// Lucide circle은 속이 빈 외곽선이라, 같은 크기로 속이 찬 원을 직접 그린다
+    private static func filledThumbImage() -> UIImage {
+        let side = UIImage(named: "lucide_circle", in: .module, with: nil)?.size.width ?? 24
+        // Lucide circle의 실제 원(r=10, 선두께 2)은 24 캔버스 중 지름 22를 차지한다
+        let diameter = side * 22 / 24
+        let inset = (side - diameter) / 2
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { _ in
+            Theme.primary.setFill()
+            UIBezierPath(ovalIn: CGRect(x: inset, y: inset, width: diameter, height: diameter)).fill()
+        }.withRenderingMode(.alwaysOriginal)
+    }
 
     // MARK: - State
 

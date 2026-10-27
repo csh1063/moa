@@ -381,7 +381,7 @@ open class CustomTabBarController: UIViewController {
     public func setTabBarItem(_ image: String, selectedImage: String? = nil, vc: UIViewController, title: String? = nil) {
         let item = UITabBarItem()
         item.image = UIImage(named: image, in: .module, with: nil)
-        item.selectedImage = selectedImage.flatMap { UIImage(named: $0, in: .module, with: nil) } ?? UIImage(named: image, in: .module, with: nil)
+        item.selectedImage = UIImage(named: selectedImage ?? image, in: .module, with: nil)
         item.title = title
         vc.tabBarItem = item
     }

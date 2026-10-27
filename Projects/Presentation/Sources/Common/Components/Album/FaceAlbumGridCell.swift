@@ -31,13 +31,22 @@ final class FaceAlbumGridCell: UICollectionViewCell {
     }()
 
     private let countBadge: UILabel = {
-        let lb = UILabel()
+        let lb = CountBadgeLabel()
+//        lb.backgroundColor = Theme.primary
+//        lb.textColor = .white
+//        lb.font = .systemFont(ofSize: 10, weight: .bold)
+//        lb.textAlignment = .center
+//        lb.layer.cornerRadius = 8
+//        lb.layer.masksToBounds = true
+        
         lb.backgroundColor = Theme.primary
         lb.textColor = .white
         lb.font = .systemFont(ofSize: 10, weight: .bold)
         lb.textAlignment = .center
         lb.layer.cornerRadius = 8
         lb.layer.masksToBounds = true
+        lb.layer.borderWidth = 1.5
+        lb.layer.borderColor = Theme.background.cgColor
         return lb
     }()
 
@@ -119,7 +128,7 @@ final class FaceAlbumGridCell: UICollectionViewCell {
 
     func configure(with viewModel: FaceAlbumCellViewModel) {
         currentIdentifier = viewModel.localIdentifier
-        countBadge.text = "\(viewModel.photoCount)"
+        countBadge.text = viewModel.photoCount.formatted()
 
         gradientView.isHidden = false
         nameLabel.text = viewModel.displayName

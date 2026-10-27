@@ -288,13 +288,15 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
     }
 
     // 날짜/주소/카테고리 앨범 분류를 아직 거치지 않은 사진만 limit개씩 반환.
-    // 반환된 사진은 markAlbumsGenerated로 표시해야 다음 호출에서 다시 나오지 않는다 (offset이 아니라 항상 "맨 앞 남은 것"을 가져옴).
-    public func fetchAlbumUnclassified(limit: Int) throws -> [Photo] {
+    // offset 페이징이라 순회 도중 markAlbumsGenerated를 부르면 목록이 밀린다 — 순회가 다 끝난 뒤에 표시할 것.
+    public func fetchAlbumUnclassified(limit: Int, offset: Int) throws -> [Photo] {
         let context = ModelContext(container)
         var fetchDescriptor = FetchDescriptor<PhotoEntity>(
-            predicate: #Predicate { $0.albumsGeneratedAt == nil }
+            predicate: #Predicate { $0.albumsGeneratedAt == nil },
+            sortBy: [SortDescriptor(\.localIdentifier)]
         )
         fetchDescriptor.fetchLimit = limit
+        fetchDescriptor.fetchOffset = offset
         return try context.fetch(fetchDescriptor).map { $0.toDomainAll() }
     }
 

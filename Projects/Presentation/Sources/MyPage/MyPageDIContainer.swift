@@ -46,6 +46,13 @@ public final class MyPageDIContainer {
         )
     }
 
+    func makeHomeZoneLabViewController() -> HomeZoneLabViewController {
+        HomeZoneLabViewController(
+            homeZoneRepository: appDIContainer.homeZoneRepository,
+            photoDataRepository: appDIContainer.photoDataRepository
+        )
+    }
+
     func makePhotoTestDIContainer() -> PhotoTestDIContainer {
         PhotoTestDIContainer(
             photoDataRepository: appDIContainer.photoDataRepository,

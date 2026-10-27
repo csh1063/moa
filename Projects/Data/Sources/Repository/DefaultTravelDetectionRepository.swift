@@ -26,7 +26,7 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
         self.geocoderService = geocoderService
     }
 
-    public func detect(from photos: [PhotoLocationSnapshot], homeZones: [HomeZone]) async throws -> [TravelCluster] {
+    public func detect(from photos: [PhotoLocationSnapshot], homeZones: [HomeZone], onProgress: (Double) -> Void) async throws -> [TravelCluster] {
         let located = photos
             .filter { $0.latitude != 0 || $0.longitude != 0 }
             .sorted { $0.createdAt < $1.createdAt }
@@ -70,12 +70,14 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
 
         let filteredClusters = rawClusters.filter { $0.count >= minimumClusterSize }
 
+        // 후보마다 주소가 빈 사진을 지오코딩으로 보충해서(buildCluster) 여기가 제일 오래 걸린다 — 후보 단위로 진행률을 보낸다
         var initialClusters: [TravelCluster] = []
-        for raw in filteredClusters {
+        for (index, raw) in filteredClusters.enumerated() {
             let snapshots = raw.map { $0.0 }
             if let cluster = try await buildCluster(from: snapshots) {
                 initialClusters.append(cluster)
             }
+            onProgress(Double(index + 1) / Double(filteredClusters.count))
         }
         // ⭐️ [여기서 합치기] 주소와 날짜가 겹치거나 이어지는 앨범 병합 로직 ⭐️
         guard !initialClusters.isEmpty else { return [] }
@@ -152,7 +154,9 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
 
         if !withoutAddress.isEmpty {
             let samples = sampleByGrid(withoutAddress)
-            for snapshot in samples {
+            debugLog("🗺️ [여행감지] 지오코딩 시작 — 대상 \(samples.count)개")
+            let geocodeStartedAt = Date()
+            for (index, snapshot) in samples.enumerated() {
                 let location = CLLocation(latitude: snapshot.latitude, longitude: snapshot.longitude)
                 if let photoLocation = try? await geocoderService.fetchAddress(from: location, locale: Locale(identifier: "ko")) {
                     if let s = photoLocation.subLocality { geocodedSubLocalities.append(s) }
@@ -161,7 +165,9 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
                     if let c = photoLocation.country { geocodedCountries.append(c) }
                     if let i = photoLocation.isoCountryCode { geocodedIsoCodes.append(i) }
                 }
+                debugLog("🗺️ [여행감지] 지오코딩 \(index + 1)/\(samples.count) — 누적 \(String(format: "%.1f", Date().timeIntervalSince(geocodeStartedAt)))초")
             }
+            debugLog("🗺️ [여행감지] 지오코딩 완료 — 총 \(String(format: "%.1f", Date().timeIntervalSince(geocodeStartedAt)))초")
         }
 
         let allSubLocalities = subLocalities + geocodedSubLocalities

@@ -316,8 +316,11 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 
         let fetchedPhotos = try context.fetch(photoDescriptor)
 
-        let existingIds = Set(album.photos.map { $0.localIdentifier })
-        let uniqueNewPhotos = fetchedPhotos.filter { !existingIds.contains($0.localIdentifier) }
+        // album.photos 전체를 훑어서 Set을 만들면, 카테고리처럼 사진이 많이 몰리는 앨범에선 호출할
+        // 때마다(페이지마다) 그 앨범의 기존 사진 전체를 다시 읽어와야 해서 갈수록 느려진다(카테고리
+        // 규칙을 넓힌 뒤로 체감될 만큼). 대신 사진 쪽(이번에 추가하려는 몇백 장뿐이라 훨씬 작음)의
+        // albums 관계를 봐서 "이 앨범에 이미 들어있는지"를 확인한다 — 결과는 같고 비용만 줄어든다.
+        let uniqueNewPhotos = fetchedPhotos.filter { photo in !photo.albums.contains { $0.id == albumId } }
 
         guard !uniqueNewPhotos.isEmpty else { return }
 
@@ -363,7 +366,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         try context.save()
     }
 
-    public func deleteAutoAlbums(by from: String) throws {
+    public func deleteAutoAlbums(by from: String, onProgress: (Double) -> Void) throws {
 
         let context = ModelContext(container)
 
@@ -379,10 +382,16 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         }
 
         let autoAlbums = try context.fetch(albumDescriptor)
+        onProgress(0.1)
 
-        autoAlbums.forEach { $0.photos.removeAll() }
-        autoAlbums.forEach { context.delete($0) }
+        // 진행률: 조회 10% / 앨범별 정리 80% / 저장 10%
+        for (index, album) in autoAlbums.enumerated() {
+            album.photos.removeAll()
+            context.delete(album)
+            onProgress(0.1 + 0.8 * Double(index + 1) / Double(autoAlbums.count))
+        }
         try context.save()
+        onProgress(1.0)
     }
 
     public func syncAlbums() throws {
@@ -510,39 +519,48 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         try context.save()
     }
 
-    public func deleteAll() throws {
+    public func deleteAll(onProgress: (Double) -> Void) throws {
         convertToAutoVacuumIfNeeded()
 
         let context = ModelContext(container)
 
         let albums = try context.fetch(FetchDescriptor<AlbumEntity>())
-        albums.forEach { $0.photos.removeAll() }
-        try context.save()
 
-        // AlbumEntity.keywords / .clusters / .animalClusters가 .cascade라서, 앨범을 먼저 지우면
-        // 아래가 이미 같이 지워져버려 로그가 항상 0개로 찍힌다 — 자식을 먼저 지운다
-        try deleteAllLogged(AlbumKeywordEntity.self, context: context)
-        try deleteAllLogged(ClusterEntity.self, context: context)
-        try deleteAllLogged(AnimalClusterEntity.self, context: context)
+        // 테이블 단위로 통째로 지우는 작업이라 더 잘게 쪼갤 신호가 없다 — 단계 하나가 끝날 때마다 진행률을 올린다
+        let steps: [() throws -> Void] = [
+            {
+                albums.forEach { $0.photos.removeAll() }
+                try context.save()
+            },
+            // AlbumEntity.keywords / .clusters / .animalClusters가 .cascade라서, 앨범을 먼저 지우면
+            // 아래가 이미 같이 지워져버려 로그가 항상 0개로 찍힌다 — 자식을 먼저 지운다
+            { try self.deleteAllLogged(AlbumKeywordEntity.self, context: context) },
+            { try self.deleteAllLogged(ClusterEntity.self, context: context) },
+            { try self.deleteAllLogged(AnimalClusterEntity.self, context: context) },
+            {
+                debugLog("🗑️ AlbumEntity 삭제: \(albums.count)개")
+                albums.forEach { context.delete($0) }
+                try context.save()
+            },
+            // PhotoEntity.faceEmbeddings / .animalEmbeddings / .labels가 .cascade라서, 사진을 먼저 지우면
+            // 아래가 이미 같이 지워져버려 로그가 항상 0개로 찍힌다 — 자식을 먼저 지운다
+            { try self.deleteAllLogged(PhotoLabelEntity.self, context: context) },
+            { try self.deleteAllLogged(FaceEmbeddingEntity.self, context: context) },
+            { try self.deleteAllLogged(AnimalEmbeddingEntity.self, context: context) },
+            { try self.deleteAllLogged(PhotoEntity.self, context: context) },
+            { try self.deleteAllLogged(ClusterBlacklistEntity.self, context: context) },
+            { try self.deleteAllLogged(AnimalClusterBlacklistEntity.self, context: context) },
+            { try self.deleteAllLogged(HomeZoneEntity.self, context: context) },
+            {
+                try self.syncAlbums()
+                self.incrementalVacuum()
+            }
+        ]
 
-        debugLog("🗑️ AlbumEntity 삭제: \(albums.count)개")
-        albums.forEach { context.delete($0) }
-        try context.save()
-
-        // PhotoEntity.faceEmbeddings / .animalEmbeddings / .labels가 .cascade라서, 사진을 먼저 지우면
-        // 아래가 이미 같이 지워져버려 로그가 항상 0개로 찍힌다 — 자식을 먼저 지운다
-        try deleteAllLogged(PhotoLabelEntity.self, context: context)
-        try deleteAllLogged(FaceEmbeddingEntity.self, context: context)
-        try deleteAllLogged(AnimalEmbeddingEntity.self, context: context)
-        try deleteAllLogged(PhotoEntity.self, context: context)
-
-        try deleteAllLogged(ClusterBlacklistEntity.self, context: context)
-        try deleteAllLogged(AnimalClusterBlacklistEntity.self, context: context)
-        try deleteAllLogged(HomeZoneEntity.self, context: context)
-
-        try self.syncAlbums()
-
-        incrementalVacuum()
+        for (index, step) in steps.enumerated() {
+            try step()
+            onProgress(Double(index + 1) / Double(steps.count))
+        }
     }
 
     public func dataStoreSize() -> Int64 {
