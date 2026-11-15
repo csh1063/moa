@@ -37,6 +37,7 @@ final class MyPageViewModel: BaseViewModel {
     private var photoPermission: String = ""
     private var displayMode: String = ""
     private var version: String = ""
+    private var frequentPlaceCount: Int = 0
 
     let input = PassthroughSubject<Input, Never>()
 
@@ -44,11 +45,13 @@ final class MyPageViewModel: BaseViewModel {
 
     private var tabbarViewModel: TabbarViewModel
     private var myPageUseCase: MyPageUseCase
+    private let frequentPlaceUseCase: FrequentPlaceUseCase
     private var cancellables = Set<AnyCancellable>()
 
-    init(tabbarViewModel: TabbarViewModel, myPageUseCase: MyPageUseCase) {
+    init(tabbarViewModel: TabbarViewModel, myPageUseCase: MyPageUseCase, frequentPlaceUseCase: FrequentPlaceUseCase) {
         self.tabbarViewModel = tabbarViewModel
         self.myPageUseCase = myPageUseCase
+        self.frequentPlaceUseCase = frequentPlaceUseCase
 
         super.init()
 
@@ -180,6 +183,7 @@ final class MyPageViewModel: BaseViewModel {
 
             self.displayMode = DisplayMode(try await displayMode).text
             self.version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+            self.frequentPlaceCount = (try? frequentPlaceUseCase.placeCount()) ?? 0
 
             self.isLoading = false
 
@@ -218,6 +222,14 @@ final class MyPageViewModel: BaseViewModel {
                 MyCellData(type: .libraryImport)
             ],
             MyCellHeader(name: String(localized: "사진 분석", bundle: .module), order: 10): analyzedItems,
+            MyCellHeader(name: String(localized: "정리 옵션", bundle: .module), order: 30): [
+                MyCellData(
+                    type: .frequentPlaces,
+                    value: frequentPlaceCount > 0
+                        ? String(localized: "\(frequentPlaceCount)곳", bundle: .module)
+                        : String(localized: "없음", bundle: .module)
+                )
+            ],
 //            MyCellHeader(name: "백 그라운드 작업", order: 20): [
 //                MyCellData(type: .locationAnalysis, value: "-", isOn: false),
 //                MyCellData(type: .locationAutoAlbum, value: "-", isOn: false)

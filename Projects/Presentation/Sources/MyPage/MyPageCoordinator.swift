@@ -66,6 +66,8 @@ public final class MyPageCoordinator: BaseCoordinator {
                     self?.navigationController.pushViewController(vc, animated: true)
                 case .test:
                     self?.moveTest()
+                case .frequentPlaces:
+                    self?.moveFrequentPlaces()
                 case .homeZone:
                     guard let self else { return }
                     let vc = self.diContainer.makeHomeZoneLabViewController()
@@ -107,6 +109,54 @@ public final class MyPageCoordinator: BaseCoordinator {
         )
         self.hideTabBar?()
         self.start(coordinator: detailCoordinator)
+    }
+
+    func moveFrequentPlaces() {
+        let viewModel = diContainer.makeFrequentPlaceListViewModel()
+        bindAlert(from: viewModel)
+
+        let listVC = FrequentPlaceListViewController(viewModel: viewModel)
+        listVC.onTapAdd = { [weak self, weak viewModel] in
+            guard let self, let viewModel else { return }
+            let start = viewModel.startLocation()
+            let addVC = FrequentPlaceAddViewController(startLatitude: start.latitude, startLongitude: start.longitude)
+            addVC.onSave = { [weak viewModel, weak addVC] latitude, longitude, title, address in
+                Task { await viewModel?.add(latitude: latitude, longitude: longitude, title: title, address: address) }
+                addVC?.dismiss(animated: true)
+            }
+            self.navigationController.present(addVC, animated: true)
+        }
+        listVC.onTapEdit = { [weak self, weak viewModel] row in
+            guard let self else { return }
+            let editVC = FrequentPlaceAddViewController(
+                startLatitude: row.latitude,
+                startLongitude: row.longitude,
+                isEditMode: true,
+                initialName: row.manualTitle
+            )
+            editVC.onSave = { [weak viewModel, weak editVC] latitude, longitude, title, address in
+                Task { await viewModel?.update(id: row.id, latitude: latitude, longitude: longitude, title: title, address: address) }
+                editVC?.dismiss(animated: true)
+            }
+            self.navigationController.present(editVC, animated: true)
+        }
+        // 동네가 바뀌어도 이미 만든 여행 앨범은 그대로라, 나갈 때 전체를 다시 만들지 물어본다
+        listVC.onFinish = { [weak self] hasChanges in
+            guard hasChanges, let self else { return }
+            self.showAlert(
+                title: String(localized: "여행 앨범을 다시 만들까요?", bundle: .module),
+                message: String(localized: "바뀐 동네를 반영하려면 여행 앨범을 처음부터 다시 만들어야 해요\n직접 편집한 여행 앨범도 다시 만들어져요", bundle: .module),
+                buttons: [
+                    AlertButtonConfig(title: String(localized: "나중에", bundle: .module), style: .cancel, action: nil),
+                    AlertButtonConfig(title: String(localized: "다시 만들기", bundle: .module), style: .default) { [weak self] in
+                        self?.tabbarViewModel.send(.rebuildTravelAlbums)
+                    }
+                ]
+            )
+        }
+
+        hideTabBar?()
+        navigationController.pushViewController(listVC, animated: true)
     }
 
     func moveTest() {

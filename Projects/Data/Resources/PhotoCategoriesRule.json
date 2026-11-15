@@ -6,7 +6,7 @@
             { "name": "screenshot", "max": 0.3 },
             { "name": "document", "max": 0.3 }
         ],
-        "match_tags": ["people", "person_focus", "selfie", "portrait"]
+        "match_tags": ["people", "person_focus", "child", "baby"]
     },
     "여행": {
         "type": "OR",
@@ -15,7 +15,7 @@
             { "name": "screenshot", "max": 0.3 },
             { "name": "document", "max": 0.3 }
         ],
-        "match_tags": ["airplane", "airport", "train", "train_station", "luggage", "suitcase", "backpack", "map", "passport", "hotel", "resort", "tent", "sandcastle", "boat", "sailboat", "speedboat", "yacht", "mast", "porthole", "surfboard", "wetsuit", "lifejacket", "lifesaver", "swimming", "sunbathing", "watersport", "pool", "dock", "harbour", "pier"]
+        "match_tags": ["airplane", "airport", "train", "train_real", "train_station", "monorail", "tramway", "cableway", "chairlift", "luggage", "suitcase", "backpack", "map", "passport", "tent", "camping", "motorhome", "sandcastle", "boat", "sailboat", "speedboat", "yacht", "cruise_ship", "houseboat", "kayak", "canoe", "rowboat", "mast", "porthole", "surfboard", "surfing", "wetsuit", "lifejacket", "lifesaver", "swimming", "snorkeling", "scuba", "diving", "sunbathing", "watersport", "windsurfing", "kiteboarding", "parasailing", "jetski", "pool", "dock", "harbour", "pier", "balloon_hotair", "amusement_park", "rollercoaster", "ferris_wheel", "carousel", "fairground", "castle", "monument", "pyramid", "obelisk", "megalith", "ruins", "lighthouse", "skiing", "snowboarding", "ski_equipment"]
     },
     "자연": {
         "type": "OR",
@@ -25,19 +25,23 @@
             { "name": "people", "max": 0.3 },
             { "name": "screenshot", "max": 0.2 },
             { "name": "document", "max": 0.3 },
-            { "name": "interior", "max": 0.3 },
-            { "name": "indoor", "max": 0.3 }
+            { "name": "interior_room", "max": 0.3 }
         ],
-        "match_tags": ["mountain", "forest", "desert", "sand_dune", "cave", "snow", "blizzard", "waterfall", "fountain", "creek", "wetland", "nature", "valley", "canyon", "glacier", "cliff", "meadow", "landscape", "hill", "sky", "cloudy", "sunset_sunrise", "night_sky", "sun", "moon", "rainbow", "aurora", "star", "overcast", "dusk", "dawn", "horizon", "ocean", "beach", "lake", "river", "water", "wave", "tide", "sea", "lagoon", "coral_reef", "underwater"]
+        "match_tags": ["mountain", "hill", "cliff", "rocks", "forest", "jungle", "tree", "evergreen", "palm_tree", "oak_tree", "maple_tree", "willow", "sequoia", "eucalyptus_tree", "moss", "ferns", "desert", "sand_dune", "sand", "cave", "snow", "blizzard", "glacier", "iceberg", "volcano", "lava", "geyser", "waterfall", "fountain", "creek", "river", "lake", "wetland", "mangrove", "canyon", "trail", "sky", "cloudy", "storm", "thunderstorm", "lightning", "sunset_sunrise", "night_sky", "sun", "moon", "rainbow", "aurora", "ocean", "beach", "shore", "island", "water", "coral_reef", "underwater"]
     },
     "문서와 쿠폰": {
         "type": "OR",
         "min_confidence": 0.55,
         "label_filters": [
             { "name": "person_focus", "max": 0.2 },
-            { "name": "people", "max": 0.3 }
+            { "name": "people", "max": 0.3 },
+            { "name": "animal", "max": 0.3 },
+            { "name": "dog", "max": 0.3 },
+            { "name": "cat", "max": 0.3 },
+            { "name": "food", "max": 0.3 },
+            { "name": "drink", "max": 0.3 }
         ],
-        "match_tags": ["document", "text", "barcode", "qrcode"]
+        "match_tags": ["document", "barcode", "qrcode", "printed_page", "handwriting", "receipt", "ticket", "coupon", "gift_card", "credit_card", "checkbook", "currency", "money", "envelope", "newspaper", "magazine", "calendar", "chart", "diagram", "sticky_note"]
     },
     "음식": {
         "type": "OR",
@@ -51,7 +55,7 @@
             { "name": "zoo", "max": 0.3 },
             { "name": "farm", "max": 0.3 }
         ],
-        "match_tags": ["meat", "steak", "beef", "hamburger", "fried_chicken", "pizza", "spaghetti", "pasta", "ramen", "sushi", "gyoza", "wonton", "dumpling", "pierogi", "satay", "souvlaki", "taco", "quesadilla", "tortilla", "nachos", "stir_fry", "paella", "rice", "fried_egg", "egg", "yolk", "sandwich", "cheese", "hotdog", "sausage", "teriyaki", "cakestand", "cupcake", "ice_cream", "waffle", "croissant", "donut", "popcorn", "bread", "white_bread", "jelly", "candy", "chocolate", "vegetable", "tomato", "lettuce", "broccoli", "spinach", "cucumber", "arugula", "asparagus", "carrot", "potato", "corn", "pumpkin", "bean", "green_beans", "pea", "edamame", "fruit", "citrus_fruit", "lemon", "avocado", "strawberry", "blueberry", "berry", "pineapple", "mango", "melon", "watermelon", "oranges", "nut", "pecan", "seed", "sesame", "herb", "cilantro", "wasabi", "seasonings", "condiment", "mustard", "seafood", "shellfish", "salmon", "tuna", "seabass", "sardine", "lobster", "crab", "oyster", "clam", "mussel", "roe", "noodle", "beverage", "juice", "smoothie", "food", "soup", "baked_goods", "dessert", "cake", "birthday_cake", "wedding_cake", "tableware", "utensil", "plate", "bowl", "restaurant"]
+        "match_tags": ["food", "meat", "steak", "beef", "poultry", "grilled_chicken", "fried_chicken", "bacon", "ham", "salami", "sausage", "pepperoni", "spareribs", "meatball", "kebab", "satay", "souvlaki", "shawarma", "teriyaki", "hamburger", "hotdog", "sandwich", "pizza", "spaghetti", "pasta", "ramen", "risotto", "paella", "rice", "biryani", "curry", "stir_fry", "tempura", "sushi", "gyoza", "wonton", "dumpling", "springroll", "pierogi", "samosa", "falafel", "taco", "burrito", "quesadilla", "tortilla", "nachos", "guacamole", "hummus", "tabbouleh", "tapas", "antipasti", "bruschetta", "caprese", "fondue", "casserole", "soup", "salad", "coleslaw", "egg", "fried_egg", "scrambled_eggs", "omelet", "yolk", "cheese", "butter", "yogurt", "oatmeal", "pita", "naan", "bagel", "bread", "white_bread", "croissant", "pretzel", "fries", "baked_goods", "pastry", "pie", "muffin", "scone", "biscuit", "cookie", "brownie", "cake", "cake_regular", "cheesecake", "cupcake", "birthday_cake", "wedding_cake", "cakestand", "waffle", "pancake", "crepe", "donut", "strudel", "baklava", "biscotti", "tiramisu", "souffle", "pudding", "flan", "dessert", "ice_cream", "frozen_dessert", "popsicle", "jello", "jelly", "candy", "chocolate", "caramel", "marshmallow", "lollipop", "popcorn", "honey", "vegetable", "tomato", "lettuce", "broccoli", "cauliflower", "spinach", "cucumber", "arugula", "asparagus", "artichoke", "carrot", "potato", "corn", "pumpkin", "eggplant", "zucchini", "bell_pepper", "pepper_veggie", "onion", "garlic", "leek", "celery", "radish", "daikon", "beet", "mushroom", "pickle", "bean", "green_beans", "pea", "edamame", "fruit", "citrus_fruit", "lemon", "lime", "oranges", "mandarine", "grapefruit", "apple", "pear", "peach", "nectarine", "apricot", "plum", "cherry", "grape", "banana", "pineapple", "mango", "papaya", "kiwi", "melon", "watermelon", "cantaloupe", "honeydew", "coconut", "avocado", "fig", "persimmon", "pomegranate", "lychee", "rambutan", "mangosteen", "durian", "guava", "passionfruit", "starfruit", "berry", "strawberry", "blueberry", "raspberry", "blackberry", "cranberry", "nut", "almond", "cashew", "peanut", "pistachio", "chestnut", "macadamia", "pecan", "seed", "sesame", "herb", "cilantro", "dill", "rosemary", "chives", "spice", "wasabi", "seasonings", "condiment", "mustard", "seafood", "shellfish", "shellfish_prepared", "salmon", "tuna", "mackerel", "seabass", "sardine", "anchovy", "lobster", "crab", "oyster", "clam", "mussel", "scallop", "roe", "drink", "coffee", "tea_drink", "bubble_tea", "juice", "smoothie", "milkshake", "soda", "beer", "wine", "red_wine", "white_wine", "sparkling_wine", "cocktail", "liquor", "tableware", "utensil", "plate", "bowl", "restaurant"]
     },
     "공간": {
         "type": "AND_OR_COMBINED",
@@ -62,11 +66,10 @@
             { "name": "outdoor", "max": 0.3 },
             { "name": "sky", "max": 0.3 },
             { "name": "mountain", "max": 0.3 },
-            { "name": "ocean", "max": 0.3 },
-            { "name": "scenery", "max": 0.3 }
+            { "name": "ocean", "max": 0.3 }
         ],
-        "must_have_one_of": ["interior_shop", "restaurant", "bar", "room", "interior", "indoor", "architecture", "studio", "kitchen", "bedroom", "living_room", "figurine", "toy", "map", "art", "statue", "easel", "illustrations"],
-        "match_tags": ["furniture", "table", "chair", "sofa", "armchair", "stool", "chandelier", "lamp", "lighting", "bookshelf", "desk", "fireplace", "mirror"]
+        "must_have_one_of": ["interior_room", "interior_shop", "restaurant", "bar", "kitchen", "kitchen_room", "bedroom", "living_room", "dining_room", "library", "museum", "cellar", "nightclub", "theater", "figurine", "toy", "map", "art", "painting", "statue", "easel", "illustrations", "stained_glass"],
+        "match_tags": ["furniture", "table", "chair", "sofa", "armchair", "stool", "chaise", "chandelier", "lamp", "bookshelf", "desk", "fireplace", "cabinet", "curtain", "bed", "bedding", "pillow", "vase", "candlestick", "terrarium", "art", "painting", "statue", "stained_glass", "bedroom", "living_room", "library", "museum", "theater", "cellar"]
     },
     "동물": {
         "type": "OR",
@@ -75,10 +78,9 @@
             { "name": "person_focus", "max": 0.3 },
             { "name": "people", "max": 0.5 },
             { "name": "food", "max": 0.3 },
-            { "name": "cooked", "max": 0.3 },
             { "name": "restaurant", "max": 0.3 }
         ],
-        "match_tags": ["animal", "dog", "pomeranian", "bichon", "chihuahua", "bulldog", "retriever", "pug", "poodle", "cat", "kitten", "bird", "gull", "rabbit", "panda", "kangaroo", "deer", "tiger", "bear", "zebra", "donkey", "horse", "dinosaur", "reptile", "dolphin", "whale", "penguin", "cetacean", "fish", "insect", "butterfly", "dragonfly", "lizard", "turtle", "hamster", "parrot"]
+        "match_tags": ["animal", "dog", "pomeranian", "bichon", "chihuahua", "bulldog", "retriever", "pug", "poodle", "corgi", "husky", "malamute", "dachshund", "schnauzer", "beagle", "collie", "dalmatian", "german_shepherd", "jack_russell_terrier", "terrier", "spaniel", "australian_shepherd", "cat", "kitten", "hamster", "rabbit", "ferret", "chinchilla", "hedgehog", "gerbil", "parrot", "parakeet", "cockatoo", "goldfish", "koi", "guppy", "turtle", "tortoise", "lizard", "gecko", "iguana", "bird", "gull", "pigeon", "dove", "swan", "owl", "eagle", "flamingo", "peacock", "penguin", "pelican", "ostrich", "deer", "elk", "moose", "horse", "donkey", "cow", "goat", "sheep", "pig", "llama", "camel", "panda", "bear", "tiger", "lion", "leopard", "cheetah", "zebra", "giraffe", "elephant", "kangaroo", "koala", "fox", "squirrel", "raccoon", "otter", "seal", "sealion", "lemur", "dolphin", "whale", "cetacean", "fish", "jellyfish", "starfish", "shark", "reptile", "snake", "dinosaur", "insect", "butterfly", "dragonfly", "bee"]
     },
     "특별한 날": {
         "type": "OR",
@@ -87,6 +89,6 @@
             { "name": "screenshot", "max": 0.3 },
             { "name": "document", "max": 0.3 }
         ],
-        "match_tags": ["celebration", "ceremony", "wedding", "wedding_dress", "gown", "tuxedo", "bride", "groom", "graduation", "birthday_cake", "parade", "balloon", "christmas_tree", "christmas_decoration", "poinsettia", "gift", "bouquet", "rose", "flower", "blossom", "orchid", "chrysanthemum", "vase", "podium", "party", "festival", "candle", "confetti", "ribbon", "lantern", "firework"]
+        "match_tags": ["celebration", "ceremony", "wedding", "wedding_dress", "wedding_cake", "gown", "tuxedo", "bride", "groom", "bridesmaid", "graduation", "birthday_cake", "parade", "dragon_parade", "carnival", "balloon", "christmas_tree", "christmas_decoration", "santa_claus", "wreath", "mistletoe", "holly", "poinsettia", "gingerbread", "candy_cane", "easter_egg", "jack_o_lantern", "red_envelope", "rangoli", "gift", "bouquet", "flower_arrangement", "flower", "blossom", "rose", "tulip", "lily", "orchid", "carnation", "daisy", "sunflower", "chrysanthemum", "dahlia", "vase", "podium", "trophy", "medal", "tiara", "candle", "lantern", "fireworks", "pyrotechnics", "sparkler", "firecracker"]
     }
 }

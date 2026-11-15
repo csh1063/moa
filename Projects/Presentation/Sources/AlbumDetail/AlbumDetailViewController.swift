@@ -247,7 +247,8 @@ final class AlbumDetailViewController: BaseViewController {
             make.width.equalTo(44)
         }
         shareButton.snp.makeConstraints { make in
-            make.trailing.equalTo(excludeButton.snp.leading).offset(-12)
+            // 제외 버튼은 인물 앨범에만 보인다 — 숨겨진 자리만큼 비지 않게 삭제 버튼 옆에 붙인다
+            make.trailing.equalTo((viewModel.isFaceAlbum ? excludeButton : deleteButton).snp.leading).offset(-12)
             make.centerY.equalTo(deleteButton)
             make.height.equalTo(44)
             make.width.equalTo(44)

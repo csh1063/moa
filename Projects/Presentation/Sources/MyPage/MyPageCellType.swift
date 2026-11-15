@@ -88,6 +88,9 @@ enum MyPageCellType {
     case autoAnalysis
     case continueLocation
 
+    // 정리 옵션
+    case frequentPlaces
+
     // privacy
     case terms
     case privacy
@@ -120,6 +123,7 @@ enum MyPageCellType {
         case .locationAutoAlbum: return "lucide_map"
         case .autoAnalysis: return "lucide_sparkles"
         case .continueLocation: return "lucide_locate_fixed"
+        case .frequentPlaces: return "lucide_map_pin"
         case .terms: return "lucide_file_text"
         case .privacy: return "lucide_users"
         case .openSource: return "lucide_braces"
@@ -150,6 +154,7 @@ enum MyPageCellType {
         case .locationAutoAlbum: return String(localized: "장소 기반 앨범 생성", bundle: .module)
         case .autoAnalysis: return String(localized: "새 사진 자동 분석", bundle: .module)
         case .continueLocation: return String(localized: "사진 좌표 이어서 분석", bundle: .module)
+        case .frequentPlaces: return String(localized: "자주가는 동네", bundle: .module)
         case .terms: return String(localized: "서비스 이용약관", bundle: .module)
         case .privacy: return String(localized: "개인정보 처리방침", bundle: .module)
         case .openSource: return String(localized: "오픈소스 라이선스", bundle: .module)
@@ -187,7 +192,7 @@ enum MyPageCellType {
             return .open
         case .version, .photoPermission:
             return .link
-        case .labels, .test, .addressCount, .homeZone:
+        case .labels, .test, .addressCount, .homeZone, .frequentPlaces:
             return .open
         }
     }

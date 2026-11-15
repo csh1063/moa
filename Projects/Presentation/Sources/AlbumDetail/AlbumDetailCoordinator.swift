@@ -143,7 +143,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
         if album.from == "face" || album.from == "animal" {
             options.append(
-                OptionRowConfig(icon: "lucide_users", title: String(localized: "앨범 합치기", bundle: .module), style: .normal) { [weak self] in
+                OptionRowConfig(icon: "lucide_merge", title: String(localized: "앨범 합치기", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.mergeTapped()
                 }
             )
@@ -183,7 +183,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
         if album.from == "similar" {
             options.append(
-                OptionRowConfig(icon: "lucide_trash_2", title: String(localized: "정리 완료", bundle: .module), style: .destructive) { [weak self] in
+                OptionRowConfig(icon: "lucide_circle_check", title: String(localized: "정리 완료", bundle: .module), style: .normal) { [weak self] in
                     self?.delegate?.deleteAlert()
                 }
             )

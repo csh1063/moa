@@ -11,8 +11,12 @@ import Domain
 
 extension HomeZoneEntity {
     func toDomain() -> HomeZone {
-        HomeZone(latitude: latitude,
+        HomeZone(id: id,
+                 latitude: latitude,
                  longitude: longitude,
-                 analyzedAt: analyzedAt)
+                 analyzedAt: analyzedAt,
+                 isManual: isManual,
+                 title: title,
+                 address: address)
     }
 }

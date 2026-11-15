@@ -233,6 +233,16 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         return try context.fetch(fetchDescriptor).map { $0.toDomain() }
     }
 
+    public func fetchLatestLocated() throws -> Photo? {
+        let context = ModelContext(container)
+        var fetchDescriptor = FetchDescriptor<PhotoEntity>(
+            predicate: #Predicate { $0.longitude != nil && $0.latitude != nil },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        fetchDescriptor.fetchLimit = 1
+        return try context.fetch(fetchDescriptor).first?.toDomain()
+    }
+
     public func fetchVideos() throws -> [Photo] {
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<PhotoEntity>(

@@ -64,6 +64,8 @@ public final class TabbarViewModel: BaseViewModel {
     enum Input {
         case analysis
         case reAutoAlbum
+        /// 자주가는 동네를 바꾼 뒤 여행 앨범 전체를 다시 만든다
+        case rebuildTravelAlbums
         case clear
         case permission
         case showConsent
@@ -325,6 +327,11 @@ public final class TabbarViewModel: BaseViewModel {
                     }
                 ]
             )
+        case .rebuildTravelAlbums:
+            guard !isAnalyzing else { showAnalyzingAlert(); return }
+            await regenerateSingleAlbum(deleting: ["travel"]) { onProgress in
+                try await self.autoAlbumUseCase.rebuildAllTravelAlbums(onProgress: onProgress)
+            }
         case .clear:
             guard !isAnalyzing else {
                 showAlert(
@@ -677,9 +684,9 @@ public final class TabbarViewModel: BaseViewModel {
     }
 
     private func createTravelAutoAlbum() async {
-        // 여행은 최근 여행만 다시 계산하는 증분 방식이라 통째로 지우는 단계가 없다
-        await regenerateSingleAlbum(deleting: []) { onProgress in
-            try await self.autoAlbumUseCase.createTravelAlbums(onProgress: onProgress)
+        // 재생성은 다른 앨범처럼 지우고 전체를 다시 만든다 — 증분(마지막 여행만)은 분석하기에서만
+        await regenerateSingleAlbum(deleting: ["travel"]) { onProgress in
+            try await self.autoAlbumUseCase.rebuildAllTravelAlbums(onProgress: onProgress)
         }
     }
 

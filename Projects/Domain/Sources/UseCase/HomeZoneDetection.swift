@@ -6,6 +6,7 @@
 //  Copyright © 2026 sanghyeon. All rights reserved.
 //
 
+import CoreLocation
 import Foundation
 
 /// 최근 사진 좌표로 홈존(자주 머무는 구역)을 고르는 순수 계산 — 여행 판정에서 동네를 빼기 위해 쓴다.
@@ -40,5 +41,36 @@ public enum HomeZoneDetection {
                 guard let first = photos.first else { return nil }
                 return HomeZone(latitude: first.latitude, longitude: first.longitude, analyzedAt: now)
             }
+    }
+
+    /// 여객기 순항 속도(900km/h) — 실제 평균(유럽 우회 노선 610km/h, 오클랜드 직항 830km/h)보다 빠르게 잡아 "못 다녀왔다" 판정을 엄격하게
+    static let fastestTravelSpeed: Double = 900_000 / 3600  // m/s
+    /// 이 거리를 넘으면 비행기 말고는 갈 방법이 없다고 보고 공항 시간을 더한다 — 더 가까우면 기차/차로 갈 수 있어 안 더한다
+    static let flightOnlyDistance: Double = 1_000_000  // m
+    /// 탑승 전 수속 + 내려서 입국/짐 — 실제로는 3시간 넘게 걸리지만 엄격하게 2시간
+    static let airportTime: TimeInterval = 2 * 3600
+
+    /// 한 구간을 이동하는 데 걸리는 가장 짧은 시간
+    static func fastestTravelTime(meters: Double) -> TimeInterval {
+        meters / fastestTravelSpeed + (meters > flightOnlyDistance ? airportTime : 0)
+    }
+
+    /// from에서 to로 가는 gap 사이에 어떤 홈존이든 들렀다 오는 게 불가능했는지.
+    /// 해외에서 나라를 넘어갈 때 쪼개진 여행을 하나로 합치는 데 쓴다 — 홈존이 없으면 판단할 수 없어 false
+    public static func couldNotVisitHome(
+        from: (latitude: Double, longitude: Double),
+        to: (latitude: Double, longitude: Double),
+        gap: TimeInterval,
+        homeZones: [HomeZone]
+    ) -> Bool {
+        let fromLocation = CLLocation(latitude: from.latitude, longitude: from.longitude)
+        let toLocation = CLLocation(latitude: to.latitude, longitude: to.longitude)
+        let shortestDetour = homeZones.map { zone -> TimeInterval in
+            let home = CLLocation(latitude: zone.latitude, longitude: zone.longitude)
+            return fastestTravelTime(meters: fromLocation.distance(from: home))
+                + fastestTravelTime(meters: home.distance(from: toLocation))
+        }.min()
+        guard let shortestDetour else { return false }
+        return gap < shortestDetour
     }
 }

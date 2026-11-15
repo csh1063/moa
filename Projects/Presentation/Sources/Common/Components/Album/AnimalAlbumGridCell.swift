@@ -35,6 +35,8 @@ final class AnimalAlbumGridCell: UICollectionViewCell {
         lb.textAlignment = .center
         lb.layer.cornerRadius = 8
         lb.layer.masksToBounds = true
+        lb.layer.borderWidth = 1.5
+        lb.layer.borderColor = Theme.background.cgColor
         return lb
     }()
 

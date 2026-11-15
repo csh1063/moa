@@ -307,7 +307,7 @@ private final class CoverCirclePreviewView: UIView {
         return iv
     }()
     private let placeholderIcon: UIImageView
-    private let countBadge = UILabel()
+    private let countBadge = CountBadgeLabel()
     private let nameLabel = UILabel()
 
     init(isAnimal: Bool) {
@@ -375,7 +375,7 @@ private final class CoverCirclePreviewView: UIView {
     func configure(name: String, count: Int) {
         nameLabel.text = name
         nameLabel.isHidden = name.isEmpty
-        countBadge.text = "\(count)"
+        countBadge.text = count.formatted()
     }
 
     func setImage(_ image: UIImage?) {
