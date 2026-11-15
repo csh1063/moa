@@ -55,6 +55,11 @@ open class BaseCoordinator: NSObject {
             }
             .store(in: &cancellables)
     }
+
+    /// 화면이 이미 사라진 뒤처럼 ViewModel을 거칠 수 없을 때 코디네이터가 직접 알럿을 띄운다
+    func showAlert(title: String?, message: String? = nil, buttons: [AlertButtonConfig]) {
+        alertManager.enqueue(title: title, message: message, buttons: buttons)
+    }
 }
 
 extension BaseCoordinator: UINavigationControllerDelegate {

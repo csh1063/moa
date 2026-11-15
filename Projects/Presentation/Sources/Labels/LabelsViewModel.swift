@@ -77,7 +77,8 @@ public final class LabelsViewModel: BaseViewModel {
             let tuple = try await self.useCase.fetchLabelCounts()
 
             self.photoLabels = tuple.map { "\($0.name): \($0.count)" }
-
+            
+            debugLog(photoLabels.joined(separator: ", "))
 
             self.isLoading = false
         } catch {
@@ -93,7 +94,6 @@ public final class LabelsViewModel: BaseViewModel {
             let tuple = try await self.useCase.fetchAddressCounts()
 
             self.photoLabels = tuple.map { "\($0.name): \($0.count)" }
-
 
             self.isLoading = false
         } catch {

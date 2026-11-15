@@ -40,7 +40,7 @@ final class ClusterSplitSheet: UIViewController {
 
     private let subtitleLabel: UILabel = {
         let lb = UILabel()
-        lb.text = String(localized: "떼어낼 그룹을 선택하세요 — 선택한 그룹은 새 앨범으로 분리돼요", bundle: .module)
+        lb.text = String(localized: "떼어낼 그룹을 고르면 새 앨범으로 분리돼요", bundle: .module)
         lb.font = .systemFont(ofSize: 14, weight: .regular)
         lb.textColor = Theme.textSecondary
         lb.numberOfLines = 0

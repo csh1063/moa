@@ -550,7 +550,11 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
             { try self.deleteAllLogged(PhotoEntity.self, context: context) },
             { try self.deleteAllLogged(ClusterBlacklistEntity.self, context: context) },
             { try self.deleteAllLogged(AnimalClusterBlacklistEntity.self, context: context) },
-            { try self.deleteAllLogged(HomeZoneEntity.self, context: context) },
+            // 직접 추가한 "자주가는 동네"는 사용자 설정이라 초기화해도 남긴다 — 자동 측정분만 지운다
+            {
+                try context.delete(model: HomeZoneEntity.self, where: #Predicate { $0.isManual == false })
+                try context.save()
+            },
             {
                 try self.syncAlbums()
                 self.incrementalVacuum()

@@ -10,6 +10,7 @@
 		02B2EEB2454E35F383ECAF36 /* TravelPhotoGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74FC4682D8878C658BA091EF /* TravelPhotoGridView.swift */; };
 		0B1E106CE4651713AA754DD4 /* NaviBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F252FA414F730A843B69ED7 /* NaviBarView.swift */; };
 		0EFB0371715C02E4B2E55A7E /* LibraryAlbumPickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7364FAE2D3AF69948A86CF /* LibraryAlbumPickerViewModel.swift */; };
+		109E18538F9261E128FDCA57 /* FrequentPlaceListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AFE48643DC5C21F581CCE92 /* FrequentPlaceListViewModel.swift */; };
 		10A2F11DA83810ADBFB983AA /* TravelAlbumCellViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CC22A5CBAD43A3ABD350608 /* TravelAlbumCellViewModel.swift */; };
 		11FD13A94151C1E00EFBFD22 /* AlbumListDIContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C09DBC25152D546A8B835EBE /* AlbumListDIContainer.swift */; };
 		13F779FE4F17BDBA660A1B35 /* UIView+Publisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3645708A5BAD77D391863C3 /* UIView+Publisher.swift */; };
@@ -42,6 +43,7 @@
 		375EAC7FDF30102BB01AFF26 /* Extension_String.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8300BFD9F89CA11913EBBE1 /* Extension_String.swift */; };
 		3947EA5AE49DFEF8DC572B71 /* FaceCellViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 292D99FE10DAFB52CFAE73E0 /* FaceCellViewModel.swift */; };
 		3ADFEEF985D7BC1626FD5643 /* MyPageDIContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DFCE6EDBF9C396DD6D6E33 /* MyPageDIContainer.swift */; };
+		3D63D653C485F4886711CCFE /* FrequentPlaceListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AC3AD4534B5D8DB1C63901D /* FrequentPlaceListViewController.swift */; };
 		3DA7475194317B6BD91596A5 /* AnimalCellViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA44A26A4597F103814D1E59 /* AnimalCellViewModel.swift */; };
 		3E3D5D9907A1807BE0D3456F /* LabelsCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E5EE58E9BA58E8710D8D45 /* LabelsCoordinator.swift */; };
 		4389F098097A9E30C07AEC7E /* AlertViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E9B7F8500571EFB5D78EF9C /* AlertViewModel.swift */; };
@@ -149,6 +151,7 @@
 		E163629EE669BDC5E76A0BA5 /* WebDocuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F69D66CC0A54128CFD01F1D1 /* WebDocuViewController.swift */; };
 		E201E6BB6C1AD52BDF604BFF /* ConsentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F96493264A0F8903AD23A4 /* ConsentViewController.swift */; };
 		E3B75AC5FBB135E045DAD226 /* LabelsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D8386C4524E82DE539EA53 /* LabelsViewController.swift */; };
+		E43C6AF1EA96984EEC2B3353 /* FrequentPlaceAddViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566A5DC3DE0EBE3A2F0053DA /* FrequentPlaceAddViewController.swift */; };
 		E4ED77EBA3BFFDD5032E268D /* Extension_UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8283ED43F36B19F071F13E23 /* Extension_UIButton.swift */; };
 		E554B608321A292B72564062 /* LibraryAlbumPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 598989E9C16319C1F044BE76 /* LibraryAlbumPickerViewController.swift */; };
 		E80304449721F778C3600151 /* OnboardingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D6B45B01A697B2ADE4A948 /* OnboardingViewController.swift */; };
@@ -198,6 +201,7 @@
 		1451D4616306E5CB3DC38D05 /* OpenSourceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSourceViewController.swift; sourceTree = "<group>"; };
 		145AC80643E8EF1235C8168F /* SimilarAlbumCellViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimilarAlbumCellViewModel.swift; sourceTree = "<group>"; };
 		19896D9069102A85950686BA /* LibraryAlbumPickerCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryAlbumPickerCoordinator.swift; sourceTree = "<group>"; };
+		1AC3AD4534B5D8DB1C63901D /* FrequentPlaceListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentPlaceListViewController.swift; sourceTree = "<group>"; };
 		1B18F8EDBD5425ACC9D7811D /* MyPageCellType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageCellType.swift; sourceTree = "<group>"; };
 		1BBF3D39CC49B71F014AE289 /* LocationAlbumCellViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationAlbumCellViewModel.swift; sourceTree = "<group>"; };
 		1C34337A5C9A294A2CDD5EBC /* DateAlbumCellViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateAlbumCellViewModel.swift; sourceTree = "<group>"; };
@@ -234,6 +238,7 @@
 		52C2C9280919A6765F4C88CC /* AnimalCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalCellView.swift; sourceTree = "<group>"; };
 		54CC7A01692EDD4E77D8DB87 /* AnimalAlbumCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalAlbumCell.swift; sourceTree = "<group>"; };
 		55DFCE6EDBF9C396DD6D6E33 /* MyPageDIContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyPageDIContainer.swift; sourceTree = "<group>"; };
+		566A5DC3DE0EBE3A2F0053DA /* FrequentPlaceAddViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentPlaceAddViewController.swift; sourceTree = "<group>"; };
 		578476C7DF38CB77591E8F91 /* AlbumAnalysisSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumAnalysisSheet.swift; sourceTree = "<group>"; };
 		58C970CD41B6B5F29F411FAB /* AlertButtonConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertButtonConfig.swift; sourceTree = "<group>"; };
 		59887177834575162AF31E63 /* LocationMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationMapViewModel.swift; sourceTree = "<group>"; };
@@ -259,6 +264,7 @@
 		75D92F5115DB359614C13635 /* AlbumViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumViewModel.swift; sourceTree = "<group>"; };
 		76C87DE265E6EFD22315099A /* BoxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxView.swift; sourceTree = "<group>"; };
 		77DDFB88BE44225E00A36622 /* LocationAlbumCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationAlbumCell.swift; sourceTree = "<group>"; };
+		7AFE48643DC5C21F581CCE92 /* FrequentPlaceListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequentPlaceListViewModel.swift; sourceTree = "<group>"; };
 		7B0D384585E6C77D06018FFC /* TravelerHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelerHeaderView.swift; sourceTree = "<group>"; };
 		7E9D3650BE472E704D57EC89 /* AlbumCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumCoordinator.swift; sourceTree = "<group>"; };
 		7F252FA414F730A843B69ED7 /* NaviBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NaviBarView.swift; sourceTree = "<group>"; };
@@ -667,6 +673,7 @@
 				1009B98B90CE1A80040E5A44 /* Common */,
 				1F28CD334A891309DB0789B6 /* Consent */,
 				9BCB33FC1B3379FC62E4AA1A /* Feedback */,
+				E00DA9C83F230A789D9C08BF /* FrequentPlace */,
 				FD828D73809720D610053DBE /* ImageViewer */,
 				AE1E7AFE82F7329C4461B32D /* Labels */,
 				CAEB6E9938EE5F50C433311F /* LibraryImport */,
@@ -835,6 +842,16 @@
 				A2CE01ECD993C1B6A65B7231 /* Localizable.xcstrings */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		E00DA9C83F230A789D9C08BF /* FrequentPlace */ = {
+			isa = PBXGroup;
+			children = (
+				566A5DC3DE0EBE3A2F0053DA /* FrequentPlaceAddViewController.swift */,
+				1AC3AD4534B5D8DB1C63901D /* FrequentPlaceListViewController.swift */,
+				7AFE48643DC5C21F581CCE92 /* FrequentPlaceListViewModel.swift */,
+			);
+			path = FrequentPlace;
 			sourceTree = "<group>";
 		};
 		E2313CC4732144A7B00C8BE6 /* AlbumOptionsSheet */ = {
@@ -1064,6 +1081,9 @@
 				C51AC37E47783F8E061DFAAB /* TermsViewController.swift in Sources */,
 				A4DAE5DEF5B8562D6686667B /* FeedbackViewController.swift in Sources */,
 				7F4FDBF08CB243F08BE8ED8E /* FeedbackViewModel.swift in Sources */,
+				E43C6AF1EA96984EEC2B3353 /* FrequentPlaceAddViewController.swift in Sources */,
+				3D63D653C485F4886711CCFE /* FrequentPlaceListViewController.swift in Sources */,
+				109E18538F9261E128FDCA57 /* FrequentPlaceListViewModel.swift in Sources */,
 				B5927CDFED1395628EA83E48 /* ImageViewerCell.swift in Sources */,
 				F18D2F1291220BC968D73F2F /* ImageViewerViewController.swift in Sources */,
 				2F325EF6CFACEA23667668C1 /* ImageViewerViewModel.swift in Sources */,

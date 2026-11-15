@@ -26,7 +26,7 @@ final class AlbumAnalysisSheet: UIViewController {
 
     private let grabberView: UIView = {
         let view = UIView()
-        view.backgroundColor = Theme.strokeStrong
+        view.backgroundColor = Theme.strokeSoft
         view.layer.cornerRadius = 2.5
         return view
     }()

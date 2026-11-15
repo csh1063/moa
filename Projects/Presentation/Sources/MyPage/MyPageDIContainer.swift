@@ -27,7 +27,22 @@ public final class MyPageDIContainer {
             albumDataRepository: appDIContainer.albumDataRepository
         )
 
-        return MyPageViewModel(tabbarViewModel: tabbarViewModel, myPageUseCase: useCase)
+        return MyPageViewModel(
+            tabbarViewModel: tabbarViewModel,
+            myPageUseCase: useCase,
+            frequentPlaceUseCase: makeFrequentPlaceUseCase()
+        )
+    }
+
+    func makeFrequentPlaceListViewModel() -> FrequentPlaceListViewModel {
+        FrequentPlaceListViewModel(useCase: makeFrequentPlaceUseCase())
+    }
+
+    private func makeFrequentPlaceUseCase() -> FrequentPlaceUseCase {
+        DefaultFrequentPlaceUseCase(
+            homeZoneRepository: appDIContainer.homeZoneRepository,
+            photoDataRepository: appDIContainer.photoDataRepository
+        )
     }
 
     func makeFeedbackViewModel() -> FeedbackViewModel {

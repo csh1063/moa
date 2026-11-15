@@ -70,4 +70,47 @@ final class HomeZoneDetectionTests: XCTestCase {
         XCTAssertEqual(TravelAlbumNaming.displayName(place: "제주", startDate: start, endDate: start.addingTimeInterval(3600)), "제주 나들이")
         XCTAssertEqual(TravelAlbumNaming.displayName(place: "제주", startDate: start, endDate: start.addingTimeInterval(2 * day)), "제주 여행")
     }
+
+    func test_shortAddress_dedupsCityAndSkipsEmpty() {
+        // 한국 주소는 administrativeArea와 locality가 둘 다 "서울특별시"로 오는 경우가 있다
+        XCTAssertEqual(HomeZone.shortAddress(["서울특별시", "서울특별시", "성동구", "성수동"]), "서울특별시 성동구 성수동")
+        XCTAssertEqual(HomeZone.shortAddress(["경기도", nil, "", "판교역로"]), "경기도 판교역로")
+        XCTAssertNil(HomeZone.shortAddress([nil, "", nil]))
+    }
+
+    func test_couldNotVisitHome_onlyWhenGapTooShortForDetour() {
+        let seoul = [HomeZone(latitude: 37.5665, longitude: 126.9780, analyzedAt: now)]
+        let amsterdam = (latitude: 52.3676, longitude: 4.9041)
+        let paris = (latitude: 48.8566, longitude: 2.3522)
+        let tokyo = (latitude: 35.6762, longitude: 139.6503)
+        let bangkok = (latitude: 13.7563, longitude: 100.5018)
+
+        // 유럽 안에서 8시간 — 서울 왕복만 비행기로 최소 18시간이라 집에 못 갔다
+        XCTAssertTrue(HomeZoneDetection.couldNotVisitHome(from: amsterdam, to: paris, gap: 8 * 3600, homeZones: seoul))
+        // 실제 유럽 여행 간격(21.7시간) — 비행만 19.5시간이지만 공항 시간 2시간 × 2를 더하면 23.5시간이라 못 갔다
+        XCTAssertTrue(HomeZoneDetection.couldNotVisitHome(from: amsterdam, to: paris, gap: 21.7 * 3600, homeZones: seoul))
+        XCTAssertFalse(HomeZoneDetection.couldNotVisitHome(from: amsterdam, to: paris, gap: 24 * 3600, homeZones: seoul))
+        // 도쿄 → 방콕 이틀 — 서울 경유(약 5시간)가 가능했으니 다른 여행일 수 있다
+        XCTAssertFalse(HomeZoneDetection.couldNotVisitHome(from: tokyo, to: bangkok, gap: 2 * day, homeZones: seoul))
+        // 1,000km 미만은 공항 시간을 안 더한다 — 집(브뤼셀)이 가까우면 기차로 금방 다녀올 수 있다
+        let brussels = [HomeZone(latitude: 50.8503, longitude: 4.3517, analyzedAt: now)]
+        XCTAssertFalse(HomeZoneDetection.couldNotVisitHome(from: amsterdam, to: paris, gap: 3 * 3600, homeZones: brussels))
+        // 홈존이 없으면 판단 불가
+        XCTAssertFalse(HomeZoneDetection.couldNotVisitHome(from: amsterdam, to: paris, gap: 8 * 3600, homeZones: []))
+    }
+
+    func test_travelClusterAddress_listsCountriesOnceInVisitOrder() {
+        let cluster = TravelCluster(
+            photos: [],
+            country: "네덜란드",
+            administrativeArea: "노르트홀란트",
+            locality: "암스테르담",
+            subLocality: nil,
+            isoCountryCode: "NL",
+            startDate: now,
+            endDate: now,
+            visitedCountries: ["네덜란드", "프랑스", "스위스", "프랑스"]
+        )
+        XCTAssertEqual(cluster.address, "네덜란드 프랑스 스위스")
+    }
 }

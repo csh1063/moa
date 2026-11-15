@@ -16,6 +16,7 @@ public struct PhotoLocationSnapshot {
     public let administrativeArea: String?
     public let locality: String?
     public var subLocality: String?
+    public let thoroughfare: String?
     public let latitude: Double
     public let longitude: Double
 
@@ -27,6 +28,7 @@ public struct PhotoLocationSnapshot {
         self.administrativeArea = photo.address?.administrativeArea
         self.locality = photo.address?.locality
         self.subLocality = photo.address?.subLocality
+        self.thoroughfare = photo.address?.thoroughfare
         self.latitude = photo.latitude ?? 0
         self.longitude = photo.longitude ?? 0
     }

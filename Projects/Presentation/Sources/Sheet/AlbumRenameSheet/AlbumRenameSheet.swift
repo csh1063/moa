@@ -88,11 +88,15 @@ final class AlbumRenameSheet: UIViewController {
 
     init(albumName: String,
          title: String = String(localized: "앨범명 변경", bundle: .module),
-         subtitle: String = String(localized: "자동 생성된 앨범 이름을 원하는 이름으로 바꿀 수 있어요", bundle: .module)) {
+         subtitle: String = String(localized: "자동 생성된 앨범 이름을 원하는 이름으로 바꿀 수 있어요", bundle: .module),
+         fieldTitle: String = String(localized: "앨범 이름", bundle: .module),
+         placeholder: String = String(localized: "앨범 이름 입력", bundle: .module)) {
         self.albumName = albumName
         super.init(nibName: nil, bundle: nil)
         self.titleLabel.text = title
         self.subtitleLabel.text = subtitle
+        self.fieldLabel.text = fieldTitle
+        self.textField.placeholder = placeholder
     }
 
     required init?(coder: NSCoder) { fatalError() }

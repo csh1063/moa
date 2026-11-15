@@ -987,19 +987,19 @@
         }
       }
     },
-    "분석 결과로\\n앨범이 자동으로 만들어져요" : {
+    "분석 결과로\n앨범이 자동으로 만들어져요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Albums are created automatically\\nfrom the analysis results"
+            "value" : "Albums are created automatically\nfrom the analysis results"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "분석 결과로\\n앨범이 자동으로 만들어져요"
+            "value" : "분석 결과로\n앨범이 자동으로 만들어져요"
           }
         }
       }
@@ -1072,19 +1072,19 @@
         }
       }
     },
-    "iCloud에서 분석 용 사이즈를 받기 위해\\n데이터가 소모되요.\\nWi-Fi에서 진행하는 걸 권장해요.\\n분석 시작할까요?" : {
+    "iCloud에서 분석 용 사이즈를 받기 위해\n데이터가 소모되요.\nWi-Fi에서 진행하는 걸 권장해요.\n분석 시작할까요?" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloading analysis-sized images from iCloud\\ncan use data.\\nWe recommend doing this on Wi-Fi.\\nStart analysis?"
+            "value" : "Downloading analysis-sized images from iCloud\ncan use data.\nWe recommend doing this on Wi-Fi.\nStart analysis?"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iCloud에서 분석 용 사이즈를 받기 위해\\n데이터가 소모되요.\\nWi-Fi에서 진행하는 걸 권장해요.\\n분석 시작할까요?"
+            "value" : "iCloud에서 분석 용 사이즈를 받기 위해\n데이터가 소모되요.\nWi-Fi에서 진행하는 걸 권장해요.\n분석 시작할까요?"
           }
         }
       }
@@ -1264,19 +1264,19 @@
         }
       }
     },
-    "사진 속 장면, 피사체, 텍스트를\\n직접 분석해요" : {
+    "사진 속 장면, 피사체, 텍스트를\n직접 분석해요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Analyzes scenes, subjects, and text\\nin your photos, right on your device"
+            "value" : "Analyzes scenes, subjects, and text\nin your photos, right on your device"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "사진 속 장면, 피사체, 텍스트를\\n직접 분석해요"
+            "value" : "사진 속 장면, 피사체, 텍스트를\n직접 분석해요"
           }
         }
       }
@@ -1366,19 +1366,19 @@
         }
       }
     },
-    "사진과 얼굴, 위치를 분석하고\\n관련 앨범을 만들고 있어요\\n완료될 때까지 조금만 기다려주세요" : {
+    "사진과 얼굴, 위치를 분석하고\n관련 앨범을 만들고 있어요\n완료될 때까지 조금만 기다려주세요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Analyzing photos, faces, and locations\\nand creating related albums.\\nPlease wait a moment until it's done"
+            "value" : "Analyzing photos, faces, and locations\nand creating related albums.\nPlease wait a moment until it's done"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "사진과 얼굴, 위치를 분석하고\\n관련 앨범을 만들고 있어요\\n완료될 때까지 조금만 기다려주세요"
+            "value" : "사진과 얼굴, 위치를 분석하고\n관련 앨범을 만들고 있어요\n완료될 때까지 조금만 기다려주세요"
           }
         }
       }
@@ -1536,36 +1536,36 @@
         }
       }
     },
-    "서비스 이용을 위해\\n아래 내용에 동의해 주세요" : {
+    "서비스 이용을 위해\n아래 내용에 동의해 주세요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please agree to the following\\nto use the service"
+            "value" : "Please agree to the following\nto use the service"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "서비스 이용을 위해\\n아래 내용에 동의해 주세요"
+            "value" : "서비스 이용을 위해\n아래 내용에 동의해 주세요"
           }
         }
       }
     },
-    "서비스 이용을 위해\\n약관에 동의해주세요" : {
+    "서비스 이용을 위해\n약관에 동의해주세요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please agree to the terms\\nto use the service"
+            "value" : "Please agree to the terms\nto use the service"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "서비스 이용을 위해\\n약관에 동의해주세요"
+            "value" : "서비스 이용을 위해\n약관에 동의해주세요"
           }
         }
       }
@@ -1604,19 +1604,19 @@
         }
       }
     },
-    "선택한 %lld개 앨범을 삭제할까요?\\n사진은 삭제하지 않아요" : {
+    "선택한 %lld개 앨범을 삭제할까요?\n사진은 삭제하지 않아요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete the %lld selected albums?\\nPhotos won't be deleted"
+            "value" : "Delete the %lld selected albums?\nPhotos won't be deleted"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "선택한 %lld개 앨범을 삭제할까요?\\n사진은 삭제하지 않아요"
+            "value" : "선택한 %lld개 앨범을 삭제할까요?\n사진은 삭제하지 않아요"
           }
         }
       }
@@ -1757,19 +1757,19 @@
         }
       }
     },
-    "소중한 의견 감사해요 😊\\n빠르게 검토할게요" : {
+    "소중한 의견 감사해요 😊\n빠르게 검토할게요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thank you for your feedback 😊\\nWe'll review it quickly"
+            "value" : "Thank you for your feedback 😊\nWe'll review it quickly"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "소중한 의견 감사해요 😊\\n빠르게 검토할게요"
+            "value" : "소중한 의견 감사해요 😊\n빠르게 검토할게요"
           }
         }
       }
@@ -2040,19 +2040,19 @@
         }
       }
     },
-    "앨범들을 삭제 후 다시 생성해요.\\n어떤 앨범을 다시 생성할까요?" : {
+    "앨범들을 삭제 후 다시 생성해요.\n어떤 앨범을 다시 생성할까요?" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deletes and recreates albums.\\nWhich albums would you like to regenerate?"
+            "value" : "Deletes and recreates albums.\nWhich albums would you like to regenerate?"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "앨범들을 삭제 후 다시 생성해요.\\n어떤 앨범을 다시 생성할까요?"
+            "value" : "앨범들을 삭제 후 다시 생성해요.\n어떤 앨범을 다시 생성할까요?"
           }
         }
       }
@@ -2074,19 +2074,19 @@
         }
       }
     },
-    "앨범을 삭제 할까요?\\n사진은 삭제하지 않아요" : {
+    "앨범을 삭제 할까요?\n사진은 삭제하지 않아요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Delete this album?\\nPhotos won't be deleted"
+            "value" : "Delete this album?\nPhotos won't be deleted"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "앨범을 삭제 할까요?\\n사진은 삭제하지 않아요"
+            "value" : "앨범을 삭제 할까요?\n사진은 삭제하지 않아요"
           }
         }
       }
@@ -2934,19 +2934,19 @@
         }
       }
     },
-    "촬영 시간과 위치를 기반으로\\n사진을 자동으로 분류해요" : {
+    "촬영 시간과 위치를 기반으로\n사진을 자동으로 분류해요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatically sorts photos\\nbased on when and where they were taken"
+            "value" : "Automatically sorts photos\nbased on when and where they were taken"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "촬영 시간과 위치를 기반으로\\n사진을 자동으로 분류해요"
+            "value" : "촬영 시간과 위치를 기반으로\n사진을 자동으로 분류해요"
           }
         }
       }
@@ -3285,19 +3285,512 @@
         }
       }
     },
-    "분석된 사진으로 앨범을 다시 만들고 있어요\\n완료될 때까지 조금만 기다려주세요" : {
+    "분석된 사진으로 앨범을 다시 만들고 있어요\n완료될 때까지 조금만 기다려주세요" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rebuilding albums from your analyzed photos.\\nPlease wait a moment until it's done"
+            "value" : "Rebuilding albums from your analyzed photos.\nPlease wait a moment until it's done"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "분석된 사진으로 앨범을 다시 만들고 있어요\\n완료될 때까지 조금만 기다려주세요"
+            "value" : "분석된 사진으로 앨범을 다시 만들고 있어요\n완료될 때까지 조금만 기다려주세요"
+          }
+        }
+      }
+    },
+    "사진을 탭하면 여행자로 넣거나 뺄 수 있어요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a photo to add or remove a traveler"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진을 탭하면 여행자로 넣거나 뺄 수 있어요"
+          }
+        }
+      }
+    },
+    "떼어낼 그룹을 고르면 새 앨범으로 분리돼요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick the groups to split them into a new album"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "떼어낼 그룹을 고르면 새 앨범으로 분리돼요"
+          }
+        }
+      }
+    },
+    "정리 옵션" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizing Options"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "정리 옵션"
+          }
+        }
+      }
+    },
+    "%lld곳" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld places"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld곳"
+          }
+        }
+      }
+    },
+    "없음" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "없음"
+          }
+        }
+      }
+    },
+    "자주가는 동네" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequent Places"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "자주가는 동네"
+          }
+        }
+      }
+    },
+    "여행 제외 지역 %lld (자동)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excluded Area %lld (Auto)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여행 제외 지역 %lld (자동)"
+          }
+        }
+      }
+    },
+    "주소 정보 없음" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No address info"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소 정보 없음"
+          }
+        }
+      }
+    },
+    "%@을(를) 삭제할까요?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete %@?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@을(를) 삭제할까요?"
+          }
+        }
+      }
+    },
+    "이 동네 근처에서 찍은 사진도 여행으로 묶이게 돼요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos taken near this place can be grouped into trips again"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 동네 근처에서 찍은 사진도 여행으로 묶이게 돼요"
+          }
+        }
+      }
+    },
+    "여기 있는 동네 근처(20km)에서 찍은 사진은 여행 앨범으로 묶지 않아요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos taken near these places (20km) are not grouped into travel albums"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여기 있는 동네 근처(20km)에서 찍은 사진은 여행 앨범으로 묶지 않아요"
+          }
+        }
+      }
+    },
+    "아직 등록된 동네가 없어요\n오른쪽 위 + 버튼으로 추가해보세요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No places yet\nTap + at the top right to add one"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 등록된 동네가 없어요\n오른쪽 위 + 버튼으로 추가해보세요"
+          }
+        }
+      }
+    },
+    "주소 검색 (예: 성동구 성수동)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search address (e.g. Seongsu-dong, Seongdong-gu)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소 검색 (예: 성동구 성수동)"
+          }
+        }
+      }
+    },
+    "검색" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색"
+          }
+        }
+      }
+    },
+    "주소 확인 중…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding address…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소 확인 중…"
+          }
+        }
+      }
+    },
+    "적용" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "적용"
+          }
+        }
+      }
+    },
+    "동네 추가" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Place"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동네 추가"
+          }
+        }
+      }
+    },
+    "동네 수정" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Place"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동네 수정"
+          }
+        }
+      }
+    },
+    "주소를 찾을 수 없어요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address not found"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소를 찾을 수 없어요"
+          }
+        }
+      }
+    },
+    "검색 결과가 없어요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 결과가 없어요"
+          }
+        }
+      }
+    },
+    "구/동 이름이나 도로명 주소로 다시 검색해보세요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try searching with a district, neighborhood, or street address"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구/동 이름이나 도로명 주소로 다시 검색해보세요"
+          }
+        }
+      }
+    },
+    "동네 이름" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place Name"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동네 이름"
+          }
+        }
+      }
+    },
+    "목록에 보일 이름을 정해주세요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a name to show in the list"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "목록에 보일 이름을 정해주세요"
+          }
+        }
+      }
+    },
+    "동네 이름 입력" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter place name"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "동네 이름 입력"
+          }
+        }
+      }
+    },
+    "내 동네" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Place"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 동네"
+          }
+        }
+      }
+    },
+    "여행 앨범을 다시 만들까요?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild travel albums?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여행 앨범을 다시 만들까요?"
+          }
+        }
+      }
+    },
+    "바뀐 동네를 반영하려면 여행 앨범을 처음부터 다시 만들어야 해요\n직접 편집한 여행 앨범도 다시 만들어져요" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Travel albums need to be rebuilt from scratch to reflect the changed places.\nAlbums you edited will be rebuilt too."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "바뀐 동네를 반영하려면 여행 앨범을 처음부터 다시 만들어야 해요\n직접 편집한 여행 앨범도 다시 만들어져요"
+          }
+        }
+      }
+    },
+    "나중에" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "나중에"
+          }
+        }
+      }
+    },
+    "다시 만들기" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rebuild"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 만들기"
           }
         }
       }

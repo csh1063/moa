@@ -12,8 +12,8 @@ import Domain
 
 /// 여행 앨범의 등장인물을 추가/삭제/이름변경까지 한 화면에서 처리하는 시트.
 /// "여행자"(연결됨) / "인물 앨범"(안 됨) 두 섹션으로 나뉘고, 사진을 탭하면 섹션 간 이동(추가/삭제 예약),
-/// 이름+펜 아이콘을 탭하면 바로 이름 변경(즉시 저장)된다. 스와이프/딤 탭으로는 안 닫히고
-/// "닫기"(취소, 섹션 이동만 되돌림 — 이름 변경은 이미 저장된 채 유지)/"결정"(여행자 섹션을 그대로 저장)으로만 닫힌다
+/// 이름+펜 아이콘을 탭하면 바로 이름 변경(즉시 저장)된다. 아래로 쓸어내리면 취소(섹션 이동만 되돌림 —
+/// 이름 변경은 이미 저장된 채 유지), "저장"을 누르면 여행자 섹션을 그대로 저장한다 — 합치기/분리 시트와 같은 형식
 final class TravelerManagementSheet: UIViewController {
 
     // MARK: - Properties
@@ -28,28 +28,36 @@ final class TravelerManagementSheet: UIViewController {
 
     // MARK: - UI
 
-    private let closeButton: UIButton = {
-        var config = UIButton.Configuration.plain()
-        config.title = String(localized: "닫기", bundle: .module)
-        config.baseForegroundColor = Theme.textSecondary
-        let btn = UIButton(configuration: config)
-        return btn
+    private let grabberView: UIView = {
+        let v = UIView()
+        v.backgroundColor = Theme.strokeSoft
+        v.layer.cornerRadius = 2.5
+        return v
     }()
 
     private let titleLabel: UILabel = {
         let lb = UILabel()
         lb.text = String(localized: "여행자 관리", bundle: .module)
-        lb.font = .systemFont(ofSize: 17, weight: .semibold)
+        lb.font = .systemFont(ofSize: 20, weight: .bold)
         lb.textColor = Theme.textPrimary
         return lb
     }()
 
+    private let subtitleLabel: UILabel = {
+        let lb = UILabel()
+        lb.text = String(localized: "사진을 탭하면 여행자로 넣거나 뺄 수 있어요", bundle: .module)
+        lb.font = .systemFont(ofSize: 14, weight: .regular)
+        lb.textColor = Theme.textSecondary
+        lb.numberOfLines = 0
+        return lb
+    }()
+
     private let confirmButton: UIButton = {
-        var config = UIButton.Configuration.plain()
-        config.baseForegroundColor = Theme.primary
-        var titleAttr = AttributeContainer()
-        titleAttr.font = .systemFont(ofSize: 16, weight: .bold)
-        config.attributedTitle = AttributedString(String(localized: "결정", bundle: .module), attributes: titleAttr)
+        var config = UIButton.Configuration.filled()
+        config.title = String(localized: "저장", bundle: .module)
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = Theme.primary
+        config.cornerStyle = .medium
         let btn = UIButton(configuration: config)
         return btn
     }()
@@ -97,46 +105,46 @@ final class TravelerManagementSheet: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Theme.surface
-        isModalInPresentation = true
         setupLayout()
     }
 
     // MARK: - Setup
 
     private func setupLayout() {
-        view.addSubview(closeButton)
-        view.addSubview(titleLabel)
-        view.addSubview(confirmButton)
-        view.addSubview(collectionView)
+        let headerStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        headerStack.axis = .vertical
+        headerStack.spacing = 4
 
-        closeButton.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(12)
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
-            make.height.equalTo(36)
-        }
-        confirmButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().inset(12)
-            make.centerY.equalTo(closeButton)
-            make.height.equalTo(36)
-        }
-        titleLabel.snp.makeConstraints { make in
+        view.addSubview(grabberView)
+        view.addSubview(headerStack)
+        view.addSubview(collectionView)
+        view.addSubview(confirmButton)
+
+        grabberView.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(10)
             make.centerX.equalToSuperview()
-            make.centerY.equalTo(closeButton)
+            make.width.equalTo(42)
+            make.height.equalTo(5)
+        }
+        headerStack.snp.makeConstraints { make in
+            make.top.equalTo(grabberView.snp.bottom).offset(16)
+            make.leading.trailing.equalToSuperview().inset(20)
         }
         collectionView.snp.makeConstraints { make in
-            make.top.equalTo(closeButton.snp.bottom).offset(12)
-            make.leading.trailing.bottom.equalToSuperview()
+            make.top.equalTo(headerStack.snp.bottom).offset(16)
+            make.leading.trailing.equalToSuperview()
+            make.bottom.equalTo(confirmButton.snp.top).offset(-12)
+        }
+        confirmButton.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(20)
+            make.bottom.equalToSuperview().inset(32)
+            make.height.equalTo(52)
         }
 
-        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         confirmButton.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)
     }
 
     // MARK: - Actions
-
-    @objc private func closeTapped() {
-        dismiss(animated: true)
-    }
 
     @objc private func confirmTapped() {
         let ids = travelers.map { $0.id }

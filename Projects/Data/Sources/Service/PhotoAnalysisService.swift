@@ -175,6 +175,13 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
         }
     }
 
+    /// Vision 점수는 크기와 무관하게 항상 1.0이라, 사진에서 차지하는 크기를 점수로 쓴다.
+    /// 큰 쪽 변이 사진의 20% 이상이면 1.0.
+    private static func barcodeScore(_ observations: [VNBarcodeObservation]) -> Float {
+        let side = observations.map { max($0.boundingBox.width, $0.boundingBox.height) }.max() ?? 0
+        return Float(min(side / 0.2, 1))
+    }
+
     /// 바코드 / QR코드 감지
     private func detectBarcode(_ image: CGImage) async throws -> [PhotoLabel] {
         return await withCheckedContinuation { continuation in
@@ -185,15 +192,19 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
                 do {
                     try handler.perform([request])
 
-                    guard let results = request.results,
-                          !results.isEmpty else {
+                    // 해독 안 된 건 모양만 비슷한 오인식이라 버린다.
+                    let decoded = request.results?.filter { $0.payloadStringValue != nil } ?? []
+
+                    guard !decoded.isEmpty else {
                         continuation.resume(returning: [])
                         return
                     }
 
-                    let hasQR = results.contains { $0.symbology == .qr }
-                    var labels = [PhotoLabel(name: "barcode", confidence: 1.0)]
-                    if hasQR { labels.append(PhotoLabel(name: "qrcode", confidence: 1.0)) }
+                    var labels = [PhotoLabel(name: "barcode", confidence: Self.barcodeScore(decoded))]
+                    let qrCodes = decoded.filter { $0.symbology == .qr }
+                    if !qrCodes.isEmpty {
+                        labels.append(PhotoLabel(name: "qrcode", confidence: Self.barcodeScore(qrCodes)))
+                    }
 
                     continuation.resume(returning: labels)
                 } catch {

@@ -96,7 +96,27 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
             // 두 여행 사이의 시간 간격이 2일(timeGapThreshold) 이하로 연속되는지 체크
             let isTimeConnected = nextCluster.startDate.timeIntervalSince(currentCluster.endDate) <= timeGapThreshold
 
-            if isSameRegion && isTimeConnected {
+            // 해외에서 나라를 넘어가며 쪼개진 경우 — 그 사이 집에 다녀오는 게 불가능했으면 한 여행이다
+            // (네덜란드 → 프랑스 → 스위스가 나라마다 따로 생기던 문제)
+            let gap = nextCluster.startDate.timeIntervalSince(currentCluster.endDate)
+            let isCountryHop = isTimeConnected
+                && !nextCluster.country.isEmpty
+                && currentCluster.visitedCountries.last.map { !$0.isEmpty && $0 != nextCluster.country } == true
+                && {
+                    guard let last = currentCluster.photos.last, let first = nextCluster.photos.first else { return false }
+                    return HomeZoneDetection.couldNotVisitHome(
+                        from: (last.latitude, last.longitude),
+                        to: (first.latitude, first.longitude),
+                        gap: gap,
+                        homeZones: homeZones
+                    )
+                }()
+
+            if let lastCountry = currentCluster.visitedCountries.last, lastCountry != nextCluster.country {
+                debugLog("🧳 나라 이동 \(lastCountry) → \(nextCluster.country): 간격 \(String(format: "%.1f", gap / 3600))시간, 홈존 \(homeZones.count)개, 합침 \(isCountryHop)")
+            }
+
+            if (isSameRegion && isTimeConnected) || isCountryHop {
                 // 하나로 합치기: 사진 배열을 합치고 날짜 범위를 업데이트
                 let combinedPhotos = (currentCluster.photos + nextCluster.photos).sorted { $0.createdAt < $1.createdAt }
 
@@ -109,7 +129,8 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
                     subLocality: (currentCluster.subLocality ?? "").isEmpty ? nextCluster.subLocality : currentCluster.subLocality,
                     isoCountryCode: currentCluster.isoCountryCode.isEmpty ? nextCluster.isoCountryCode : currentCluster.isoCountryCode,
                     startDate: min(currentCluster.startDate, nextCluster.startDate),
-                    endDate: max(currentCluster.endDate, nextCluster.endDate)
+                    endDate: max(currentCluster.endDate, nextCluster.endDate),
+                    visitedCountries: currentCluster.visitedCountries + nextCluster.visitedCountries
                 )
             } else {
                 // 조건이 안 맞으면 지금까지 모은 걸 저장하고 새 기준으로 전환

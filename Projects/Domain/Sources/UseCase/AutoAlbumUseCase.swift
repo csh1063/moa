@@ -44,6 +44,9 @@ public protocol AutoAlbumUseCase {
     func createFaceAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
     func createAnimalAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
     func createTravelAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
+    /// 여행 앨범을 전부 지우고 좌표 있는 사진 전체로 처음부터 다시 만든다 — 자주가는 동네를 바꾼 뒤 반영용.
+    /// 사용자가 편집한 여행 앨범도 다시 만들어진다
+    func rebuildAllTravelAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws
     func createSimilarAlbum(onProgress: @escaping @Sendable (Double) -> Void) async throws
     func deletePhotos(onProgress: @escaping @Sendable (Double) -> Void) async throws
     /// types의 자동 앨범을 순서대로 지운다 — "all"이면 전체 자동 앨범
@@ -251,6 +254,16 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
 
     public func createTravelAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try await createTravelAlbumsCore(onProgress: onProgress)
+    }
+
+    public func rebuildAllTravelAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
+        try albumDataRepository.deleteAutoAlbums(by: "travel")
+        // 여행 앨범이 하나도 없으면 createTravelAlbumsCore는 증분이 아니라 전체 좌표 사진으로 계산한다
+        try await createTravelAlbumsCore { onProgress($0 * 0.9) }
+        // 지우면서 끊긴 여행자(얼굴/동물) 연결을 다시 채운다
+        try await linkTravelersToTravelAlbumsCore()
+        try albumDataRepository.syncAlbums()
+        onProgress(1.0)
     }
 
     public func deletePhotos(onProgress: @escaping @Sendable (Double) -> Void) async throws {
@@ -1060,7 +1073,8 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     // 홈존 분석 필요 여부 체크 후 실행
     // 여행 판정 대상(증분이면 일부 사진뿐)이 아니라 전체 좌표 사진으로 본다 — 일부만 보면 홈존이 0개로 나와 기존 홈존을 지워버림
     private func analyzeIfNeeded() throws {
-        let existing = try homeZoneRepository.fetchHomeZones()
+        // 직접 추가한 동네의 날짜로 판단하면 자동 재측정이 막히므로 자동 측정분만 본다
+        let existing = try homeZoneRepository.fetchHomeZones().filter { !$0.isManual }
         if let last = existing.first, Date().timeIntervalSince(last.analyzedAt) < HomeZoneDetection.reanalyzePeriod {
             debugLog("🏠 홈존 재분석 스킵 (마지막 분석: \(last.analyzedAt), 아직 3개월 안 지남)")
             return
@@ -1070,16 +1084,21 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
 
     // 강제 재분석
     private func analyze(from photos: [PhotoLocationSnapshot]) throws {
-        let zones = HomeZoneDetection.zones(from: photos)
+        // 설정 화면에 보여줄 주소는 지금 이미 들고 있는 사진들로 같이 채워둔다
+        let zones = HomeZoneDetection.zones(from: photos).map { zone -> HomeZone in
+            var zone = zone
+            zone.address = zone.nearestShortAddress(in: photos)
+            return zone
+        }
 
         debugLog("🏠 홈존 분석 결과 → \(zones.count)개")
         // 0개면 기존 홈존을 유지 — 지우면 이후 동네 사진이 전부 여행으로 잡힌다
         guard !zones.isEmpty else { return }
         for zone in zones {
-            debugLog("   - \(zone.addressDescription(in: photos))")
+            debugLog("   - \(zone.address ?? zone.addressDescription(in: photos))")
         }
 
-        try homeZoneRepository.saveHomeZones(zones)
+        try homeZoneRepository.replaceAutoHomeZones(zones)
     }
 
     // 홈존 목록 반환 (여행 필터링용)
