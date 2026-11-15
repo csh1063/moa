@@ -238,12 +238,15 @@ public final class DefaultAutoAlbumUseCase: AutoAlbumUseCase {
     public func createFaceAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "face")
         try await createFaceAlbumsCore(onProgress: onProgress)
+        // 새로 만든 인물 앨범은 id가 바뀌어서, 여행 앨범의 동행자 연결을 다시 채워야 한다
+        try await linkTravelersToTravelAlbumsCore()
         try albumDataRepository.syncAlbums()
     }
 
     public func createAnimalAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         try self.albumDataRepository.deleteAutoAlbums(by: "animal")
         try await createAnimalAlbumsCore(onProgress: onProgress)
+        try await linkTravelersToTravelAlbumsCore()
         try albumDataRepository.syncAlbums()
     }
 

@@ -300,19 +300,8 @@ public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
         let photosInRange = try photoDataRepository.fetchPhotos(from: mergedStart, to: mergedEnd)
         let photoIdentifiers = photosInRange.map { $0.localIdentifier }
 
-        // 대표 주소는 위치가 있는 사진만으로 계산 (위치 없는 사진을 그대로 넘기면 (0,0) 근처로 잘못 지오코딩될 수 있음)
-        let geoSnapshots = photosInRange
-            .filter { ($0.latitude ?? 0) != 0 || ($0.longitude ?? 0) != 0 }
-            .map { PhotoLocationSnapshot(from: $0) }
-        let cluster = try? await travelRepository.buildCluster(from: geoSnapshots)
-
-        let displayName: String
-        if let cluster {
-            let place = TravelAlbumNaming.cleanAreaName(cluster.address, isoCode: cluster.isoCountryCode)
-            displayName = TravelAlbumNaming.displayName(place: place, startDate: mergedStart, endDate: mergedEnd)
-        } else {
-            displayName = source.displayName
-        }
+        // 이름은 기준 앨범(이 앨범의 메뉴에서 합치기를 누른 쪽) 그대로 — 바치님 확정 규칙
+        let displayName = source.displayName
 
         // 연결된 얼굴/동물 앨범도 기존 것들의 합집합이 아니라, 새로 모인 전체 사진 기준으로 다시 계산
         let mergedPhotoIdSet = Set(photoIdentifiers)

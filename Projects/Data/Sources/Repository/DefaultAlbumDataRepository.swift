@@ -508,7 +508,6 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         source.startDate = startDate
         source.endDate = endDate
         source.displayName = displayName
-        source.isRenamed = false
         source.isEdited = true
         source.linkedFaceAlbumIds = linkedFaceAlbumIds
         source.linkedAnimalAlbumIds = linkedAnimalAlbumIds
