@@ -13,6 +13,8 @@ public protocol PhotoLibraryRepository {
     func fetchPhotos(page: Int, pageCount: Int) async throws -> PhotoList
     func fetchPhotoCount() async throws -> Int
     func fetchPhotoIds() async throws -> [String]
+    /// 분석 대상 사진 id — 영상 제외
+    func fetchImageIds() async throws -> [String]
     func checkPermission() async throws -> PhotoPermission
     func loadImage<T>(id: String, type: LoadPhotoOptionType) async throws -> ImageData<T>
     /// 상세화면 실제 재생용 — 영상만 해당, T는 호출부에서 AVPlayerItem으로 캐스트한다

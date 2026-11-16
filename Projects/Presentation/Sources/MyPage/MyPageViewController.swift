@@ -49,11 +49,6 @@ final class MyPageViewController: BaseViewController {
         self.viewModel.send(.appear)
     }
 
-//    override func viewDidAppear(_ animated: Bool) {
-//        super.viewDidAppear(animated)
-//        
-//    }
-
     required init?(coder: NSCoder) {
         fatalError(Self.fatalMessage)
     }

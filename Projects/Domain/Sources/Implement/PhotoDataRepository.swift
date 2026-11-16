@@ -19,9 +19,11 @@ public protocol PhotoDataRepository {
     func fetchHasCoordinators() throws -> [Photo]
     /// 좌표가 있는 가장 최근 사진 하나
     func fetchLatestLocated() throws -> Photo?
+    func fetchPhoto(localIdentifier: String) throws -> Photo?
     /// 영상 앨범용 — 라이브러리 전체의 영상 사진
     func fetchVideos() throws -> [Photo]
     func fetchAnalyzed() throws -> [String]
+    func fetchAnalyzedCount() throws -> Int
     func fetchLocationUnanalyzed() throws -> [Photo]
     func fetchAlbumUnclassified(limit: Int, offset: Int) throws -> [Photo]
     /// albumsGeneratedAt 플래그를 무시하고 전체 사진을 offset 기준으로 페이지네이션해서 가져온다 —

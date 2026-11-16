@@ -14,17 +14,22 @@ public protocol ImageViewerUseCase {
     func loadImageProgressive<T>(id: String, size: CGSize, onImage: @escaping (ImageData<T>, _ isFinal: Bool) -> Void) async
     func loadVideoAsset<T>(id: String) async throws -> T?
     func getLabels(by localIdentifier: String) async throws -> [PhotoLabel]
+    /// 뷰어 하단 정보(위치 등)용 — 분석이 끝난 사진만, 아니면 nil(미분석 표시)
+    func getAnalyzedPhoto(by localIdentifier: String) async throws -> Photo?
 }
 
 public class DefaultImageViewerUseCase: ImageViewerUseCase {
 
     private let repository: PhotoLibraryRepository
     private let labelRepository: PhotoLabelDataRepository
+    private let dataRepository: PhotoDataRepository
 
     public init(repository: PhotoLibraryRepository,
-                labelRepository: PhotoLabelDataRepository) {
+                labelRepository: PhotoLabelDataRepository,
+                dataRepository: PhotoDataRepository) {
         self.repository = repository
         self.labelRepository = labelRepository
+        self.dataRepository = dataRepository
     }
 
     public func loadImage<T>(id: String, type: LoadPhotoOptionType) async throws -> ImageData<T> {
@@ -41,5 +46,10 @@ public class DefaultImageViewerUseCase: ImageViewerUseCase {
 
     public func getLabels(by localIdentifier: String) async throws -> [PhotoLabel] {
         return try self.labelRepository.fetchLabelsByPhoto(localIdentifier: localIdentifier)
+    }
+
+    public func getAnalyzedPhoto(by localIdentifier: String) async throws -> Photo? {
+        guard let photo = try dataRepository.fetchPhoto(localIdentifier: localIdentifier), photo.analyzedAt != nil else { return nil }
+        return photo
     }
 }

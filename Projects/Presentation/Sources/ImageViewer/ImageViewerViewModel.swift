@@ -165,7 +165,13 @@ final class ImageViewerViewModel: BaseViewModel {
 
     private func setCurrentPhoto(index: Int, isAction: Bool = true) async {
         currentIndex = index
-        let detail = photoDetails[index]
+        var detail = photoDetails[index]
+        // 사진첩 탭은 가볍게 id만 읽어서 사진 정보 없이 넘어온다 — 보고 있는 사진 것만 불러온다
+        if detail.photo == nil {
+            detail.photo = try? await imageUseCase.getAnalyzedPhoto(by: detail.id)
+            // 빠르게 넘기는 중이면 지난 사진 결과는 버린다
+            guard currentIndex == index else { return }
+        }
         currentPhoto = detail
         await loadLabels(by: detail.id)
         if isAction {

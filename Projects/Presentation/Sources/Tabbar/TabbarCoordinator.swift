@@ -47,6 +47,8 @@ final class TabbarCoordinator: BaseCoordinator {
                 self?.startAnalysisFlow(progress: progress)
             case .showLibraryImportPicker(let useCase):
                 self?.presentLibraryImportPicker(useCase: useCase)
+            case .analysisGuide(let isFirstAnalysis, let loadEstimate, let onStart):
+                self?.presentAnalysisGuide(isFirstAnalysis: isFirstAnalysis, loadEstimate: loadEstimate, onStart: onStart)
             }
         }
 
@@ -89,6 +91,18 @@ final class TabbarCoordinator: BaseCoordinator {
 
         window.rootViewController = self.tabbarViewController
         window.makeKeyAndVisible()
+    }
+
+    private func presentAnalysisGuide(isFirstAnalysis: Bool, loadEstimate: @escaping () async -> AnalysisEstimate?, onStart: @escaping () -> Void) {
+        guard let tabbarViewController else { return }
+        let sheet = AnalysisGuideSheet(isFirstAnalysis: isFirstAnalysis, loadEstimate: loadEstimate)
+        sheet.onStart = onStart
+        let height = sheet.fittingHeight(width: tabbarViewController.view.bounds.width)
+        if let presentation = sheet.sheetPresentationController {
+            presentation.detents = [.custom { _ in height }]
+            presentation.preferredCornerRadius = 28
+        }
+        (tabbarViewController.presentedViewController ?? tabbarViewController).present(sheet, animated: true)
     }
 
     /// "사진첩 앨범 불러오기"는 앨범 탭/설정 탭 양쪽에서 같은 진입점(tabbarViewModel)을 통해

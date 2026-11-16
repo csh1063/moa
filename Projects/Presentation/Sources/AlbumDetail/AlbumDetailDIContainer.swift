@@ -96,7 +96,8 @@ public final class AlbumDetailDIContainer {
 
         let imageUseCase = DefaultImageViewerUseCase(
             repository: photoLibraryRepository,
-            labelRepository: labelRepository
+            labelRepository: labelRepository,
+            dataRepository: photoDataRepository
         )
 
         return ImageViewerViewModel(photoDetails: photoDetails,

@@ -17,4 +17,6 @@ public enum UserDefaultsKey {
     public static let travelAlbumCheckpointPending = "travelAlbumCheckpointPending"
     /// 체크포인트가 있을 때, 그 이전까지는 안전하게 확정돼 있던 마지막 여행 앨범의 끝 날짜
     public static let travelAlbumCheckpointAnchorDate = "travelAlbumCheckpointAnchorDate"
+    /// 이 기기에서 지난 분석이 사진 한 장당 걸린 시간(초) — 분석 시작 안내의 예상 시간 계산용
+    public static let analysisSecondsPerPhoto = "analysisSecondsPerPhoto"
 }

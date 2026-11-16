@@ -99,15 +99,9 @@ public final class PhotoLibraryService {
             rangeEnd = min(end, totalCount)
         }
 
-        let photos = (rangeStart..<rangeEnd).map { index -> PhotoAssetEntity in
-            let asset = result.object(at: index)
-
-//            self.assetCache[asset.localIdentifier] = asset
-            Task {
-                await self.assetCache.set(asset.localIdentifier, asset: asset)
-            }
-            return PhotoAssetEntity(asset: asset)
-        }
+        let photos = (rangeStart..<rangeEnd).map { PhotoAssetEntity(asset: result.object(at: $0)) }
+        // 사진마다 캐시용 Task를 따로 만들던 걸(수만 개) 한 번에 넣는다
+        await assetCache.set(photos.map { $0.asset })
 
         let sortedPhotos = photos.sorted {
             let created0 = $0.asset.creationDate ?? Date.distantPast
@@ -171,12 +165,8 @@ public final class PhotoLibraryService {
         let start = min((realPage - 1) * pageCount, totalCount)
         let end = min(start + pageCount, totalCount)
 
-        var photos: [PhotoAssetEntity] = []
-        for index in start..<end {
-            let asset = result.object(at: index)
-            await assetCache.set(asset.localIdentifier, asset: asset)
-            photos.append(PhotoAssetEntity(asset: asset))
-        }
+        let photos = (start..<end).map { PhotoAssetEntity(asset: result.object(at: $0)) }
+        await assetCache.set(photos.map { $0.asset })
 
         return PhotoAssetListEntity(title: title, photos: photos, hasNext: end < totalCount, totalCount: totalCount)
     }
@@ -201,6 +191,12 @@ public final class PhotoLibraryService {
         }
 
         return result.count
+    }
+
+    /// 분석 대상 사진 id — 영상은 분석하지 않아서 뺀다
+    public func getImageIds() async throws -> [String] {
+        let result = PHAsset.fetchAssets(with: .image, options: nil)
+        return (0..<result.count).map { result.object(at: $0).localIdentifier }
     }
 
     public func getPhotoIds() async throws -> [String] {
@@ -405,4 +401,7 @@ actor AssetCache {
 
     func get(_ id: String) -> PHAsset? { cache[id] }
     func set(_ id: String, asset: PHAsset) { cache[id] = asset }
+    func set(_ assets: [PHAsset]) {
+        for asset in assets { cache[asset.localIdentifier] = asset }
+    }
 }

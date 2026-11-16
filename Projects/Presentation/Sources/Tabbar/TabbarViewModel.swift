@@ -6,12 +6,15 @@
 //  Copyright © 2026 sanghyeon. All rights reserved.
 //
 
-import Foundation
+import UIKit
 import Combine
 import Domain
 
 enum TabbarViewModelAction {
     case progressSheet(AnalyzeProgress)
+    /// 분석 시작 안내 — "분석 시작"을 누르면 onStart
+    /// 시트는 바로 띄우고, 사진 수/예상 시간은 loadEstimate로 나중에 채운다(사진첩 전체를 훑어서 오래 걸림)
+    case analysisGuide(isFirstAnalysis: Bool, loadEstimate: () async -> AnalysisEstimate?, onStart: () -> Void)
     case showLibraryImportPicker(LibraryAlbumImportUseCase)
 }
 
@@ -138,7 +141,14 @@ public final class TabbarViewModel: BaseViewModel {
             + dupSaveProgress * 0.1
     }
     private let albumCompletedSubject = PassthroughSubject<Void, Never>()
-    @Published private var isAnalyzing: Bool = false
+    @Published private var isAnalyzing: Bool = false {
+        // 분석/재생성 중엔 화면 자동 잠금을 막는다 — 화면이 꺼지면 분석도 멈춘다
+        didSet { UIApplication.shared.isIdleTimerDisabled = isAnalyzing }
+    }
+    /// 이번 분석에서 실제로 분석할 사진 수 — 끝난 뒤 이 기기의 장당 속도를 저장할 때 쓴다
+    private var analysisPhotoCount = 0
+    /// 분석 중에 앱을 나갔다 왔으면 멈춰 있던 시간이 섞여서 속도를 저장하지 않는다
+    private var leftAppDuringAnalysis = false
     @Published private var isComplete: Bool = false
     @Published private var onboarding: Bool?
     @Published private var consent: Bool?
@@ -170,6 +180,13 @@ public final class TabbarViewModel: BaseViewModel {
         super.init()
 
         self.bind()
+
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { [weak self] _ in
+                guard let self, self.isAnalyzing else { return }
+                self.leftAppDuringAnalysis = true
+            }
+            .store(in: &cancellables)
     }
 
     public func transform() -> Output {
@@ -238,25 +255,24 @@ public final class TabbarViewModel: BaseViewModel {
         case .analysis:
             // 분석 도중 다시 분석/재생성하면 진행률이 0으로 튀고, 쓰는 중인 앨범을 지우게 된다
             guard !isAnalyzing else { showAnalyzingAlert(); return }
-            showAlert(
-                title: String(localized: "사진 분석", bundle: .module),
-                message: String(localized: "iCloud에서 분석 용 사이즈를 받기 위해\n데이터가 소모되요.\nWi-Fi에서 진행하는 걸 권장해요.\n분석 시작할까요?", bundle: .module),
-                buttons: [
-                    AlertButtonConfig(title: String(localized: "취소", bundle: .module), style: .cancel, action: nil),
-                    AlertButtonConfig(title: String(localized: "분석하기", bundle: .module), style: .default) { [weak self] in
-                        Task {
-                            guard let self else {return}
-                            // 이전 분석/생성이 에러로 끝난 경우 progressRatio가 1.0에 멈춰있을 수 있어서,
-                            // 새 시트가 구독하자마자 (@Published는 구독 시점 현재값을 바로 흘려보냄) "완료"로 보일 수 있다 —
-                            // 새로 시작하기 전에 항상 0으로 리셋해서 이 시트는 항상 진짜 0부터 시작하게 한다
-                            self.progressRatio = 0
-                            self.autoAlbumProgressRatio = 0
-                            self.onAction?(.progressSheet(self.makeAnalyzeProgress()))
-                            await self.analysis()
-                        }
-                    }
-                ]
-            )
+            analysisPhotoCount = 0
+            let loadEstimate: () async -> AnalysisEstimate? = { [weak self] in
+                guard let self, let estimate = try? await self.analysisUseCase.estimate() else { return nil }
+                self.analysisPhotoCount = estimate.photoCount
+                return estimate
+            }
+            onAction?(.analysisGuide(isFirstAnalysis: (try? analysisUseCase.isFirstAnalysis()) ?? false, loadEstimate: loadEstimate, onStart: { [weak self] in
+                Task {
+                    guard let self else { return }
+                    // 이전 분석/생성이 에러로 끝난 경우 progressRatio가 1.0에 멈춰있을 수 있어서,
+                    // 새 시트가 구독하자마자 (@Published는 구독 시점 현재값을 바로 흘려보냄) "완료"로 보일 수 있다 —
+                    // 새로 시작하기 전에 항상 0으로 리셋해서 이 시트는 항상 진짜 0부터 시작하게 한다
+                    self.progressRatio = 0
+                    self.autoAlbumProgressRatio = 0
+                    self.onAction?(.progressSheet(self.makeAnalyzeProgress()))
+                    await self.analysis()
+                }
+            }))
         case .reAutoAlbum:
             // 분석 도중 다시 분석/재생성하면 진행률이 0으로 튀고, 쓰는 중인 앨범을 지우게 된다
             guard !isAnalyzing else { showAnalyzingAlert(); return }
@@ -387,6 +403,7 @@ public final class TabbarViewModel: BaseViewModel {
         self.resetProgressComponents()
 
         let startedAt = Date()
+        leftAppDuringAnalysis = false
         debugLog("⏱️ [분석] 시작: \(startedAt)")
 
         // onXCompleted 콜백 안에서 뜨는 Task들은 "던져놓고 안 기다리는" fire-and-forget이라, 아래
@@ -556,6 +573,9 @@ public final class TabbarViewModel: BaseViewModel {
 
             self.photoCompletedSubject.send(())
             try? await legacyAccessUseCase.markLegacyFreeAccess()
+            if !leftAppDuringAnalysis {
+                try? await analysisUseCase.recordAnalysisDuration(Date().timeIntervalSince(startedAt), photoCount: analysisPhotoCount)
+            }
 
             self.progressRatio = 1.0
             self.autoAlbumProgressRatio = 1.0

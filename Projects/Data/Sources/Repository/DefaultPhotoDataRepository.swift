@@ -219,10 +219,17 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
 
     public func fetchAnalyzed() throws -> [String] {
         let context = ModelContext(container)
-        let fetchDescriptor = FetchDescriptor<PhotoEntity>(
+        var fetchDescriptor = FetchDescriptor<PhotoEntity>(
             predicate: #Predicate { $0.analyzedAt != nil }
         )
+        // id만 쓰는데 사진 정보 전체를 읽고 있었다 — 수만 장이면 이것만으로 눈에 띄게 느리다
+        fetchDescriptor.propertiesToFetch = [\.localIdentifier]
         return try context.fetch(fetchDescriptor).map { $0.localIdentifier }
+    }
+
+    public func fetchAnalyzedCount() throws -> Int {
+        let context = ModelContext(container)
+        return try context.fetchCount(FetchDescriptor<PhotoEntity>(predicate: #Predicate { $0.analyzedAt != nil }))
     }
 
     public func fetchHasCoordinators() throws -> [Photo] {
@@ -231,6 +238,15 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
             predicate: #Predicate { $0.longitude != nil && $0.latitude != nil }
         )
         return try context.fetch(fetchDescriptor).map { $0.toDomain() }
+    }
+
+    public func fetchPhoto(localIdentifier: String) throws -> Photo? {
+        let context = ModelContext(container)
+        var fetchDescriptor = FetchDescriptor<PhotoEntity>(
+            predicate: #Predicate { $0.localIdentifier == localIdentifier }
+        )
+        fetchDescriptor.fetchLimit = 1
+        return try context.fetch(fetchDescriptor).first?.toDomain()
     }
 
     public func fetchLatestLocated() throws -> Photo? {
