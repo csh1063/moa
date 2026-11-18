@@ -30,15 +30,7 @@ final class FeedbackViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
 
-    private let typeSegmentControl: UISegmentedControl = {
-        let items = FeedbackType.allCases.map { $0.title }
-        let sc = UISegmentedControl(items: items)
-        sc.selectedSegmentIndex = 0
-        sc.selectedSegmentTintColor = Theme.primary
-        sc.setTitleTextAttributes([.foregroundColor: Theme.textPrimary], for: .normal)
-        sc.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
-        return sc
-    }()
+    private let typeSegmentControl = PillSegmentedControl(items: FeedbackType.allCases.map { $0.title })
 
     private let textViewContainer: UIView = {
         let view = UIView()
@@ -200,7 +192,6 @@ final class FeedbackViewController: UIViewController {
         typeSegmentControl.snp.makeConstraints {
             $0.top.equalToSuperview().offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(36)
         }
 
         textViewContainer.snp.makeConstraints {
@@ -290,19 +281,16 @@ final class FeedbackViewController: UIViewController {
             .store(in: &cancellables)
 
 //        typeSegmentControl.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
-        typeSegmentControl.selectedPublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] index in
-                let type = FeedbackType.allCases[index]
-                switch type {
-                case .contact: self?.placeholderLabel.text = String(localized: "문의하실 내용을 입력해주세요", bundle: .module)
-                case .feature: self?.placeholderLabel.text = String(localized: "제안하실 기능을 입력해주세요", bundle: .module)
-                case .bug:     self?.placeholderLabel.text = String(localized: "발생한 문제를 자세히 설명해주세요", bundle: .module)
-                }
-
-                self?.viewModel.send(.changeSegment(type))
+        typeSegmentControl.onChange = { [weak self] index in
+            let type = FeedbackType.allCases[index]
+            switch type {
+            case .contact: self?.placeholderLabel.text = String(localized: "문의하실 내용을 입력해주세요", bundle: .module)
+            case .feature: self?.placeholderLabel.text = String(localized: "제안하실 기능을 입력해주세요", bundle: .module)
+            case .bug:     self?.placeholderLabel.text = String(localized: "발생한 문제를 자세히 설명해주세요", bundle: .module)
             }
-            .store(in: &cancellables)
+
+            self?.viewModel.send(.changeSegment(type))
+        }
 
         submitButton.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
 //        reviewButton.addTarget(self, action: #selector(reviewTapped), for: .touchUpInside)

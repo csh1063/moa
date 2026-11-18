@@ -37,8 +37,10 @@ final class TravelPhotoPickerViewController: UIViewController {
 
     private let naviView = NaviBarView(type: .title(.leading))
 
-    private let beforeSegmentButton = UIButton(configuration: .plain())
-    private let afterSegmentButton = UIButton(configuration: .plain())
+    private lazy var directionSegment = PillSegmentedControl(items: [
+        beforeViewModel.direction.headerText,
+        afterViewModel.direction.headerText
+    ])
 
     private let pagingScrollView: UIScrollView = {
         let sv = UIScrollView()
@@ -89,8 +91,7 @@ final class TravelPhotoPickerViewController: UIViewController {
 
     private func setupLayout() {
         view.addSubview(naviView)
-        view.addSubview(beforeSegmentButton)
-        view.addSubview(afterSegmentButton)
+        view.addSubview(directionSegment)
         view.addSubview(pagingScrollView)
         pagingScrollView.addSubview(pageContainer)
         pageContainer.addSubview(beforeGrid)
@@ -99,16 +100,12 @@ final class TravelPhotoPickerViewController: UIViewController {
         naviView.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
         }
-        beforeSegmentButton.snp.makeConstraints { make in
-            make.leading.equalToSuperview().offset(20)
+        directionSegment.snp.makeConstraints { make in
             make.top.equalTo(naviView.snp.bottom).offset(12)
-        }
-        afterSegmentButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().inset(20)
-            make.centerY.equalTo(beforeSegmentButton)
+            make.leading.trailing.equalToSuperview().inset(20)
         }
         pagingScrollView.snp.makeConstraints { make in
-            make.top.equalTo(beforeSegmentButton.snp.bottom).offset(12)
+            make.top.equalTo(directionSegment.snp.bottom).offset(12)
             make.leading.trailing.bottom.equalToSuperview()
         }
         pageContainer.snp.makeConstraints { make in
@@ -141,10 +138,9 @@ final class TravelPhotoPickerViewController: UIViewController {
             }
             .store(in: &cancellables)
 
-        styleSegment(beforeSegmentButton, text: beforeViewModel.direction.headerText, active: true)
-        styleSegment(afterSegmentButton, text: afterViewModel.direction.headerText, active: false)
-        beforeSegmentButton.addTarget(self, action: #selector(beforeSegmentTapped), for: .touchUpInside)
-        afterSegmentButton.addTarget(self, action: #selector(afterSegmentTapped), for: .touchUpInside)
+        directionSegment.onChange = { [weak self] index in
+            self?.setActiveDirection(index == 0 ? .before : .after)
+        }
     }
 
     private func setupGrids() {
@@ -158,16 +154,6 @@ final class TravelPhotoPickerViewController: UIViewController {
         afterViewModel.onSelectionChanged = { [weak self] in self?.updateAddButtonState() }
     }
 
-    private func styleSegment(_ button: UIButton, text: String, active: Bool) {
-        var config = UIButton.Configuration.plain()
-        var titleAttr = AttributeContainer()
-        titleAttr.font = .systemFont(ofSize: 15, weight: active ? .bold : .regular)
-        config.attributedTitle = AttributedString(text, attributes: titleAttr)
-        config.baseForegroundColor = active ? Theme.primary : Theme.textSecondary
-        config.contentInsets = .zero
-        button.configuration = config
-    }
-
     private func updateAddButtonState() {
         let hasSelection = !beforeViewModel.selectedIds.isEmpty || !afterViewModel.selectedIds.isEmpty
         naviView.setEnabled(hasSelection, for: .add)
@@ -175,14 +161,9 @@ final class TravelPhotoPickerViewController: UIViewController {
 
     // MARK: - Actions
 
-    @objc private func beforeSegmentTapped() { setActiveDirection(.before) }
-    @objc private func afterSegmentTapped() { setActiveDirection(.after) }
-
     private func setActiveDirection(_ direction: ActiveDirection) {
         guard direction != activeDirection else { return }
         activeDirection = direction
-        styleSegment(beforeSegmentButton, text: beforeViewModel.direction.headerText, active: direction == .before)
-        styleSegment(afterSegmentButton, text: afterViewModel.direction.headerText, active: direction == .after)
         let offsetX = direction == .before ? 0 : pagingScrollView.bounds.width
         pagingScrollView.setContentOffset(CGPoint(x: offsetX, y: 0), animated: true)
     }

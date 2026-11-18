@@ -115,6 +115,32 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
             .map { $0.toDomain() }
     }
 
+    /// 이 앨범 사진을 DB에서 최신순으로 정렬해 읽는 조회
+    private func albumPhotosDescriptor(albumId: UUID) -> FetchDescriptor<PhotoEntity> {
+        FetchDescriptor<PhotoEntity>(
+            predicate: #Predicate { photo in photo.albums.contains { $0.id == albumId } },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+    }
+
+    public func fetchPhotos(by albumId: UUID, offset: Int, limit: Int) throws -> [Photo] {
+        let context = ModelContext(container)
+        var descriptor = albumPhotosDescriptor(albumId: albumId)
+        descriptor.fetchOffset = offset
+        descriptor.fetchLimit = limit
+        return try context.fetch(descriptor).map { $0.toDomain() }
+    }
+
+    public func fetchPhotosWithMemberships(albumId: UUID) throws -> (photos: [Photo], memberships: [String: Set<UUID>]) {
+        let context = ModelContext(container)
+        var descriptor = albumPhotosDescriptor(albumId: albumId)
+        // 사진마다 albums를 따로 읽으면(N+1) 수천 장에서 몇 초씩 걸려서 한 번에 당겨온다
+        descriptor.relationshipKeyPathsForPrefetching = [\.albums]
+        let entities = try context.fetch(descriptor)
+        let memberships = Dictionary(entities.map { ($0.localIdentifier, Set($0.albums.map(\.id))) }, uniquingKeysWith: { first, _ in first })
+        return (entities.map { $0.toDomain() }, memberships)
+    }
+
     /// 이 인물 앨범 얼굴들의 사진별 boundingBox(정규화, 원점 좌하단) — clusterId는 실제로 album.name
     public func fetchFaceBoundingBoxes(clusterId: String) throws -> [String: CGRect] {
 

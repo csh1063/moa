@@ -84,6 +84,7 @@ final class ImageViewerViewController: UIViewController {
         label.numberOfLines = 0
         label.font = UIFont.systemFont(ofSize: 16)
         label.textColor = .white
+        label.isHidden = true
         return label
     }()
 
@@ -300,7 +301,7 @@ final class ImageViewerViewController: UIViewController {
                 locationLabel.textColor = .white.withAlphaComponent(0.92)
             }
             label.isHidden = false
-            label.text = photoDetail.id + "\n" + photoDetail.labels.map { "\($0.name): \($0.confidence)" }.joined(separator: "\n")
+//            label.text = photoDetail.id + "\n" + photoDetail.labels.map { "\($0.name): \($0.confidence)" }.joined(separator: "\n")
         } else {
             label.isHidden = true
             albumBadge.isHidden = false

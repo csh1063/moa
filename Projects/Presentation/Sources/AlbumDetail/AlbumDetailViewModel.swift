@@ -58,6 +58,8 @@ public final class AlbumDetailViewModel: BaseViewModel {
     enum Input {
         case appear
         case refresh
+        /// 그리드 끝에 가까워졌을 때 — 다음 페이지를 읽는다
+        case loadMore
         case more
         case dismiss
         case selectItem(id: String, inSelectionMode: Bool)
@@ -100,7 +102,8 @@ public final class AlbumDetailViewModel: BaseViewModel {
         let travelerInfo: AnyPublisher<TravelerInfo?, Never>
         let coverPhotoIdentifier: AnyPublisher<String?, Never>
         let displayTab: AnyPublisher<DisplayTab, Never>
-        let categorySections: AnyPublisher<[AlbumDetailCategorySection], Never>
+        /// nil이면 아직 계산 중
+        let categorySections: AnyPublisher<[AlbumDetailCategorySection]?, Never>
     }
 
     /// 여행 헤더에 "이름 문구"와 "인원 수"를 분리해서 보여주기 위한 값
@@ -113,12 +116,15 @@ public final class AlbumDetailViewModel: BaseViewModel {
     @Published private var album: Album?
     @Published private var albumName: String
     @Published private var photos: [Photo] = []
+    private static let pageSize = 300
+    private var hasMorePhotos = false
+    private var isLoadingPage = false
     @Published private var errorMessage: String?
     @Published private var selectionMode: AlbumDetailPageMode = .list
     @Published private var travelerInfo: TravelerInfo?
     @Published private var currentCoverId: String?
     @Published private var displayTab: DisplayTab = .date
-    @Published private var categorySections: [AlbumDetailCategorySection] = []
+    @Published private var categorySections: [AlbumDetailCategorySection]?
 
     /// 필터드 소스일 때 미리 계산되어 들어온 사진 목록 — loadPhotos()가 재조회 대신 이걸 그대로 씀
     private let presetPhotos: [Photo]?
@@ -140,6 +146,8 @@ public final class AlbumDetailViewModel: BaseViewModel {
     var isFaceAlbum: Bool { album?.from == "face" }
     var isAnimalAlbum: Bool { album?.from == "animal" }
     var isTravelAlbum: Bool { album?.from == "travel" }
+    /// 실제 앨범일 때만 "..." 메뉴가 있다 — 분류순 더보기 화면의 메뉴는 공유뿐이라 공유를 숨긴 동안 같이 숨긴다
+    var hasOptionsMenu: Bool { album != nil }
     /// AutoAlbumUseCase의 앨범 명명 기준과 동일하게, 당일치기면 "나들이" 아니면 "여행"
     private var tripSuffix: String {
         guard let album, let start = album.startDate, let end = album.endDate,
@@ -267,6 +275,9 @@ public final class AlbumDetailViewModel: BaseViewModel {
         case .appear, .refresh:
             await loadPhotos()
 
+        case .loadMore:
+            await loadNextPage()
+
         case .more:
             if let album {
                 onAction?(.options(album: album))
@@ -281,7 +292,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
             displayTab = tab
 
         case .tapMore(let sectionId):
-            guard let album, let section = categorySections.first(where: { $0.id == sectionId }) else { return }
+            guard let album, let section = categorySections?.first(where: { $0.id == sectionId }) else { return }
             onAction?(.showFiltered(
                 title: "\(section.title) · \(albumName)",
                 photos: section.photos,
@@ -350,6 +361,16 @@ public final class AlbumDetailViewModel: BaseViewModel {
         }
     }
 
+    private func loadNextPage() async {
+        guard hasMorePhotos, !isLoadingPage, presetPhotos == nil, let album else { return }
+        isLoadingPage = true
+        defer { isLoadingPage = false }
+        guard let page = try? await detailUseCase.fetchPhotos(by: album.id, offset: photos.count, limit: Self.pageSize) else { return }
+        hasMorePhotos = page.count == Self.pageSize
+        photos += page
+        photoDetails += page.map { PhotoDetail(id: $0.localIdentifier, createdDate: $0.createdAt, photo: $0) }
+    }
+
     private func loadPhotos() async {
         // 필터드 소스(분류순 더보기) — 실제 앨범이 아니라 미리 계산된 교집합을 그대로 퍼블리시만 한다
         if let presetPhotos {
@@ -370,56 +391,68 @@ public final class AlbumDetailViewModel: BaseViewModel {
                 albumName = Self.computedAlbumName(for: refreshed)
                 currentCoverId = refreshed.coverPhotoIdentifier
             }
-            let photos = try await detailUseCase.fetchPhotos(by: currentAlbum.id)
+            let loadStartedAt = Date()
+            // 다시 읽을 때는 지금까지 본 만큼 읽어서 스크롤 위치가 튀지 않게 한다
+            let loadCount = max(Self.pageSize, self.photos.count)
+            let photos = try await detailUseCase.fetchPhotos(by: currentAlbum.id, offset: 0, limit: loadCount)
+            hasMorePhotos = photos.count == loadCount
+            debugLog("⏱️ [앨범 상세] 사진 \(photos.count)장 읽기 — \(String(format: "%.2f", Date().timeIntervalSince(loadStartedAt)))초")
             // 셀이 바로 얼굴 크롭을 요청하므로 사진 목록보다 먼저 채운다
             if isFaceAlbum {
                 faceBoundingBoxes = try await detailUseCase.fetchFaceBoundingBoxes(clusterId: currentAlbum.name)
             }
-            if isTravelAlbum {
-                let linkedFaceAlbums = try await detailUseCase.fetchLinkedFaceAlbums(albumId: currentAlbum.id)
-                let linkedAnimalAlbums = try await detailUseCase.fetchLinkedAnimalAlbums(albumId: currentAlbum.id)
-                let companions = linkedFaceAlbums + linkedAnimalAlbums
-                travelerInfo = formatTravelerInfo(companions)
-                let sections = await loadCategorySections(tripPhotos: photos, companions: companions)
-                categorySections = sections
-
-                // 다른 화면에서 지워져 이 여행에 사진이 0장이 된 동행자가 있으면 열 때마다 알린다
-                let sectionIds = Set(sections.map(\.id))
-                let emptiedCompanions = companions.filter { !sectionIds.contains($0.id) }
-                if !emptiedCompanions.isEmpty {
-                    promptDisconnect(emptiedCompanions: emptiedCompanions, albumId: currentAlbum.id, allLinkedIds: companions.map(\.id))
-                }
-            }
+            // 날짜순 그리드를 먼저 보여주고 분류순은 그 뒤에 계산한다
             self.photos = photos
             self.photoDetails = photos.map {
                 PhotoDetail(id: $0.localIdentifier, createdDate: $0.createdAt, photo: $0)
             }
             isLoading = false
+
+            if isTravelAlbum {
+                let linkedFaceAlbums = try await detailUseCase.fetchLinkedFaceAlbums(albumId: currentAlbum.id)
+                let linkedAnimalAlbums = try await detailUseCase.fetchLinkedAnimalAlbums(albumId: currentAlbum.id)
+                let companions = Self.sortedCompanions(linkedFaceAlbums + linkedAnimalAlbums)
+                travelerInfo = formatTravelerInfo(companions)
+                let categoryStartedAt = Date()
+                // 분류순은 여행 사진 전체가 필요해서 따로 한 번에 읽는다
+                let (tripPhotos, memberships) = try await detailUseCase.fetchPhotosWithMemberships(albumId: currentAlbum.id)
+                let sections = await loadCategorySections(tripPhotos: tripPhotos, companions: companions, memberships: memberships)
+                categorySections = sections
+                debugLog("⏱️ [앨범 상세] 분류순 계산 — \(String(format: "%.2f", Date().timeIntervalSince(categoryStartedAt)))초")
+
+                // 다른 화면에서 지워져 이 여행에 사진이 0장이 된 동행자가 있으면 열 때마다 알린다
+                let sectionIds = Set(sections.map(\.id))
+                let emptiedCompanions = companions.filter { !sectionIds.contains($0.id) }
+                if !emptiedCompanions.isEmpty {
+                    promptDisconnect(emptiedCompanions: emptiedCompanions, names: companionNames(companions), albumId: currentAlbum.id, allLinkedIds: companions.map(\.id))
+                }
+            }
         } catch {
             isLoading = false
         }
     }
 
     /// 분류순 보기용 — 동행자별 줄 + 자연/음식/공간 줄을 이 여행 사진과의 교집합으로 계산(0장인 줄은 뺌)
-    private func loadCategorySections(tripPhotos: [Photo], companions: [Album]) async -> [AlbumDetailCategorySection] {
-        var sections: [AlbumDetailCategorySection] = []
+    private func loadCategorySections(tripPhotos: [Photo], companions: [Album], memberships: [String: Set<UUID>]) async -> [AlbumDetailCategorySection] {
+        // 여행 사진마다 속한 앨범 id로 교집합을 구한다 — 인물/카테고리 앨범 전체를 읽지 않는다
+        func photosInTrip(of albumId: UUID) -> [Photo] {
+            tripPhotos.filter { memberships[$0.localIdentifier]?.contains(albumId) == true }
+        }
 
+        var sections: [AlbumDetailCategorySection] = []
+        let names = companionNames(companions)
         for companion in companions {
-            guard let companionPhotos = try? await detailUseCase.fetchPhotos(by: companion.id) else { continue }
-            let companionIds = Set(companionPhotos.map(\.localIdentifier))
-            let matched = tripPhotos.filter { companionIds.contains($0.localIdentifier) }
+            let matched = photosInTrip(of: companion.id)
             guard !matched.isEmpty else { continue }
-            sections.append(AlbumDetailCategorySection(id: companion.id, title: companionDisplayName(companion), photos: matched))
+            sections.append(AlbumDetailCategorySection(id: companion.id, title: names[companion.id] ?? companion.displayName, photos: matched))
         }
 
         // 카테고리 앨범 이름은 로케일과 무관하게 규칙 파일의 한글 키 그대로다
         let categoryNames = ["자연", "음식", "공간"]
         if let categoryAlbums = try? await detailUseCase.fetchAll(from: "category") {
             for name in categoryNames {
-                guard let categoryAlbum = categoryAlbums.first(where: { $0.displayName == name }),
-                      let categoryPhotos = try? await detailUseCase.fetchPhotos(by: categoryAlbum.id) else { continue }
-                let categoryIds = Set(categoryPhotos.map(\.localIdentifier))
-                let matched = tripPhotos.filter { categoryIds.contains($0.localIdentifier) }
+                guard let categoryAlbum = categoryAlbums.first(where: { $0.displayName == name }) else { continue }
+                let matched = photosInTrip(of: categoryAlbum.id)
                 guard !matched.isEmpty else { continue }
                 sections.append(AlbumDetailCategorySection(id: categoryAlbum.id, title: name, photos: matched))
             }
@@ -428,16 +461,32 @@ public final class AlbumDetailViewModel: BaseViewModel {
         return sections
     }
 
-    /// 이름 지어준 적 없으면 사람은 "사람", 동물은 "반려동물"로 — 동행자 표시 전반(헤더/분류순 줄/알럿)에서 공통으로 쓴다
-    private func companionDisplayName(_ companion: Album) -> String {
-        guard !companion.isRenamed else { return companion.displayName }
-        let base = companion.from == "animal" ? String(localized: "반려동물", bundle: .module) : String(localized: "사람", bundle: .module)
-        // 이름 없는 동행자가 여럿이면 구분되게 자동 이름의 번호를 붙인다
-        if let lastSpace = companion.name.lastIndex(of: " "),
-           let number = Int(companion.name[companion.name.index(after: lastSpace)...]) {
-            return "\(base) \(number)"
+    /// 자동 이름 "인물 39"의 번호 — 없으면 맨 뒤로
+    private static func autoNumber(_ album: Album) -> Int {
+        album.name.split(separator: " ").last.flatMap { Int($0) } ?? .max
+    }
+
+    /// 사람 먼저, 그 안에서는 전체 앨범 번호 순 — 열 때마다 같은 순서가 되게
+    private static func sortedCompanions(_ companions: [Album]) -> [Album] {
+        companions.sorted {
+            ($0.from == "animal" ? 1 : 0, autoNumber($0)) < ($1.from == "animal" ? 1 : 0, autoNumber($1))
         }
-        return base
+    }
+
+    /// 동행자 표시 이름 — 직접 지은 이름이 없으면 이 여행 안에서 사람/반려동물별로 1부터 다시 번호를 매긴다
+    private func companionNames(_ companions: [Album]) -> [UUID: String] {
+        var names: [UUID: String] = [:]
+        var counts: [String: Int] = [:]
+        for companion in Self.sortedCompanions(companions) {
+            if companion.isRenamed {
+                names[companion.id] = companion.displayName
+                continue
+            }
+            let base = companion.from == "animal" ? String(localized: "반려동물", bundle: .module) : String(localized: "사람", bundle: .module)
+            counts[companion.from, default: 0] += 1
+            names[companion.id] = "\(base) \(counts[companion.from]!)"
+        }
+        return names
     }
 
     /// 삭제 확인 후 호출 — 동행자 영향이 있으면 한 번 더 확인받고, 없으면 바로 지운다
@@ -469,14 +518,16 @@ public final class AlbumDetailViewModel: BaseViewModel {
         let faceAlbums = (try? await detailUseCase.fetchLinkedFaceAlbums(albumId: sourceAlbumId)) ?? []
         let animalAlbums = (try? await detailUseCase.fetchLinkedAnimalAlbums(albumId: sourceAlbumId)) ?? []
 
+        let companions = faceAlbums + animalAlbums
+        let names = companionNames(companions)
         var emptiedNames: [String] = []
-        for companion in faceAlbums + animalAlbums {
+        for companion in Self.sortedCompanions(companions) {
             guard let companionPhotos = try? await detailUseCase.fetchPhotos(by: companion.id) else { continue }
             let companionIds = Set(companionPhotos.map(\.localIdentifier))
             let hadPhotosInTrip = !companionIds.isDisjoint(with: tripIds)
             let hasPhotosAfter = !companionIds.isDisjoint(with: remainingTripIds)
             if hadPhotosInTrip && !hasPhotosAfter {
-                emptiedNames.append(companionDisplayName(companion))
+                emptiedNames.append(names[companion.id] ?? companion.displayName)
             }
         }
 
@@ -486,8 +537,8 @@ public final class AlbumDetailViewModel: BaseViewModel {
     }
 
     /// 사진이 0장인 동행자가 있을 때 "연결 끊을까요?" 확인
-    private func promptDisconnect(emptiedCompanions: [Album], albumId: UUID, allLinkedIds: [UUID]) {
-        let namesText = emptiedCompanions.map(companionDisplayName).joined(separator: ", ")
+    private func promptDisconnect(emptiedCompanions: [Album], names: [UUID: String], albumId: UUID, allLinkedIds: [UUID]) {
+        let namesText = emptiedCompanions.map { names[$0.id] ?? $0.displayName }.joined(separator: ", ")
         showAlert(
             title: String(localized: "동행자 연결 확인", bundle: .module),
             message: String(localized: "\(namesText)님의 사진이 이 여행에 없어요. 동행자 연결을 끊을까요?", bundle: .module),

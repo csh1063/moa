@@ -53,8 +53,6 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
             switch action {
             case .options(let album):
                 self?.showAlbumOptions(album: album)
-            case .optionsFiltered(let photos):
-                self?.showFilteredOptions(photos: photos)
             case .pop:
                 self?.pop()
             case .selectPhoto(let photoDetails, let index, let inSelectionMode):
@@ -67,6 +65,8 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
                 self?.showTravelerManagement(travelers: travelers, others: others)
             case .previewCover(let album, let candidateId):
                 self?.showCoverPreview(album: album, candidateId: candidateId)
+            case .optionsFiltered(let photos):
+                self?.showFilteredOptions(photos: photos)
             case .showFiltered(let title, let photos, let sourceAlbumId):
                 self?.startFiltered(title: title, photos: photos, sourceAlbumId: sourceAlbumId)
             case .share(let photos):
@@ -161,15 +161,6 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
             )
         }
 
-        // 대표 사진 변경과 같은 이유로 그리드가 실제로 떠 있어야 공유할 사진 목록을 알 수 있다
-        if viewController != nil {
-            options.append(
-                OptionRowConfig(icon: "lucide_share_2", title: String(localized: "전체 공유", bundle: .module), style: .normal) { [weak self] in
-                    self?.delegate?.shareAllTapped()
-                }
-            )
-        }
-
         if album.from == "similar" {
             options.append(
                 OptionRowConfig(icon: "lucide_circle_check", title: String(localized: "정리 완료", bundle: .module), style: .normal) { [weak self] in
@@ -183,6 +174,15 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
                 }
             )
         }
+
+        // 공유 버튼은 숨김 — 다시 켤 때 주석 해제
+//        if viewController != nil {
+//            options.append(
+//                OptionRowConfig(icon: "lucide_share_2", title: String(localized: "전체 공유", bundle: .module), style: .normal) { [weak self] in
+//                    self?.delegate?.shareAllTapped()
+//                }
+//            )
+//        }
 
         let sheet = SelectionSheet(title: album.displayName, options: options)
 

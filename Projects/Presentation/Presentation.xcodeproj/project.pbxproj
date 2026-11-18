@@ -126,6 +126,7 @@
 		BE1C96F586291D0D02157D57 /* TuistBundle+Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAD9FCDF00A8502F0CDC9F1 /* TuistBundle+Presentation.swift */; };
 		BFA74F069964E0281D75BC31 /* PhotoLibraryDIContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E177AD797E6C5E5BD5A62BA /* PhotoLibraryDIContainer.swift */; };
 		C14454882F017CE18243E687 /* TravelAlbumCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0B13220E12811B68CC62A4 /* TravelAlbumCell.swift */; };
+		C2004FA82FC7CFB6F4259A19 /* PillSegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A947202DB7DF9010E2F7A6 /* PillSegmentedControl.swift */; };
 		C48504015447BE9145C3B19B /* MiniProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F75D7585252F6F216EA3407 /* MiniProgressView.swift */; };
 		C4BE009C6D3DBA05FF0FC75E /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4BBD0AE24CC83598B1C3148 /* AlertManager.swift */; };
 		C51AC37E47783F8E061DFAAB /* TermsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2739A79D1A8DE112D4DC402F /* TermsViewController.swift */; };
@@ -314,6 +315,7 @@
 		BE5B2F18952DFF003D8E2421 /* GradientCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientCardView.swift; sourceTree = "<group>"; };
 		BE93C7FE0E23AFE023F533E7 /* PhotoCellItemViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCellItemViewModel.swift; sourceTree = "<group>"; };
 		C09DBC25152D546A8B835EBE /* AlbumListDIContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumListDIContainer.swift; sourceTree = "<group>"; };
+		C0A947202DB7DF9010E2F7A6 /* PillSegmentedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillSegmentedControl.swift; sourceTree = "<group>"; };
 		C0D3EEC0EECA024FB27DF2CD /* DateAlbumGridCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateAlbumGridCoordinator.swift; sourceTree = "<group>"; };
 		C0FA8F2EAD6ABB2AA3D68370 /* OpenSourceCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenSourceCell.swift; sourceTree = "<group>"; };
 		C1DFADB91C9C20B195DC6FDC /* SplashCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashCoordinator.swift; sourceTree = "<group>"; };
@@ -564,6 +566,14 @@
 			path = MiniProgress;
 			sourceTree = "<group>";
 		};
+		6CD05230D9B4A98956A1AEF0 /* Segment */ = {
+			isa = PBXGroup;
+			children = (
+				C0A947202DB7DF9010E2F7A6 /* PillSegmentedControl.swift */,
+			);
+			path = Segment;
+			sourceTree = "<group>";
+		};
 		7473BC3AABB7D89AF08035C0 /* Photo */ = {
 			isa = PBXGroup;
 			children = (
@@ -727,6 +737,7 @@
 				09DC10C7E841FA4B6B6BC3D4 /* Loading */,
 				7473BC3AABB7D89AF08035C0 /* Photo */,
 				BA01644556A6DF18A09808D1 /* Publisher */,
+				6CD05230D9B4A98956A1AEF0 /* Segment */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1087,6 +1098,7 @@
 				875C5815D9B3DFD90807CE11 /* UIControl+Publisher.swift in Sources */,
 				22E9BE6A63E4C891FFBF6C76 /* UIGestureRecognizer+Publisher.swift in Sources */,
 				13F779FE4F17BDBA660A1B35 /* UIView+Publisher.swift in Sources */,
+				C2004FA82FC7CFB6F4259A19 /* PillSegmentedControl.swift in Sources */,
 				DF40F78A11997062375AF294 /* AppDIContainer.swift in Sources */,
 				E201E6BB6C1AD52BDF604BFF /* ConsentViewController.swift in Sources */,
 				C51AC37E47783F8E061DFAAB /* TermsViewController.swift in Sources */,

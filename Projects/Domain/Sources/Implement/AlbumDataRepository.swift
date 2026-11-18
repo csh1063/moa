@@ -19,6 +19,10 @@ public protocol AlbumDataRepository {
     /// 병합 등으로 앨범 상세를 열어둔 채로 서버 쪽 상태(기간/이름 등)가 바뀌었을 수 있을 때, 최신 상태로 다시 조회
     func fetchAlbum(id: UUID) throws -> Album?
     func fetchPhotos(by albumId: UUID) throws -> [Photo]
+    /// 앨범 사진을 최신순으로 한 페이지씩
+    func fetchPhotos(by albumId: UUID, offset: Int, limit: Int) throws -> [Photo]
+    /// 앨범 사진 전체(최신순)와 사진마다 속한 앨범 id — 다른 앨범과의 교집합을 그 앨범 전체를 읽지 않고 구할 때
+    func fetchPhotosWithMemberships(albumId: UUID) throws -> (photos: [Photo], memberships: [String: Set<UUID>])
     func fetchFaceBoundingBoxes(clusterId: String) throws -> [String: CGRect]
     /// 대표 사진 후보 미리보기용 — fetchFaceBoundingBoxes와 같은 개념을 동물 앨범에 적용
     func fetchAnimalBoundingBoxes(clusterId: String) throws -> [String: CGRect]

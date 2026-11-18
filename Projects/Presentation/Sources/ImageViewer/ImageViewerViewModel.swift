@@ -171,7 +171,7 @@ final class ImageViewerViewModel: BaseViewModel {
             guard currentIndex == index else { return }
         }
         currentPhoto = detail
-        await loadLabels(by: detail.id)
+//        await loadLabels(by: detail.id)
         if isAction {
             onAction?(.pageChanged(detail.id))
         }

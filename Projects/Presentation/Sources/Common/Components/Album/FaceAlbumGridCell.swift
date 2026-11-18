@@ -10,7 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// "인물" 모두보기 셀 — 사각 사진 + 하단 이름(이름이 없으면 "인물 N"을 이탤릭·반투명으로)
+/// "인물" 모두보기 셀 — 사각 사진 + 직접 지은 이름이 있을 때만 하단 이름
 final class FaceAlbumGridCell: UICollectionViewCell {
 
     // MARK: - UI
@@ -126,15 +126,8 @@ final class FaceAlbumGridCell: UICollectionViewCell {
         currentIdentifier = viewModel.localIdentifier
         countBadge.text = viewModel.photoCount.formatted()
 
-        gradientView.isHidden = false
-        nameLabel.text = viewModel.displayName
-        if viewModel.isNamed {
-            nameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-            nameLabel.textColor = .white
-        } else {
-            nameLabel.font = .italicSystemFont(ofSize: 13)
-            nameLabel.textColor = UIColor.white.withAlphaComponent(0.7)
-        }
+        gradientView.isHidden = !viewModel.isNamed
+        nameLabel.text = viewModel.isNamed ? viewModel.displayName : nil
 
         coverView.layer.borderColor = viewModel.isHighlighted
             ? Theme.primary.cgColor

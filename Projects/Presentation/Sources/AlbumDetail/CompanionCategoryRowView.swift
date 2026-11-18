@@ -10,7 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// 여행 앨범 "분류순" 한 줄 — 제목 + 가로 스크롤 썸네일 + 더보기. 사람/자연/음식/공간 전부 같은 모양이다
+/// 여행 앨범 "분류순" 한 묶음 — 제목 + 5열 최대 3줄 썸네일. 15장을 넘으면 마지막 칸이 딤 처리된 더보기 칸이 된다
 final class CompanionCategoryRowView: UIView {
 
     var onTapMore: (() -> Void)?
@@ -32,22 +32,18 @@ final class CompanionCategoryRowView: UIView {
         return UIButton(configuration: config)
     }()
 
-    private let thumbnailScrollView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.showsHorizontalScrollIndicator = false
-        return sv
-    }()
-
-    private let thumbnailStackView: UIStackView = {
+    private let gridStackView: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 6
+        stack.axis = .vertical
+        stack.spacing = spacing
         return stack
     }()
 
     private var loadTasks: [Task<Void, Never>] = []
-    private static let thumbnailSize = CGSize(width: 72, height: 72)
-    private static let maxThumbnails = 6
+    private static let thumbnailSize = CGSize(width: 150, height: 150)
+    private static let columns = 5
+    private static let maxRows = 3
+    private static let spacing: CGFloat = 4
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -66,19 +62,14 @@ final class CompanionCategoryRowView: UIView {
         headerStack.alignment = .center
 
         addSubview(headerStack)
-        addSubview(thumbnailScrollView)
-        thumbnailScrollView.addSubview(thumbnailStackView)
+        addSubview(gridStackView)
 
         headerStack.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
         }
-        thumbnailScrollView.snp.makeConstraints { make in
+        gridStackView.snp.makeConstraints { make in
             make.top.equalTo(headerStack.snp.bottom).offset(8)
             make.leading.trailing.bottom.equalToSuperview()
-            make.height.equalTo(Self.thumbnailSize.height)
-        }
-        thumbnailStackView.snp.makeConstraints { make in
-            make.edges.height.equalToSuperview()
         }
 
         moreButton.addTarget(self, action: #selector(moreTapped), for: .touchUpInside)
@@ -89,27 +80,84 @@ final class CompanionCategoryRowView: UIView {
 
         loadTasks.forEach { $0.cancel() }
         loadTasks.removeAll()
-        thumbnailStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        gridStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        for photo in section.photos.prefix(Self.maxThumbnails) {
-            let imageView = UIImageView()
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            imageView.backgroundColor = Theme.strokeSoft
-            imageView.layer.cornerRadius = 10
-            imageView.snp.makeConstraints { make in
-                make.width.height.equalTo(Self.thumbnailSize.width)
-            }
-            thumbnailStackView.addArrangedSubview(imageView)
-
-            let identifier = photo.localIdentifier
-            let task = Task { [weak imageView] in
-                let image = await imageLoader.loadImage(id: identifier, size: Self.thumbnailSize)
-                guard !Task.isCancelled else { return }
-                imageView?.image = image
-            }
-            loadTasks.append(task)
+        let maxCells = Self.columns * Self.maxRows
+        let hasMore = section.photos.count > maxCells
+        let shown = Array(section.photos.prefix(maxCells))
+        var cells: [UIView] = shown.enumerated().map { index, photo in
+            let isMoreCell = hasMore && index == maxCells - 1
+            return makeThumbnail(
+                identifier: photo.localIdentifier,
+                imageLoader: imageLoader,
+                moreCount: isMoreCell ? section.photos.count - (maxCells - 1) : nil
+            )
         }
+        // 마지막 줄이 덜 차도 칸 너비가 같도록 빈 칸으로 채운다
+        while cells.count % Self.columns != 0 { cells.append(UIView()) }
+
+        for start in stride(from: 0, to: cells.count, by: Self.columns) {
+            let row = UIStackView(arrangedSubviews: Array(cells[start..<start + Self.columns]))
+            row.axis = .horizontal
+            row.spacing = Self.spacing
+            row.distribution = .fillEqually
+            gridStackView.addArrangedSubview(row)
+        }
+    }
+
+    /// moreCount가 있으면 사진 위에 딤 + "+N 더보기"를 덮은 더보기 칸
+    private func makeThumbnail(identifier: String, imageLoader: any ImageLoadable, moreCount: Int?) -> UIView {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.backgroundColor = Theme.strokeSoft
+        imageView.layer.cornerRadius = 8
+        imageView.snp.makeConstraints { make in
+            make.height.equalTo(imageView.snp.width)
+        }
+
+        let task = Task { [weak imageView] in
+            let image = await imageLoader.loadImage(id: identifier, size: Self.thumbnailSize)
+            guard !Task.isCancelled else { return }
+            imageView?.image = image
+        }
+        loadTasks.append(task)
+
+        guard let moreCount else { return imageView }
+
+        let dimView = UIView()
+        dimView.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+
+        let countLabel = UILabel()
+        countLabel.text = "+\(moreCount)"
+        countLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        countLabel.textColor = .white
+
+        let moreLabel = UILabel()
+        moreLabel.text = String(localized: "더보기", bundle: .module)
+        moreLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        moreLabel.textColor = UIColor.white.withAlphaComponent(0.9)
+
+        let labelStack = UIStackView(arrangedSubviews: [countLabel, moreLabel])
+        labelStack.axis = .vertical
+        labelStack.alignment = .center
+        labelStack.spacing = 1
+
+        imageView.addSubview(dimView)
+        dimView.addSubview(labelStack)
+        dimView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        labelStack.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
+
+        imageView.isUserInteractionEnabled = true
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(moreTapped)))
+        imageView.isAccessibilityElement = true
+        imageView.accessibilityTraits = .button
+        imageView.accessibilityLabel = String(localized: "더보기", bundle: .module) + " +\(moreCount)"
+        return imageView
     }
 
     @objc private func moreTapped() {

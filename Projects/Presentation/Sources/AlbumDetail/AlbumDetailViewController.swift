@@ -75,6 +75,17 @@ final class AlbumDetailViewController: BaseViewController {
         return btn
     }()
 
+    private let shareButton: UIButton = {
+        var config = UIButton.Configuration.filled()
+        config.image = UIImage(named: "lucide_share_2", in: .module, with: nil)
+        config.baseForegroundColor = .white
+        config.baseBackgroundColor = Theme.primary
+        config.cornerStyle = .medium
+        let btn = UIButton(configuration: config)
+        btn.isHidden = true  // 공유 버튼 숨김 — 다시 켤 때 지운다
+        return btn
+    }()
+
     private let selectedCountLabel: UILabel = {
         let lb = UILabel()
         lb.textColor = Theme.textSecondary
@@ -83,18 +94,8 @@ final class AlbumDetailViewController: BaseViewController {
         return lb
     }()
 
-    private let shareButton: UIButton = {
-        var config = UIButton.Configuration.filled()
-        config.image = UIImage(named: "lucide_share_2", in: .module, with: nil)
-        config.baseForegroundColor = .white
-        config.baseBackgroundColor = Theme.primary
-        config.cornerStyle = .medium
-        let btn = UIButton(configuration: config)
-        return btn
-    }()
-
     /// 여행 앨범 전용 — 날짜순/분류순 토글
-    private lazy var modeSegmentedControl = UISegmentedControl(items: [
+    private lazy var modeSegmentedControl = PillSegmentedControl(items: [
         String(localized: "날짜순", bundle: .module),
         String(localized: "분류순", bundle: .module)
     ])
@@ -103,6 +104,12 @@ final class AlbumDetailViewController: BaseViewController {
         let sv = UIScrollView()
         sv.showsVerticalScrollIndicator = false
         return sv
+    }()
+
+    private let categoryLoadingView: CardStackLoadingView = {
+        let view = CardStackLoadingView()
+        view.isHidden = true
+        return view
     }()
 
     private let categoryStackView: UIStackView = {
@@ -168,7 +175,7 @@ final class AlbumDetailViewController: BaseViewController {
     // MARK: - Setup
 
     private func setupView() {
-        naviView.addButtons([LeftButton(type: .back), RightButton(type: .select), RightButton(type: .more)])
+        naviView.addButtons(listModeButtons)
         configureDataSource()
         collectionView.delegate = self
 
@@ -176,11 +183,12 @@ final class AlbumDetailViewController: BaseViewController {
         view.addSubview(collectionView)
         view.addSubview(categoryScrollView)
         categoryScrollView.addSubview(categoryStackView)
+        categoryScrollView.addSubview(categoryLoadingView)
         view.addSubview(bottomBar)
         bottomBar.addSubview(selectedCountLabel)
+        bottomBar.addSubview(shareButton)
         bottomBar.addSubview(excludeButton)
         bottomBar.addSubview(deleteButton)
-        bottomBar.addSubview(shareButton)
 
         naviView.snp.makeConstraints { make in
             make.top.leading.trailing.equalToSuperview()
@@ -188,8 +196,6 @@ final class AlbumDetailViewController: BaseViewController {
 
         // 여행 앨범일 때만 날짜순/분류순 토글
         if viewModel.isTravelAlbum {
-            // 기본값이 -1이라 0으로 맞추지 않으면 분류순으로 시작한다
-            modeSegmentedControl.selectedSegmentIndex = 0
             view.addSubview(modeSegmentedControl)
             modeSegmentedControl.snp.makeConstraints { make in
                 make.top.equalTo(naviView.snp.bottom).offset(8)
@@ -217,6 +223,10 @@ final class AlbumDetailViewController: BaseViewController {
             make.edges.equalToSuperview().inset(16)
             make.width.equalTo(categoryScrollView).offset(-32)
         }
+        categoryLoadingView.snp.makeConstraints { make in
+            make.center.equalTo(categoryScrollView.frameLayoutGuide)
+            make.width.height.equalTo(60)
+        }
 
         bottomBar.snp.makeConstraints { make in
             make.leading.trailing.bottom.equalToSuperview()
@@ -238,6 +248,7 @@ final class AlbumDetailViewController: BaseViewController {
             make.height.equalTo(44)
             make.width.equalTo(44)
         }
+
         shareButton.snp.makeConstraints { make in
             // 제외 버튼은 인물 앨범에만 보인다 — 숨겨진 자리만큼 비지 않게 삭제 버튼 옆에 붙인다
             make.trailing.equalTo((viewModel.isFaceAlbum ? excludeButton : deleteButton).snp.leading).offset(-12)
@@ -250,8 +261,8 @@ final class AlbumDetailViewController: BaseViewController {
         categoryScrollView.isHidden = true
         excludeButton.isHidden = !viewModel.isFaceAlbum
         deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
-        excludeButton.addTarget(self, action: #selector(excludeButtonTapped), for: .touchUpInside)
         shareButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
+        excludeButton.addTarget(self, action: #selector(excludeButtonTapped), for: .touchUpInside)
     }
 
     private func setupBindings() {
@@ -299,7 +310,7 @@ final class AlbumDetailViewController: BaseViewController {
             .sink { [weak self] tab in
                 guard let self else { return }
                 currentDisplayTab = tab
-                modeSegmentedControl.selectedSegmentIndex = tab == .date ? 0 : 1
+                modeSegmentedControl.setSelectedIndex(tab == .date ? 0 : 1, animated: true)
                 collectionView.isHidden = tab == .category
                 categoryScrollView.isHidden = tab == .date
             }
@@ -309,6 +320,14 @@ final class AlbumDetailViewController: BaseViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] sections in
                 guard let self else { return }
+                // 계산이 끝나기 전엔 빈 화면 대신 로딩
+                guard let sections else {
+                    categoryLoadingView.isHidden = false
+                    categoryLoadingView.startAnimating()
+                    return
+                }
+                categoryLoadingView.stopAnimating()
+                categoryLoadingView.isHidden = true
                 categoryStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
                 for section in sections {
                     let row = CompanionCategoryRowView()
@@ -322,15 +341,9 @@ final class AlbumDetailViewController: BaseViewController {
             .store(in: &cancellables)
 
         if viewModel.isTravelAlbum {
-            modeSegmentedControl.selectedPublisher
-                .sink { [weak self] index in
-                    // 코드로 바꾼 값도 다시 들어오므로 실제로 바뀐 경우에만 보낸다
-                    guard let self else { return }
-                    let tab: AlbumDetailViewModel.DisplayTab = index == 0 ? .date : .category
-                    guard tab != currentDisplayTab else { return }
-                    viewModel.send(.switchTab(tab))
-                }
-                .store(in: &cancellables)
+            modeSegmentedControl.onChange = { [weak self] index in
+                self?.viewModel.send(.switchTab(index == 0 ? .date : .category))
+            }
         }
 
         bindNaviActions()
@@ -384,6 +397,13 @@ final class AlbumDetailViewController: BaseViewController {
         }
     }
 
+    /// 분류순 "더보기" 화면은 실제 앨범이 아니라 "..." 메뉴가 없다
+    private var listModeButtons: [NaviButtonSetting] {
+        viewModel.hasOptionsMenu
+            ? [LeftButton(type: .back), RightButton(type: .select), RightButton(type: .more)]
+            : [LeftButton(type: .back), RightButton(type: .select)]
+    }
+
     private func updateModeUI() {
         bottomBar.isHidden = !isMultiSelectMode
 
@@ -391,7 +411,7 @@ final class AlbumDetailViewController: BaseViewController {
         case .list:
             collectionView.allowsMultipleSelection = false
             collectionView.allowsMultipleSelectionDuringEditing = false
-            naviView.addButtons([LeftButton(type: .back), RightButton(type: .select), RightButton(type: .more)])
+            naviView.addButtons(listModeButtons)
             naviView.setMessage("")
         case .select:
             collectionView.allowsMultipleSelection = true
@@ -538,13 +558,23 @@ extension AlbumDetailViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Int, PhotoCellItemViewModel>()
         snapshot.appendSections([0])
         snapshot.appendItems(photos)
-        dataSource.apply(snapshot, animatingDifferences: true)
+        let startedAt = Date()
+        // 처음 채울 때와 다음 페이지를 붙일 때는 애니메이션 없이, 지워서 줄어들 때만 애니메이션
+        let currentCount = dataSource.snapshot().numberOfItems
+        dataSource.apply(snapshot, animatingDifferences: currentCount > 0 && photos.count < currentCount)
+        debugLog("⏱️ [앨범 상세] 그리드 \(photos.count)장 반영 — \(String(format: "%.2f", Date().timeIntervalSince(startedAt)))초")
     }
 }
 
 // MARK: - UICollectionViewDelegate
 
 extension AlbumDetailViewController: UICollectionViewDelegate {
+    // 끝에서 60칸 전에 다음 페이지를 미리 읽는다
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard indexPath.item >= collectionView.numberOfItems(inSection: indexPath.section) - 60 else { return }
+        viewModel.send(.loadMore)
+    }
+
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard isMultiSelectMode,
               let item = dataSource.itemIdentifier(for: indexPath),

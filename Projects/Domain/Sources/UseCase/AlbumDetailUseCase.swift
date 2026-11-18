@@ -12,6 +12,8 @@ public protocol AlbumDetailUseCase {
     /// 병합 등으로 기간/이름이 바뀌었을 수 있을 때 앨범 최신 상태를 다시 조회
     func fetchAlbum(id: UUID) async throws -> Album?
     func fetchPhotos(by albumId: UUID) async throws -> [Photo]
+    func fetchPhotos(by albumId: UUID, offset: Int, limit: Int) async throws -> [Photo]
+    func fetchPhotosWithMemberships(albumId: UUID) async throws -> (photos: [Photo], memberships: [String: Set<UUID>])
     func fetchFaceBoundingBoxes(clusterId: String) async throws -> [String: CGRect]
     /// 대표 사진 후보 미리보기용 — fetchFaceBoundingBoxes와 같은 개념을 동물 앨범에 적용
     func fetchAnimalBoundingBoxes(clusterId: String) async throws -> [String: CGRect]
@@ -88,6 +90,14 @@ public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
 
     public func fetchPhotos(by albumId: UUID) async throws -> [Photo] {
         try repository.fetchPhotos(by: albumId)
+    }
+
+    public func fetchPhotos(by albumId: UUID, offset: Int, limit: Int) async throws -> [Photo] {
+        try repository.fetchPhotos(by: albumId, offset: offset, limit: limit)
+    }
+
+    public func fetchPhotosWithMemberships(albumId: UUID) async throws -> (photos: [Photo], memberships: [String: Set<UUID>]) {
+        try repository.fetchPhotosWithMemberships(albumId: albumId)
     }
 
     public func fetchFaceBoundingBoxes(clusterId: String) async throws -> [String: CGRect] {
