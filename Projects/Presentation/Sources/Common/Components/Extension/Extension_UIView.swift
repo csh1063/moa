@@ -101,10 +101,7 @@ extension UIView {
         }
     }
 
-    // border 생성 — CALayer의 borderColor는 UIColor와 달리 라이트/다크 모드를 자동으로 안 따라가고
-    // 지정한 시점의 색을 그대로 굳혀버린다. 그래서 트레잇(다크모드 등)이 바뀔 때마다 다시 풀어주는
-    // 핸들러를 걸어둔다. addBorder가 같은 뷰에 여러 번 불려도(예: layoutSubviews마다) 핸들러가
-    // 중복으로 쌓이긴 하지만, 전부 "그때그때 원하던 색"을 다시 바르는 것뿐이라 결과는 항상 맞다
+    // border 생성 — layer 색은 다크모드를 안 따라가서 트레잇이 바뀔 때마다 다시 칠한다
     func addBorder(color: UIColor, borderWidth: CGFloat = 1) {
         layer.borderColor = color.resolvedColor(with: traitCollection).cgColor
         layer.borderWidth = borderWidth

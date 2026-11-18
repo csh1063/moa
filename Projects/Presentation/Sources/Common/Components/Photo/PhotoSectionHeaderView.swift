@@ -37,8 +37,7 @@ final class PhotoSectionHeaderView: UICollectionReusableView {
         countLabel.text = String(localized: "\(data.count)장", bundle: .module)
     }
 
-    /// 접기 지원 화면에서 현재 접힘 상태에 맞춰 화살표를 회전시킨다. animated가 false인 상태로 매번
-    /// 재사용 셀에 configure될 때도 호출되므로, 회전 애니메이션은 실제 탭(toggle) 시점에만 켠다.
+    /// 접힘 상태에 맞춰 화살표 회전 — 애니메이션은 실제 탭할 때만
     func setCollapsible(isCollapsed: Bool, animated: Bool) {
         chevronIcon.isHidden = false
         let rotation: CGFloat = isCollapsed ? -.pi / 2 : 0

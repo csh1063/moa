@@ -45,8 +45,7 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         try context.save()
     }
 
-    // 라이브러리 전체를 분석 전에 한 번에 저장할 때 사용 — 사진마다 context/save를 새로 만들지 않고
-    // 기존 id를 한 번에 조회한 뒤 하나의 context에 모아 insert, 일정 개수마다만 save 커밋한다.
+    // 기존 id를 한 번에 조회하고 하나의 context에 모아 넣은 뒤 일정 개수마다 저장한다
     public func saveAllPhotosBase(_ photos: [Photo]) throws {
         guard !photos.isEmpty else { return }
 
@@ -84,6 +83,7 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         }
     }
 
+    /// 분석 결과 저장 — 사진이 없으면 만들고 들어온 값만 갱신, 라벨/얼굴/동물 임베딩은 새 값이 있을 때만 통째로 교체
     public func saveAndUpdateLabels(photo: Photo, labels: [PhotoLabel]) async throws {
         try await Task.detached(priority: .high) { [container] in
             let context = ModelContext(container)
@@ -222,7 +222,6 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         var fetchDescriptor = FetchDescriptor<PhotoEntity>(
             predicate: #Predicate { $0.analyzedAt != nil }
         )
-        // id만 쓰는데 사진 정보 전체를 읽고 있었다 — 수만 장이면 이것만으로 눈에 띄게 느리다
         fetchDescriptor.propertiesToFetch = [\.localIdentifier]
         return try context.fetch(fetchDescriptor).map { $0.localIdentifier }
     }
@@ -269,8 +268,7 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
 
     public func fetchLocationUnanalyzed() throws -> [Photo] {
         let context = ModelContext(container)
-        // 라벨/얼굴 분석(analyzedAt)과 주소 변환이 이제 동시에 진행되므로, 라벨 분석 완료 여부가 아니라
-        // 기본 정보 저장 단계(saveAllPhotosBase)에서 채워지는 latitude 유무로 대상 사진을 판단한다.
+        // 주소 변환이 라벨 분석과 동시에 돌아서, 분석 여부 대신 좌표 유무로 대상을 고른다
         let fetchDescriptor = FetchDescriptor<PhotoEntity>(
             predicate: #Predicate { $0.latitude != nil && $0.isoCountryCode == nil }
         )
@@ -279,17 +277,13 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
 
     public func fetchSyncPhotoId(byAlbum localIdentifier: UUID) throws -> String? {
         let context = ModelContext(container)
-        // PhotoEntity를 관계 predicate($0.albums.contains)로 직접 조회하면, 다른 컨텍스트에서 방금
-        // 바뀐 관계가 앱을 재시작하기 전까진 반영이 안 되는 경우가 있다(SwiftData의 to-many 관계
-        // predicate 관련 알려진 문제). AlbumEntity를 id로 먼저 찾아 album.photos로 읽으면
-        // 관계 폴팅이 정상적으로 최신 상태를 반영한다.
+        // 관계 predicate로 조회하면 다른 컨텍스트의 변경이 늦게 반영돼서 앨범을 먼저 찾아 album.photos로 읽는다
         let albumDescriptor = FetchDescriptor<AlbumEntity>(
             predicate: #Predicate { $0.id == localIdentifier }
         )
         guard let album = try context.fetch(albumDescriptor).first else { return nil }
 
-        // 앱 켤 때마다 최신 사진으로 덮어쓰면 인물 앨범의 화질 기준 대표사진이 매번 사라진다 —
-        // 지금 대표사진이 앨범에서 없어졌을 때만 규칙대로 다시 고른다
+        // 대표 사진이 앨범에서 없어졌을 때만 다시 고른다(인물 앨범 화질 기준 대표 유지)
         album.repairCoverIfMissing()
         try context.save()
         return album.coverPhotoIdentifier
@@ -313,8 +307,7 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         return try context.fetch(fetchDescriptor).map { $0.toDomain() }
     }
 
-    // 날짜/주소/카테고리 앨범 분류를 아직 거치지 않은 사진만 limit개씩 반환.
-    // offset 페이징이라 순회 도중 markAlbumsGenerated를 부르면 목록이 밀린다 — 순회가 다 끝난 뒤에 표시할 것.
+    // 아직 날짜/주소/카테고리 분류를 안 거친 사진 — offset 페이징이라 완료 표시는 순회가 끝난 뒤에
     public func fetchAlbumUnclassified(limit: Int, offset: Int) throws -> [Photo] {
         let context = ModelContext(container)
         var fetchDescriptor = FetchDescriptor<PhotoEntity>(
@@ -350,9 +343,7 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         try context.save()
     }
 
-    // 비슷한사진 비교를 아직 거치지 않은 "새 사진" 전체 (시간 윈도우 이웃을 찾으려면 전체 목록이 필요해서 페이지네이션하지 않음)
-    // 영상은 임베딩 비교 대상이 아니라서 제외 — 다른 분류(라벨/얼굴/동물)와 달리 여기는 "라벨/임베딩이
-    // 없어서 자연히 안 걸리는" 구조가 아니라 PHAsset을 직접 다시 불러와 특징벡터를 뽑기 때문에 명시적으로 걸러야 한다
+    // 아직 비슷한 사진 비교를 안 거친 사진 전체(시간 윈도우 때문에 페이징 안 함) — 영상 제외
     public func fetchSimilarUnchecked() throws -> [Photo] {
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<PhotoEntity>(
@@ -385,8 +376,7 @@ public final class DefaultPhotoDataRepository: PhotoDataRepository {
         let entities = try context.fetch(fetchDescriptor)
         guard !entities.isEmpty else { return }
 
-        // 영향받는 앨범을 먼저 한 번만 모아서, 앨범당 스캔/대표사진 재계산을 사진 개수가 아니라
-        // 앨범 개수만큼만 하게 한다 (예전엔 사진마다 소속 앨범을 매번 통째로 다시 스캔했음)
+        // 영향받는 앨범을 먼저 모아서 앨범당 한 번만 다시 계산한다
         var touchedAlbums: [UUID: AlbumEntity] = [:]
         for entity in entities {
             for album in entity.albums {

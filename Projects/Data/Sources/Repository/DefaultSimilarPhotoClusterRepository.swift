@@ -17,8 +17,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
 
     public var threshold: Float = 0.35
     public var timeWindowMinutes: Double = 24 * 60 * 2
-    /// 1차 클러스터링(윈도우 내)에서 시간 공백 때문에 끊긴 그룹들을,
-    /// 시간 제약 없이 centroid(그룹 평균 벡터) 기준으로 한 번 더 병합할 때 쓰는 threshold.
+    /// 시간 공백으로 끊긴 그룹들을 centroid 기준으로 한 번 더 병합할 때의 threshold
     public var mergeThreshold: Float = 0.4
 
     private let minSimilarCount: Int = 2
@@ -31,6 +30,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
         self.container = container
     }
 
+    /// 전체 재계산 — 시간 윈도우 안에서 특징벡터 거리로 묶고(Union-Find), 그룹 centroid로 한 번 더 병합한 뒤 앨범으로 저장한다
     public func clusterAndSaveAlbums(
         photos: [Photo],
         existingAlbums: [Album],
@@ -244,6 +244,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
         debugLog("✅ [SimilarPhoto] 완료")
     }
 
+    /// 증분 — 새 사진 전후 윈도우 안 사진만 같은 방식으로 묶어서 기존 앨범에 더하거나 새로 만든다
     public func clusterNewPhotos(
         newPhotos: [Photo],
         allPhotos: [Photo],
@@ -427,8 +428,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
                 .compactMap { entity in entity.albums.first(where: { $0.from == "similar" }) }
                 .first
 
-            // 이미 있는 앨범에 몇 장 더 붙는 거면 그대로 진행하고, 새로 만드는 경우에만
-            // minimumAlbumSize 미만이면 앨범을 만들지 않는다
+            // 기존 앨범에 붙는 건 그대로, 새 앨범만 최소 크기를 본다
             guard existingAlbum != nil || groupPhotos.count >= minimumAlbumSize else { continue }
 
             let album: AlbumEntity
@@ -467,8 +467,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
 
     // MARK: - Private
 
-    // assetsd가 죽는 등의 이유로 PHImageManager 콜백이 영영 안 올 수 있다 — isSynchronous 콜백이므로
-    // 타임아웃 없이 걸리면 이 continuation이 영원히 안 풀려서 상위 분석/앨범생성 파이프라인 전체가 멈춘다.
+    // 콜백이 영영 안 올 수 있어서 파이프라인 전체가 멈추지 않게 타임아웃을 둔다
     private static let featureVectorTimeout: TimeInterval = 8
 
     private func extractFeatureVector(localIdentifier: String) async -> [Float]? {
@@ -526,8 +525,7 @@ public final class DefaultSimilarPhotoClusterRepository: SimilarPhotoClusterRepo
     }
 }
 
-/// PHImageManager 콜백과 타임아웃 둘 다 같은 continuation을 resume하려 할 수 있어서, 스레드 안전하게
-/// 딱 한 번만 resume되도록 보장한다 — CheckedContinuation은 중복 resume 시 크래시하기 때문에 필요하다.
+/// 콜백과 타임아웃 중 한 번만 resume되게 보장한다(중복 resume은 크래시)
 private final class ResumeOnceGuard {
     private let lock = NSLock()
     private var didResume = false

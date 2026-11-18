@@ -80,8 +80,7 @@ final class AlbumEmtpyView: UIView {
         return label
     }()
 
-    /// 자동 분석과 별개로, 사진첩에 이미 있는 앨범을 그대로 가져오는 보조 동작 — 강조하지 않고
-    /// 텍스트 버튼 정도로 아래쪽에 조용히 둔다
+    /// 사진첩 앨범 가져오기 — 보조 동작이라 텍스트 버튼으로 조용히
     private let libraryImportButton: UIButton = {
         var config = UIButton.Configuration.plain()
         config.title = String(localized: "사진첩 앨범 불러오기", bundle: .module)
@@ -148,9 +147,7 @@ final class AlbumEmtpyView: UIView {
 
         addSubview(libraryImportButton)
 
-        // 카드 높이를 고정값(180)으로 박아두면 메시지가 길어지거나 기기 폭이 좁아 줄바꿈이 늘어날 때
-        // 텍스트가 잘려서 "..."으로 보이는 문제가 있었다 — 내부 요소들의 top~bottom 제약 체인이 이미
-        // 높이를 완전히 결정하므로, 고정 높이 없이 내용에 맞춰 자연스럽게 늘어나게 둔다.
+        // 높이는 고정하지 않고 내용에 맞춘다(줄바꿈이 늘면 잘리지 않게)
         analysisView.snp.makeConstraints { make in
             make.top.equalTo(self).offset(16)
             make.leading.trailing.equalTo(self).inset(20)

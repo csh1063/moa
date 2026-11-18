@@ -30,10 +30,7 @@ final class AlbumViewController: BaseViewController {
 
     private var dataSource: UICollectionViewDiffableDataSource<AlbumSection, AlbumType>!
 
-    // makeLayout()의 섹션 프로바이더/셀 configure 클로저가 스크롤 중 매번 불리는데, 그때마다
-    // dataSource.snapshot()을 새로 읽으면(스냅샷 재구성 비용이 있음) 그게 그대로 스크롤 멈칫거림으로
-    // 이어진다. applySnapshot()에서 데이터가 바뀔 때만 미리 계산해서 캐싱해두고, 레이아웃/셀
-    // 클로저는 이 캐시만 읽는다.
+    // 스크롤 중 레이아웃/셀 클로저가 스냅샷을 매번 읽지 않게 데이터가 바뀔 때 미리 계산해둔다
     private var cachedSections: [AlbumSection] = []
     private var cachedItemCounts: [AlbumSection: Int] = [:]
     private var categoryRealCount = 0
@@ -186,9 +183,7 @@ final class AlbumViewController: BaseViewController {
         return section
     }
 
-    /// 여행앨범: 세로 리스트, 높이 100pt
-    /// 풀블리드 사진 + 하단 그라데이션 캡션 디자인이라, 카드 하나가 충분히 커야 사진이 잘 보인다 —
-    /// 기존처럼 2장을 쌓아 보여주지 않고 페이지당 큼직한 카드 1장만 보여준다
+    /// 여행앨범: 페이지당 큰 카드 1장
     private func makeTravelSection() -> NSCollectionLayoutSection {
         let itemSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
@@ -268,9 +263,7 @@ final class AlbumViewController: BaseViewController {
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        // 영상 카드는 라벨 분류 카드 묶음이랑 붙여두지 않고 사이에 여백을 둬서 시각적으로 분리한다 —
-        // 카테고리가 하나도 없거나 영상 앨범이 아직 없으면 기존처럼 붙은 리스트 하나로 렌더링
-        // (realCategoryCount/hasVideo는 applySnapshot에서 미리 계산해둔 캐시)
+        // 영상 카드는 카테고리 카드 묶음과 여백을 두고 떨어뜨린다
         let realCategoryCount = categoryRealCount
         let hasVideo = categoryHasVideo
 
@@ -412,13 +405,11 @@ extension AlbumViewController {
         let categoryRegistration = UICollectionView.CellRegistration<CategoryAlbumCell, CategoryAlbumCellViewModel> { [weak self] cell, indexPath, vm in
             guard let self else { return }
             if vm.album.from == "video" {
-                // 영상은 라벨 분류가 아니라 매체 종류로 묶인 거라, 카테고리 카드 그룹에 이어붙이지 않고
-                // 그 자체로 완결된(둥근 모서리 4곳 다) 별도 카드로 맨 뒤에 붙인다
+                // 영상은 카테고리 묶음에 잇지 않고 별도 카드로 맨 뒤에
                 cell.isFirst = true
                 cell.isLast = true
             } else if vm.album.from == "library" {
-                // "가져온 앨범" 섹션은 카테고리와 다른 섹션이라 아이템 개수가 다르다 — 카테고리용
-                // categoryRealCount를 그대로 쓰면 경계가 틀어지므로 이 섹션의 실제 개수를 따로 읽는다
+                // "가져온 앨범"은 이 섹션의 실제 개수로 경계를 정한다
                 let count = self.cachedItemCounts[.library] ?? 0
                 cell.isFirst = (indexPath.item == 0)
                 cell.isLast  = (indexPath.item == count - 1)
@@ -509,19 +500,14 @@ extension AlbumViewController {
         snapshot.appendSections(data.sections)
         data.sections.forEach { snapshot.appendItems(data.items[$0] ?? [], toSection: $0) }
 
-        // 레이아웃/셀 클로저가 스크롤 중 매번 dataSource.snapshot()을 다시 읽으면(재구성 비용 있음)
-        // 멈칫거림으로 이어져서, 데이터가 바뀌는 시점(여기)에 한 번만 계산해서 캐싱해둔다.
+        // 스크롤 중 다시 읽지 않게 여기서 한 번만 계산해둔다
         cachedSections = data.sections
         cachedItemCounts = data.sections.reduce(into: [:]) { $0[$1] = data.items[$1]?.count ?? 0 }
         let categoryItems = data.items[.category] ?? []
         categoryRealCount = categoryItems.filter { $0.album.from != "video" }.count
         categoryHasVideo = categoryItems.contains { $0.album.from == "video" }
 
-        // 레이아웃 객체를 다시 만들 필요가 아예 없다 — makeLayout()의 섹션 프로바이더 클로저가
-        // 호출될 때마다 위 캐시를 읽어서 섹션 구성을 판단하므로, apply()만 해주면 컴포지셔널
-        // 레이아웃이 알아서 최신 섹션 구성으로 다시 계산해준다.
-        // (레이아웃 객체를 setCollectionViewLayout으로 스왑하던 예전 방식이 최초 진입 시 스크롤이
-        // 맨 위가 아니게 밀리는 문제, 데이터 갱신 후 스크롤 위치가 리셋되는 문제 둘 다의 원인이었음)
+        // 레이아웃은 다시 만들지 않는다 — 섹션 프로바이더가 캐시를 읽어서 apply만으로 갱신된다
         dataSource.apply(snapshot, animatingDifferences: true)
     }
 }

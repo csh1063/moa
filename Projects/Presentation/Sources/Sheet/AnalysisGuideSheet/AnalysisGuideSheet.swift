@@ -9,9 +9,8 @@ import UIKit
 import SnapKit
 import Domain
 
-/// 분석하기를 누르면 뜨는 시작 안내 — 분석할 사진 수와 예상 시간, 기다리는 동안 알아둘 것.
-/// 처음(분석된 사진이 없을 때)은 오래 걸려서 안내 3개, 추가 분석은 Wi-Fi 안내만 보여준다.
-/// 사진 수는 사진첩 전체를 훑어야 해서, 시트를 먼저 띄우고 두 숫자 칸만 "..."로 돌리다가 채운다
+/// 분석 시작 안내 — 사진 수와 예상 시간, 기다리는 동안 알아둘 것(최초는 3개, 추가 분석은 Wi-Fi만)
+/// 사진 수는 시트를 먼저 띄운 뒤 "..."로 돌리다가 채운다
 final class AnalysisGuideSheet: UIViewController {
 
     var onStart: (() -> Void)?

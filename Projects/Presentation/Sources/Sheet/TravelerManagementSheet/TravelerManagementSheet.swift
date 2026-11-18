@@ -10,10 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// 여행 앨범의 등장인물을 추가/삭제/이름변경까지 한 화면에서 처리하는 시트.
-/// "여행자"(연결됨) / "인물 앨범"(안 됨) 두 섹션으로 나뉘고, 사진을 탭하면 섹션 간 이동(추가/삭제 예약),
-/// 이름+펜 아이콘을 탭하면 바로 이름 변경(즉시 저장)된다. 아래로 쓸어내리면 취소(섹션 이동만 되돌림 —
-/// 이름 변경은 이미 저장된 채 유지), "저장"을 누르면 여행자 섹션을 그대로 저장한다 — 합치기/분리 시트와 같은 형식
+/// 여행 동행자 관리 — "여행자"/"인물 앨범" 두 섹션, 사진 탭으로 이동, 이름은 즉시 저장, "저장"으로 여행자 확정
 final class TravelerManagementSheet: UIViewController {
 
     // MARK: - Properties
@@ -153,8 +150,7 @@ final class TravelerManagementSheet: UIViewController {
 
     // MARK: - Section move
 
-    // reloadData()는 화면 전체를 통째로 다시 그려서 셀들이 한 프레임 사라졌다 나오는 깜빡임이 생긴다 —
-    // 옮겨지는 셀 하나만 delete+insert로 애니메이션되도록 performBatchUpdates를 쓴다
+    // 셀 하나만 옮기는 애니메이션으로 깜빡임을 없앤다
     private func moveToTravelers(from indexPath: IndexPath) {
         guard others.indices.contains(indexPath.item) else { return }
         let person = others.remove(at: indexPath.item)

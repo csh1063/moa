@@ -28,9 +28,7 @@ public final class PhotoLibraryService {
 
     public init() {}
 
-    /// "사진첩 앨범 불러오기" 피커용 — 스마트 앨범(즐겨찾기/전체/셀피 등)은 제외하고 사용자가 직접
-    /// 만든 앨범만 대상으로 한다. 스마트 앨범까지 포함하면 "전체"를 가져오는 등 이미 자동분류와
-    /// 겹치는 선택지가 생겨서 혼란스럽다는 피드백으로 사용자 앨범만 남김.
+    /// "사진첩 앨범 불러오기"용 — 사용자가 만든 앨범만(스마트 앨범 제외)
     public func getAlbumList() async throws -> [AlbumAssetEntity] {
 
         return await Task.detached(priority: .userInitiated) {
@@ -215,9 +213,7 @@ public final class PhotoLibraryService {
         }
     }
 
-    // assetsd 등 시스템 문제로 PHImageManager 콜백이 영영 안 올 수 있다 — 타임아웃 없이 걸리면 이
-    // continuation이 영원히 안 풀려서, 분석이 20장씩 동시처리하는 배치 구조라 그 배치 전체가 멈추고
-    // 이후 배치는 시작도 못 한다(DefaultSimilarPhotoClusterRepository.extractFeatureVector와 동일한 문제/해법).
+    // 시스템 문제로 콜백이 영영 안 올 수 있어서, 배치 전체가 멈추지 않게 타임아웃을 둔다
     private static let loadImageTimeout: TimeInterval = 8
 
     public func loadImage(id: String, type: LoadPhotoOptionType) async throws -> CGImage? {
@@ -236,11 +232,7 @@ public final class PhotoLibraryService {
             contentMode = .default
         case .specialSize(let specialSize):
             options.resizeMode = .fast
-            // opportunistic은 저화질 콜백 → 고화질 콜백 순으로 두 번 불릴 수 있는데, 여기선
-            // continuation을 한 번만 resume할 수 있어서 저화질은 무시하고 고화질 콜백을 기다렸다.
-            // 그런데 자산에 따라 고화질 콜백이 아예 오지 않는 경우가 있어(특히 시뮬레이터에 방금
-            // 추가된 자산), continuation이 영원히 resume되지 않고 호출부가 무한 대기에 빠지는
-            // 버그가 있었다. 어차피 결과를 하나만 쓰므로 처음부터 고화질만 요청하도록 바꿔서 해결.
+            // 고화질 콜백만 요청한다 — opportunistic은 고화질 콜백이 안 오는 자산이 있어 무한 대기할 수 있다
             options.deliveryMode = .highQualityFormat
             options.isSynchronous = false
             options.isNetworkAccessAllowed = true
@@ -280,10 +272,7 @@ public final class PhotoLibraryService {
         }
     }
 
-    /// 그리드/카드 썸네일 전용 — opportunistic으로 저화질 콜백을 먼저 받아 즉시 보여주고, 뒤이어
-    /// 오는 고화질 콜백으로 교체한다. continuation 기반이 아니라 콜백을 그대로 넘겨주는 방식이라,
-    /// 예전에 고화질 콜백이 아예 안 오는 자산에서 무한대기하던 문제(위 loadImage 주석 참고)가
-    /// 구조적으로 재발할 수 없다 — 저화질만 오고 끝나도 호출부는 그냥 그 상태로 남을 뿐이다.
+    /// 그리드/카드 썸네일 전용 — 저화질을 먼저 보여주고 고화질 콜백이 오면 바꾼다
     public func loadImageProgressive(
         id: String,
         targetSize: CGSize,
@@ -385,8 +374,7 @@ extension PHFetchOptions {
         return option
     }
 
-    /// 사진 + 영상 둘 다 포함 — 영상은 라벨/얼굴/동물 인식·비슷한사진 비교 대상에서만 제외되고
-    /// 라이브러리 조회 자체는 사진과 동일하게 취급한다(날짜/지역/여행 앨범에는 그대로 들어가야 하므로)
+    /// 사진 + 영상 — 영상은 날짜/지역/여행 앨범에는 들어가고 분석 대상에서만 빠진다
     static var mediaTypePredicate: NSPredicate {
         NSPredicate(
             format: "mediaType = %d OR mediaType = %d",

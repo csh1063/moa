@@ -24,9 +24,7 @@ public final class GeocoderService {
         return dict
     }()
 
-    // CLGeocoder가 응답을 영영 안 줄 수 있다(레이트리밋/네트워크 문제 등) — 타임아웃 없이 걸리면
-    // 이걸 순차로 돌리는 여행 감지 파이프라인 전체가 멈춘다. 비슷한 사진 쪽 PHImageManager 콜백에
-    // 이미 걸어둔 것과 같은 이유의 같은 종류 안전장치
+    // 응답이 영영 안 올 수 있어서, 여행 감지가 멈추지 않게 타임아웃을 둔다
     private static let geocodeTimeout: TimeInterval = 8
 
     public init() {

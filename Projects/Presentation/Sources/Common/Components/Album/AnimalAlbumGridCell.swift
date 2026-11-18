@@ -10,8 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// FaceAlbumGridCell과 동일한 레이아웃 — "인물" 모두보기 그리드에서 동물 앨범용. 발바닥
-/// placeholder, "나" 하이라이트 없음 (동물에는 해당 없음)만 다르다.
+/// "인물" 모두보기의 동물 앨범 셀 — FaceAlbumGridCell과 같고 발바닥 placeholder만 다르다
 final class AnimalAlbumGridCell: UICollectionViewCell {
 
     // MARK: - UI

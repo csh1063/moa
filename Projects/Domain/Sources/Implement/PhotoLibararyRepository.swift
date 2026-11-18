@@ -17,8 +17,7 @@ public protocol PhotoLibraryRepository {
     func fetchImageIds() async throws -> [String]
     func checkPermission() async throws -> PhotoPermission
     func loadImage<T>(id: String, type: LoadPhotoOptionType) async throws -> ImageData<T>
-    /// 상세화면 실제 재생용 — 영상만 해당, T는 호출부에서 AVPlayerItem으로 캐스트한다
-    /// (다른 로딩 경로와 마찬가지로 Domain이 AVFoundation을 직접 알 필요 없게 제네릭으로 타입 소거)
+    /// 뷰어 재생용 — 영상만, T는 호출부에서 AVPlayerItem으로 캐스트(Domain이 AVFoundation을 몰라도 되게)
     func loadVideoAsset<T>(id: String) async throws -> T?
     func deletePhotos(by ids: [String]) async throws
     /// 여행 앨범 "사진 추가" 피커용 — 기준 날짜 이전 사진(최신순)/이후 사진(오래된순)을 페이지 단위로 조회
@@ -28,8 +27,7 @@ public protocol PhotoLibraryRepository {
     func fetchDeviceAlbums() async throws -> [AlbumAsset]
     /// 특정 기기 앨범에 속한 사진 전체(페이지 없이 한 번에) — 이 앨범을 moa 앨범으로 가져올 때 사용
     func fetchAllPhotos(in collection: PHAssetCollection) async throws -> [PhotoInAlbum]
-    /// 그리드/카드 썸네일 전용 — 저화질 콜백을 먼저 받아 즉시 보여주고, 뒤이어 오는 고화질 콜백으로
-    /// 교체한다. onImage는 자산에 따라 1번(저화질만) 또는 2번(저화질→고화질) 불릴 수 있다.
+    /// 썸네일 전용 — 저화질 먼저, 그다음 고화질. onImage는 1~2번 불린다
     func loadImageProgressive<T>(id: String, size: CGSize, onImage: @escaping (ImageData<T>, _ isFinal: Bool) -> Void) async
 }
 

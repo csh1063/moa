@@ -8,8 +8,7 @@
 
 import Foundation
 
-/// 여행 앨범 이름 짓기 규칙 — 자동 생성(AutoAlbumUseCase)과 여행 합치기(AlbumDetailUseCase)가
-/// 같은 알고리즘을 쓰도록 공용으로 뺀 순수 함수 모음
+/// 여행 앨범 이름 규칙 — 자동 생성과 합치기가 같이 쓴다
 public enum TravelAlbumNaming {
     private static let administrativeAreaReplacements: [String: String] = [
         "전북특별자치도": "전라북도",

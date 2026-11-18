@@ -11,8 +11,8 @@ import Combine
 import SnapKit
 import Domain
 
-/// 자주가는 동네 추가/수정 — 주소로 검색하거나 지도를 움직여 가운데 타겟에 핀을 꽂고, 적용 → 이름 정해서 저장.
-/// 지도를 끄는 제스처가 뒤로가기 스와이프로 먹혀 화면이 닫히던 문제 때문에 전체화면 present로 띄운다
+/// 자주가는 동네 추가/수정 — 검색하거나 지도를 움직여 가운데에 핀을 꽂고, 적용 → 이름 정해서 저장
+/// 지도를 끄는 제스처가 뒤로가기로 먹히지 않게 전체화면으로 띄운다
 final class FrequentPlaceAddViewController: UIViewController {
 
     var onSave: ((_ latitude: Double, _ longitude: Double, _ title: String, _ address: String?) -> Void)?

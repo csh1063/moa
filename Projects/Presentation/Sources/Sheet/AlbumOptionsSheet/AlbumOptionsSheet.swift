@@ -86,8 +86,7 @@ final class SelectionSheet: UIViewController {
 
     // MARK: - Detent
 
-    /// 옵션 개수에 맞춰 시트가 딱 맞게 늘어나도록 계산한 높이 — 항목이 많아지면 화면의 80%에서 멈추고
-    /// 그 이상은 scrollView가 스크롤로 처리한다.
+    /// 옵션 개수에 맞춘 높이 — 화면 80%에서 멈추고 나머지는 스크롤
     var preferredDetentHeight: CGFloat {
         let rowHeight: CGFloat = 58
         let rowSpacing: CGFloat = 12

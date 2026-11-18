@@ -15,8 +15,7 @@ public struct FaceEmbedding: Hashable, ClusterableEmbedding {
     public let boundingBox: CGRect
     public let hasGlasses: Bool
     public let photoId: String
-    /// Apple Vision의 VNDetectFaceCaptureQualityRequest 점수 (흐림/노출/각도 등을 종합한 화질 지표, 0~1).
-    /// 앨범 대표 사진을 boundingBox 크기가 아니라 실제 화질로 고르기 위해 저장한다.
+    /// 얼굴 화질 점수(0~1) — 대표 사진을 화질로 고르는 데 쓴다
     public let captureQuality: Float
 
     public init(

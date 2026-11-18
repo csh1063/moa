@@ -18,8 +18,7 @@ public protocol AlbumUseCase {
     func createDummy() async throws
     func fetchCoverFaceBoundingBox(albumId: UUID) async throws -> CGRect?
     func fetchCoverAnimalBoundingBox(albumId: UUID) async throws -> CGRect?
-    /// 앨범 타입에 맞는 삭제 경로로 라우팅한다 — 인물/동물은 재분석해도 다시 안 생기도록
-    /// 블랙리스트까지 처리하는 전용 삭제를, 그 외 타입은 범용 삭제를 사용한다.
+    /// 앨범 삭제 — 인물/동물은 재분석해도 다시 안 생기게 블랙리스트까지 처리한다
     func deleteAlbum(_ album: Album) async throws
 }
 

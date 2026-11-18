@@ -10,12 +10,8 @@ import UIKit
 import SnapKit
 import Domain
 
-/// "대표 사진 변경"에서 후보 사진을 고른 직후, 실제로 저장하기 전에 각 앨범 타입의 실제 셀 모양으로
-/// 어떻게 보일지 미리 보여주고 취소/선택으로 확정 여부를 사용자가 직접 결정하게 한다.
-/// 얼굴/동물은 실제 커버와 똑같이 얼굴/동물 부분만 크롭해서 보여준다 — 단, 그 크롭에 쓰는 boundingBox는
-/// "지금 DB에 저장된 커버 사진" 기준으로만 조회되는 fetchCoverFaceBoundingBox 대신, 클러스터 전체의
-/// 사진별 boundingBox 맵(fetchFaceBoundingBoxes)에서 후보 사진 id로 직접 찾는다 — 안 그러면 아직
-/// 저장 전인 후보 사진에는 옛 커버의 boundingBox가 잘못 적용된다.
+/// 대표 사진 미리보기 — 실제 셀 모양으로 보여주고 취소/선택으로 확정한다
+/// 얼굴/동물 크롭은 저장 전 후보 사진 기준이라, 클러스터 전체의 사진별 boundingBox에서 후보 id로 찾는다
 final class CoverPhotoPreviewViewController: UIViewController {
 
     var onCancel: (() -> Void)?
@@ -151,10 +147,7 @@ final class CoverPhotoPreviewViewController: UIViewController {
             previewAlbum.coverPhotoIdentifier = candidateId
 
             let cell = TravelAlbumCell(frame: CGRect(x: 0, y: 0, width: 260, height: 190))
-            // TravelAlbumCell 내부의 둥근 카드(containerView)는 collectionView가 셀 크기를 먼저
-            // 정해준 뒤에 그 안에서만 그려지는 걸 전제로 만들어져서, 여기처럼 콜렉션뷰 밖에서 직접
-            // 띄우면 레이아웃 타이밍상 contentView의 흰 배경 모서리가 살짝 각지게 남아 보인다.
-            // 셀 자체를 통째로 둥글게 잘라서 안전하게 막는다
+            // 콜렉션뷰 밖에서 띄우면 모서리가 각져 보여서 셀 자체를 둥글게 자른다
             cell.layer.cornerRadius = 16
             cell.layer.masksToBounds = true
             previewContainer.addSubview(cell)
@@ -167,10 +160,7 @@ final class CoverPhotoPreviewViewController: UIViewController {
         } else {
             let circle = CoverCirclePreviewView(isAnimal: album.from == "animal")
             previewContainer.addSubview(circle)
-            // circle 내부는 avatarContainer(160x160) 아래에 nameLabel이 더 붙는 구조라 전체 높이가
-            // 160보다 크다 — 여기서 height까지 160으로 강제하면 avatarContainer 쪽과 충돌해서
-            // 원이 찌그러져 보였다. 높이는 내부 체인(avatar + 간격 + nameLabel)이 알아서 정하게 두고,
-            // 너비만 avatarContainer 폭에 맞춰준다
+            // 원 아래에 이름이 붙어 높이는 내부가 정하게 두고 너비만 맞춘다
             circle.snp.makeConstraints { make in
                 make.top.leading.trailing.bottom.equalToSuperview()
                 make.width.equalTo(160)
@@ -208,9 +198,7 @@ final class CoverPhotoPreviewViewController: UIViewController {
         }
     }
 
-    /// 딤 → 버튼 → 사진(+안내 문구) 순서로 하나씩 나타나도록 단계별로 지연시켜서 애니메이션한다.
-    /// (전체를 한 번에 페이드하면 modal의 crossDissolve 전환과 겹쳐서 딤보다 텍스트/버튼이 먼저
-    /// 보이는 것처럼 느껴졌다)
+    /// 딤 → 버튼 → 사진 순으로 단계별로 나타나게 한다
     private func animateIn() {
         UIView.animate(withDuration: 0.22) {
             self.dimView.alpha = 1
@@ -256,9 +244,7 @@ private struct CoverPreviewImageLoader: ImageLoadable {
         return UIImage(cgImage: cgImage)
     }
 
-    /// FaceCellViewModel/AnimalCellViewModel과 동일한 크롭 로직 — boundingBox가 없으면 원본 그대로 반환.
-    /// 얼굴 박스는 사진 전체의 일부라, 화면 표시 크기로 원본을 불러오면 크롭 후 해상도가 낮아지므로
-    /// 원본은 항상 넉넉한 고정 크기로 불러온다
+    /// 얼굴/동물 크롭 — 크롭 후 해상도가 낮아지지 않게 원본은 넉넉한 고정 크기로 불러온다
     func loadCroppedImage(id: String, boundingBox: CGRect?, scale: CGFloat) async -> UIImage? {
         let sourceLoadSize = CGSize(width: 1024, height: 1024)
         guard let cgImage: CGImage = try? await imageUseCase.loadImage(id: id, type: .specialSize(sourceLoadSize)).cgImage else { return nil }
@@ -295,8 +281,7 @@ private struct CoverPreviewImageLoader: ImageLoadable {
 
 // MARK: - Circle Preview (얼굴/동물)
 
-/// FaceAlbumCell/AnimalAlbumCell과 같은 시각적 형태(원형 아바타 + 개수 배지 + 이름)를 미리보기용으로
-/// 더 크게 그린 뷰. 이미지는 실제 커버와 동일하게 얼굴/동물 부분만 크롭해서 채워진다(setImage로 주입).
+/// 인물/동물 앨범 셀 모양(원형 아바타 + 배지 + 이름)을 크게 그린 미리보기
 private final class CoverCirclePreviewView: UIView {
 
     private let avatarContainer = UIView()

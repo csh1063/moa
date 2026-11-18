@@ -48,8 +48,7 @@ final class ImageViewerCell: UICollectionViewCell, UIScrollViewDelegate {
         updateImageFrame()
     }
 
-    /// 재사용 도중 뒤늦게 도착하는 저화질/고화질 콜백이 이미 다른 사진으로 바뀐 셀에 잘못
-    /// 그려지는 걸 막기 위한 식별자 — 호출부(ImageViewerViewController)가 콜백마다 비교한다
+    /// 재사용된 셀에 늦게 온 이미지가 그려지지 않게 비교하는 식별자
     var currentPhotoId: String?
 
     override func prepareForReuse() {

@@ -33,8 +33,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         let context = ModelContext(container)
 
         var embeddingDescriptor = FetchDescriptor<AnimalEmbeddingEntity>()
-        // photo/cluster를 루프 안에서 하나씩 접근하면 SwiftData가 개별로 fault를 해결하며 디스크를
-        // 왕복한다(N+1) — 미리 한 번에 당겨와서 이후 접근이 전부 메모리에서 끝나게 한다.
+        // 루프에서 하나씩 읽지 않게(N+1) 관계를 미리 당겨온다
         embeddingDescriptor.relationshipKeyPathsForPrefetching = [\.photo, \.cluster]
         let allEntities = try context.fetch(embeddingDescriptor)
             .sorted { $0.id.uuidString < $1.id.uuidString }
@@ -52,18 +51,12 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
 
         var existingClusters = try context.fetch(FetchDescriptor<AnimalClusterEntity>())
 
-        // 개와 고양이는 임베딩이 아무리 비슷해도 절대 같은 개체일 수 없다 — 유사도 임계값에만 기대지 않고
-        // 애초에 종별로 나눠서 따로 클러스터링해서 구조적으로 섞이지 않게 한다
-        // (같은 사진 속 서로 다른 개체는 다른 개체라는 규칙과 같은 종류의 "확실한" 제약)
-        // raw cluster 형성에서 버려진 임베딩은 leftover만 모아 최대 3회 재시도 — 종이 재시도 라운드에서도
-        // 섞이지 않도록 dog/cat 각각 따로 재시도한다
+        // 개와 고양이는 같은 개체일 수 없어서 종별로 따로 클러스터링한다(재시도도 종별로)
         let embeddings = Array(allEntities.map { $0.toDomain() }.reversed())
         let dogEmbeddings = embeddings.filter { $0.species == .dog }
         let catEmbeddings = embeddings.filter { $0.species == .cat }
 
-        // 개/고양이 순차 처리 두 단계를 각 종의 임베딩 수 비율로 나눠서 0~0.9 구간에 합쳐 보고한다
-        // (0.9~1.0은 클러스터링 이후 앨범 적용 단계용) — 한쪽 종이 비어있으면 그 종의 클러스터링은
-        // 아예 호출되지 않아 onProgress도 안 불리므로 가중치가 0이어도 문제없다.
+        // 진행률: 개/고양이를 임베딩 수 비율로 나눠 0~0.9, 앨범 적용 0.9~1
         let totalCount = max(embeddings.count, 1)
         let dogWeight = Double(dogEmbeddings.count) / Double(totalCount)
         let catWeight = Double(catEmbeddings.count) / Double(totalCount)
@@ -94,8 +87,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
             )
         }
 
-        // 최초 분석(또는 전체 삭제 후 재생성)일 때만 사진 수 기준으로 번호를 다시 매긴다 —
-        // 기존 동물 앨범이 이미 있었다면(일반적인 증분 분석) 번호는 건드리지 않는다.
+        // 최초(또는 전체 재생성)일 때만 사진 수 순으로 번호를 다시 매긴다
         if existingAlbumCount == 0 {
             renumberAlbums(context: context)
         }
@@ -104,10 +96,8 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         onProgress(1.0)
     }
 
-    /// 동물 앨범 전체를 (종 구분 없이) 사진 수 내림차순으로 "반려동물 1"부터 다시 번호 매긴다.
-    /// 종 탐지가 완벽하지 않아 강아지/고양이 앨범이 서로 섞이는 경우가 있어서, 종별로 이름을
-    /// 따로 붙이면 실제 내용과 안 맞을 수 있어 종 구분 없는 통합 번호로 단순화했다.
-    /// 사용자가 직접 이름을 바꾼 앨범(isRenamed)은 순위 계산엔 포함하되 번호를 소비하지 않는다.
+    /// 동물 앨범을 종 구분 없이 사진 수 순으로 "반려동물 1"부터 다시 번호 매긴다 — 직접 이름 지은 앨범은 건너뛴다
+    /// 종 탐지가 틀릴 수 있어서 종별 이름 대신 통합 번호를 쓴다
     private func renumberAlbums(context: ModelContext) {
         guard let albums = try? context.fetch(FetchDescriptor<AlbumEntity>(
             predicate: #Predicate { $0.from == "animal" }
@@ -121,8 +111,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         }
     }
 
-    /// 클러스터 결과 하나를 기존 앨범과 매칭하거나 새 앨범으로 만들어 저장한다. 1차 raw cluster든
-    /// leftover 재시도에서 나온 raw cluster든 상관없이 동일하게 "기존 앨범 우선 매칭" 정책이 적용된다.
+    /// 클러스터 결과 하나를 기존 앨범과 매칭하거나 새 앨범으로 저장한다
     private func applyClusterResult(
         _ result: ClusterResult<AnimalEmbedding>,
         context: ModelContext,
@@ -228,6 +217,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
 
     // MARK: - 새 임베딩 클러스터 매칭
 
+    /// 새 동물 임베딩을 가장 비슷한 기존 클러스터(유사도 0.68 이상)에 붙인다 — 전체 재클러스터링 없이
     public func matchAndAddNewEmbeddings(embeddingIds: [UUID]) async throws {
         guard !embeddingIds.isEmpty else { return }
         debugLog("🔍 새 임베딩 \(embeddingIds.count)개 매칭 시작")
@@ -300,8 +290,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         guard let source = albums.first(where: { $0.id == sourceId }),
               let target = albums.first(where: { $0.id == targetId }) else { return }
 
-        // 원래 이름 기억 — 나중에 분리(splitAlbum)할 때 복원용. 이미 기록된 게 있으면(과거에 또
-        // 합쳐진 적 있는 클러스터) 덮어쓰지 않아서 제일 처음 이름을 계속 보존한다.
+        // 분리할 때 복원하려고 원래 이름을 기억한다 — 이미 있으면 제일 처음 이름을 유지
         for cluster in source.animalClusters where cluster.originalDisplayName == nil {
             cluster.originalName = source.name
             cluster.originalDisplayName = source.displayName
@@ -339,9 +328,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         debugLog("🔀 병합 완료: \(target.name) → \(source.name), 최종 \(source.photoCount)장")
     }
 
-    /// 병합 결과 앨범이 어떤 이름/번호를 가져야 하는지 결정한다 — 둘 다 자동 번호면 낮은 번호,
-    /// 어느 한쪽이라도 사용자가 직접 이름을 바꿨으면(isRenamed) 그 이름을 우선한다. (종 구분 없는
-    /// 통합 번호로 단순화하면서 종이 다른 경우의 별도 규칙은 없앴다 — 어차피 같은 이름 풀을 쓴다)
+    /// 합친 앨범의 이름 — 둘 다 자동 번호면 낮은 번호, 직접 지은 이름이 있으면 그 이름
     private func resolveMergedIdentity(source: AlbumEntity, target: AlbumEntity) -> (name: String, displayName: String, isRenamed: Bool) {
         if source.isRenamed && target.isRenamed { return (source.name, source.displayName, true) }
         if target.isRenamed { return (target.name, target.displayName, true) }
@@ -419,9 +406,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
             return others.map { AlbumMergeCandidate(album: $0.toDomain(), similarity: -1) }
         }
 
-        // 종 라벨은 Vision 탐지 오류로 잘못 찍힐 수 있어서(예: 흰 강아지가 고양이로 오인식) 합치기
-        // 후보에서 종으로 미리 걸러내지 않는다 — 자동 클러스터링만 종을 하드 분리하고, 사람이 직접
-        // 보고 합치는 이 후보 목록은 유사도 순으로 전부 보여줘서 사용자가 최종 판단하게 한다
+        // 종 판정이 틀릴 수 있어서 합치기 후보는 종으로 거르지 않고 유사도 순으로 전부 보여준다
         let others = albums.filter { $0.id != albumId }
 
         let currentCentroids: [[Float]] = current.animalClusters.map { cluster in
@@ -482,6 +467,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         }
     }
 
+    /// 고른 클러스터를 새 앨범으로 분리 — 원래 이름이 있으면 복원, 여러 동물이 같이 나온 사진은 양쪽에 남긴다
     public func splitAlbum(albumId: UUID, clusterIds: [UUID]) async throws {
         let context = ModelContext(container)
 
@@ -491,9 +477,7 @@ public final class DefaultAnimalClusterRepository: AnimalClusterRepository {
         let clustersToSplit = album.animalClusters.filter { clusterIds.contains($0.id) }
         guard !clustersToSplit.isEmpty, clustersToSplit.count < album.animalClusters.count else { return }
 
-        // 분리 대상 클러스터들이 전부 같은 "원래 이름"을 기억하고 있으면(병합되기 전 이름) 그걸로
-        // 복원한다 — 새 번호를 매기지 않는다. 기억이 없거나 서로 다르면(여러 앨범이 합쳐진 걸
-        // 애매하게 나누는 경우) 기존처럼 새 번호를 매긴다.
+        // 분리 대상이 모두 같은 원래 이름을 기억하면 그 이름으로 복원, 아니면 새 번호
         let origins = Set(clustersToSplit.map { $0.originalDisplayName })
         let newAlbumName: String
         let newDisplayName: String

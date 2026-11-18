@@ -10,9 +10,7 @@ import UIKit
 import MapKit
 import Domain
 
-/// 주소 기준으로 미리 묶인 사진 그룹(PhotoMapCluster) 하나 = 지도 위 핀 하나.
-/// MapKit의 실시간 화면거리 클러스터링은 안 쓴다 — 묶는 기준 자체가 주소라서 줌 레벨과 무관하게
-/// 고정이고, 그래서 핀 개수도(원본 사진 개수가 아니라 주소 그룹 개수만큼만) 훨씬 적다.
+/// 주소로 미리 묶은 사진 그룹 하나 = 지도 핀 하나(MapKit 화면거리 클러스터링은 안 씀)
 final class PhotoClusterAnnotation: NSObject, MKAnnotation {
     let cluster: PhotoMapCluster
     let coordinate: CLLocationCoordinate2D
@@ -92,9 +90,7 @@ final class PhotoMapAnnotationView: MKAnnotationView {
         avatarContainer.layer.cornerRadius = size / 2
         imageView.frame = avatarContainer.bounds
 
-        // 3자리(~999)까지는 기존 24pt 고정 폭으로 잘리지 않으니 그대로 두고, 4자리
-        // 이상(1000+)일 때만 텍스트 폭에 맞춰 뱃지를 넓힌다 — 우측 끝(size + 4) 기준으로
-        // 왼쪽으로 확장. 항상 동적으로 계산하면 3자리 뱃지까지 다 커 보이게 된다
+        // 3자리까지는 24pt 고정, 4자리부터 텍스트 폭에 맞춰 왼쪽으로 넓힌다
         let badgeHeight: CGFloat = 16
         let badgeWidth: CGFloat
         if count >= 1000 {

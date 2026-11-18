@@ -106,8 +106,7 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
                         labels.append(PhotoLabel(name: "people_\(index)", confidence: face.confidence))
                     }
 
-                    // 얼굴이 기하학적으로 확정됐는지 (binary) — classifyImage의 "people"(장면 기반 추정치,
-                    // 실측 확률이라 1.0까지 잘 안 감)과는 성질이 다른 값이라 이름을 분리해 겹치지 않게 한다
+                    // 얼굴이 실제로 검출됐는지 — 장면 추정값인 "people"과는 다른 값이라 이름을 나눈다
                     labels.append(PhotoLabel(name: "has_people", confidence: 1.0))
 
                     // 다수 여부 (binary)
@@ -147,9 +146,7 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
                 do {
                     try handler.perform([request])
 
-                    // 바운딩 박스 크기뿐 아니라 실제 OCR 신뢰도(topCandidates)도 확인 —
-                    // 안 그러면 창문 격자처럼 사각형처럼 보이지만 실제 텍스트가 아닌 영역까지
-                    // 개수에 포함돼서 "document"로 오인되는 원인이 된다.
+                    // OCR 신뢰도까지 본다 — 창문 격자 같은 영역이 글자로 세어지지 않게
                     let confidences = request.results?.filter {
                         $0.boundingBox.width >= 0.05 && $0.boundingBox.height >= 0.05
                     }.compactMap { observation -> Float? in
@@ -175,8 +172,7 @@ public final class PhotoAnalysisService { // : @unchecked Sendable {
         }
     }
 
-    /// Vision 점수는 크기와 무관하게 항상 1.0이라, 사진에서 차지하는 크기를 점수로 쓴다.
-    /// 큰 쪽 변이 사진의 20% 이상이면 1.0.
+    /// Vision 점수는 크기와 무관하게 늘 1.0이라 사진에서 차지하는 크기로 점수를 매긴다 — 큰 쪽 변이 20% 이상이면 1.0
     private static func barcodeScore(_ observations: [VNBarcodeObservation]) -> Float {
         let side = observations.map { max($0.boundingBox.width, $0.boundingBox.height) }.max() ?? 0
         return Float(min(side / 0.2, 1))

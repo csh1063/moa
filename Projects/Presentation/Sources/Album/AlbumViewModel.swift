@@ -84,8 +84,7 @@ public final class AlbumViewModel: BaseViewModel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] albums in
                 debugLog("📂 albumsPublisher received: \(albums.count)")
-                // albums만 갱신하고 끝내면, 실제 화면을 그리는 sections는 그대로라 화면이 안 바뀐다 —
-                // 병합/분리처럼 다른 화면에서 syncAlbums()로 밀어준 변경사항이 여기 반영되려면 같이 재빌드해야 한다
+                // 다른 화면에서 바뀐 앨범도 반영되게 섹션까지 다시 만든다
                 self?.albums = albums
                 self?.buildSections(from: albums)
             }
@@ -184,8 +183,7 @@ public final class AlbumViewModel: BaseViewModel {
                 .location(LocationAlbumCellViewModel(album: $1, imageLoader: self, isMost: $0 == 0))
             }
 
-        // 영상은 라벨 기반 분류가 아니라 별도 from("video")으로 관리되지만, 화면에서는 "분류" 섹션
-        // 맨 뒤에 같이 보여준다 — 항상 마지막 자리에 고정(정렬 대상 아님)
+        // 영상 앨범은 "분류" 섹션 맨 뒤에 고정
         let categoryAlbums = albums.filter { $0.from == "category" }
             .sorted { $0.photoCount > $1.photoCount }
             .map { AlbumType.category(CategoryAlbumCellViewModel(album: $0, imageLoader: self)) }
@@ -208,9 +206,7 @@ public final class AlbumViewModel: BaseViewModel {
                 .similar(SimilarAlbumCellViewModel(album: $0, imageLoader: self))
             }
 
-        // 사진첩에서 그대로 가져온(자동분류 아닌) 앨범 — CategoryAlbumCell을 그대로 재사용한다
-        // (album.name이 카테고리 키와 안 겹쳐서 항상 default 아이콘으로 뜨지만 자연스럽다)
-        // 메인에는 최대 3개만 노출하고, 나머지는 "모두보기"에서 확인한다
+        // 사진첩에서 가져온 앨범 — 메인에는 최대 3개
         data.items[.library] = albums.filter { $0.from == "library" }
             .sorted { $0.createdAt > $1.createdAt }
             .prefix(3)

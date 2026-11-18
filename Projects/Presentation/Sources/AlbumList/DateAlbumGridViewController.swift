@@ -11,10 +11,7 @@ import UIKit
 import Combine
 import Domain
 
-/// "시간" 모두보기 — date 앨범은 연도 단위라 카드 리스트로 만들면 몇 장 안 되고, 유효한 날짜가 있는
-/// 사진은 사실상 전부 어떤 date 앨범엔가 들어간다. 그래서 사진첩 탭(PhotoLibraryViewController)과
-/// 같은 "월별 섹션 헤더 + 핀치줌 그리드" 화면을 그대로 재사용하되, 탭 루트가 아니라 뒤로가기가 있는
-/// 푸시 화면이라 헤더만 다르게 구성한다. ViewModel은 PhotoLibraryViewModel을 그대로 쓴다.
+/// "시간" 모두보기 — 사진첩 탭과 같은 월별 섹션 + 핀치줌 그리드(PhotoLibraryViewModel 재사용), 헤더만 다르다
 final class DateAlbumGridViewController: BaseViewController {
 
     private let naviView = NaviBarView()
@@ -276,8 +273,7 @@ extension DateAlbumGridViewController {
         applyCurrentSnapshot(animatingDifferences: true)
     }
 
-    /// 접힌 섹션은 헤더만 남기고 아이템을 비워서 넣는다 — 섹션 자체를 스냅샷에서 빼면
-    /// diffable data source가 헤더까지 통째로 없애버려서, 접었다 폈다 할 헤더가 사라져버린다.
+    /// 접힌 섹션은 헤더만 남기고 아이템을 비운다 — 섹션을 빼면 헤더까지 사라진다
     private func applyCurrentSnapshot(animatingDifferences: Bool) {
         var snapshot = NSDiffableDataSourceSnapshot<PhotoHeader, PhotoCellItemViewModel>()
 

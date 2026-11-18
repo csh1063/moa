@@ -10,11 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// avatarContainer 전용 — 자기 자신의 layoutSubviews에서 직접 반지름을 계산한다. 부모 셀의
-/// layoutSubviews/configure에서 이 뷰의 bounds를 읽어 계산하려고 했더니 타이밍이 꼬여서(첫
-/// 표시 때 bounds가 아직 0인 상태로 읽히는 경우가 있었음) 계속 네모로 깨지는 문제가 있었다 —
-/// 이 뷰 스스로 자기 bounds가 바뀔 때(=자기 layoutSubviews가 불릴 때) 반지름을 다시 계산하면
-/// 그런 타이밍 문제 자체가 성립하지 않는다.
+/// 자기 layoutSubviews에서 반지름을 계산하는 원형 컨테이너 — 부모에서 계산하면 bounds가 0일 때가 있다
 private final class CircularContainerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()

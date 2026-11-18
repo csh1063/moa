@@ -13,8 +13,7 @@ final class SimilarAlbumCellViewModel: AlbumCellViewModel {
 
     var id: UUID
     var localIdentifier: String
-    /// 스택 카드 앞/중간/뒤에 쓸 실제 사진 식별자(최신순, 최대 3장) — album.photos가 비어있으면
-    /// (가벼운 목록 조회 경로) 커버 1장으로 대체해서 기존처럼 동작한다.
+    /// 스택 카드에 쓸 사진 id(최신순, 최대 3장) — 사진 목록이 없으면 커버 1장
     var stackIdentifiers: [String]
     var displayName: String
     var formattedDate: String

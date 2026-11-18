@@ -41,13 +41,11 @@ protocol AlbumDetailViewModelDelegate: AnyObject {
     func refreshAfterPhotosAdded()
     /// 대표 사진 미리보기 화면에서 "선택"을 확정했을 때만 실제로 저장
     func setCover(id: String)
-    /// 더보기 옵션시트의 "전체 공유" — 실제 앨범 화면 쪽(옵션시트가 album만 들고 있어 살아있는
-    /// photos 목록에 접근 못 하므로 델리게이트를 거쳐 ViewModel이 들고 있는 값을 쓴다)
+    /// 더보기 옵션시트의 "전체 공유" — 사진 목록은 ViewModel이 들고 있어서 델리게이트로 받는다
     func shareAllTapped()
 }
 
-/// 여행 앨범 상세 화면의 데이터 소스 — 실제 앨범이거나, "분류순" 더보기로 만들어진
-/// (여행 사진) ∩ (사람/카테고리 앨범 사진) 교집합만 보여주는 가짜(비영속) 화면이거나
+/// 앨범 상세 데이터 소스 — 실제 앨범이거나, 분류순 "더보기"의 (여행 사진 ∩ 사람/카테고리 사진) 화면
 public enum AlbumDetailSource {
     case album(Album)
     /// sourceAlbumId는 이 필터링의 바탕이 된 진짜 여행 앨범 id — 삭제/제외가 거기에 그대로 반영되게 한다
@@ -158,11 +156,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         switch source {
         case .album(let album):
             self.album = album
-            // 얼굴 앨범은 자동 생성된 이름("인물 3")을 상단 타이틀에 그대로 보여주지 않고,
-            // 사용자가 실제로 이름을 지어준 경우에만("isRenamed") 그 이름을 보여준다.
-            // 빈 문자열("")을 쓰면 NaviBarView의 스택뷰가 .fillProportionally라 titleLabel의
-            // intrinsic width가 0에 가까워지면서 옆 버튼들이 비율을 이상하게 나눠 갖는 버그가 있어서,
-            // 공백 한 칸으로 "보이기엔 비어있지만 폭은 0이 아닌" 상태를 만든다 (NaviBarView 자체는 안 건드림)
+            // 얼굴 앨범은 직접 지은 이름만 보여준다 — 빈 문자열이면 네비바 버튼 비율이 깨져서 공백 한 칸을 쓴다
             self.albumName = Self.computedAlbumName(for: album)
             self.currentCoverId = album.coverPhotoIdentifier
             self.presetPhotos = nil
@@ -310,8 +304,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
             }
 
         case .deleteSelected(let ids):
-            // 취소할 수도 있는 선택지라, 동행자 영향 계산은 여기서 미리 안 하고 실제로 삭제
-            // 버튼을 누른 뒤(confirmDelete)에만 한다 — 취소하면 그 계산 자체가 아예 필요 없어진다
+            // 동행자 영향 계산은 실제로 삭제를 누른 뒤(confirmDelete)에 한다
             showAlert(
                 title: String(localized: "사진 삭제", bundle: .module),
                 message: String(localized: "선택한 사진을 삭제할까요?", bundle: .module),
@@ -369,8 +362,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         guard let album else { return }
         do {
             isLoading = true
-            // 병합처럼 서버 쪽에서 기간/이름이 바뀔 수 있는 작업 후에도 이 화면이 들고 있는 album이
-            // 그대로라 사진 추가 등에서 옛 기간을 기준으로 조회하는 문제가 있었다 — 매번 최신으로 갱신
+            // 합치기 등으로 기간/이름이 바뀌었을 수 있어서 매번 최신으로 갱신
             var currentAlbum = album
             if let refreshed = try await detailUseCase.fetchAlbum(id: album.id) {
                 currentAlbum = refreshed
@@ -379,8 +371,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
                 currentCoverId = refreshed.coverPhotoIdentifier
             }
             let photos = try await detailUseCase.fetchPhotos(by: currentAlbum.id)
-            // photos를 publish하면 셀이 바로 loadFaceImage를 호출하므로,
-            // faceBoundingBoxes는 그보다 먼저 채워둬야 첫 진입에서도 크롭이 뜬다
+            // 셀이 바로 얼굴 크롭을 요청하므로 사진 목록보다 먼저 채운다
             if isFaceAlbum {
                 faceBoundingBoxes = try await detailUseCase.fetchFaceBoundingBoxes(clusterId: currentAlbum.name)
             }
@@ -392,8 +383,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
                 let sections = await loadCategorySections(tripPhotos: photos, companions: companions)
                 categorySections = sections
 
-                // 분류순 탭을 한 번도 안 열어도, 이 여행에 사진이 하나도 안 남은 동행자가 있으면
-                // (다른 화면에서 "애플 사진 앱에서도 삭제"로 지워진 경우 등) 열 때마다 알려준다
+                // 다른 화면에서 지워져 이 여행에 사진이 0장이 된 동행자가 있으면 열 때마다 알린다
                 let sectionIds = Set(sections.map(\.id))
                 let emptiedCompanions = companions.filter { !sectionIds.contains($0.id) }
                 if !emptiedCompanions.isEmpty {
@@ -410,8 +400,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         }
     }
 
-    /// "분류순" 보기용 — 동행자별 줄 + 자연/음식/공간 줄을, 이 여행 사진과의 교집합으로 계산.
-    /// 0장인 줄은 결과에서 아예 빼서 호출부(UI)가 따로 필터링할 필요 없게 한다
+    /// 분류순 보기용 — 동행자별 줄 + 자연/음식/공간 줄을 이 여행 사진과의 교집합으로 계산(0장인 줄은 뺌)
     private func loadCategorySections(tripPhotos: [Photo], companions: [Album]) async -> [AlbumDetailCategorySection] {
         var sections: [AlbumDetailCategorySection] = []
 
@@ -423,8 +412,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
             sections.append(AlbumDetailCategorySection(id: companion.id, title: companionDisplayName(companion), photos: matched))
         }
 
-        // PhotoCategoriesRule.json의 키 그대로 — 카테고리 앨범 displayName은 로케일과 무관하게
-        // 항상 이 한글 문자열이라(다른 카테고리 UI도 전부 그대로 노출), 매칭 키도 로컬라이즈하지 않는다
+        // 카테고리 앨범 이름은 로케일과 무관하게 규칙 파일의 한글 키 그대로다
         let categoryNames = ["자연", "음식", "공간"]
         if let categoryAlbums = try? await detailUseCase.fetchAll(from: "category") {
             for name in categoryNames {
@@ -444,8 +432,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
     private func companionDisplayName(_ companion: Album) -> String {
         guard !companion.isRenamed else { return companion.displayName }
         let base = companion.from == "animal" ? String(localized: "반려동물", bundle: .module) : String(localized: "사람", bundle: .module)
-        // 자동 생성된 이름이 "인물 3"/"반려동물 1"처럼 끝에 번호가 붙어있다 — 이름 안 지어준 동행자가
-        // 여럿이면 전부 "사람"으로만 뜨면 구분이 안 되니, 그 번호만 뽑아서 같이 보여준다
+        // 이름 없는 동행자가 여럿이면 구분되게 자동 이름의 번호를 붙인다
         if let lastSpace = companion.name.lastIndex(of: " "),
            let number = Int(companion.name[companion.name.index(after: lastSpace)...]) {
             return "\(base) \(number)"
@@ -453,8 +440,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         return base
     }
 
-    /// 첫 번째 삭제 확인(.deleteSelected)에서 "삭제" 계열 버튼을 눌렀을 때만 호출 — 여기서야 비로소
-    /// 동행자 영향을 계산한다. 영향이 있으면 한 번 더 확인받고, 없으면 바로 지운다
+    /// 삭제 확인 후 호출 — 동행자 영향이 있으면 한 번 더 확인받고, 없으면 바로 지운다
     private func confirmDelete(ids: [String], deleteInLibrary: Bool = false) async {
         guard let warning = await emptiedCompanionWarning(idsToDelete: ids) else {
             await deleteSelected(ids: ids, deleteInLibrary: deleteInLibrary)
@@ -472,8 +458,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         )
     }
 
-    /// 필터드(분류순 더보기) 화면이 아니면 항상 nil — 이 삭제로 이 여행에서 사진이 0장이 되는
-    /// 동행자가 있을 때만 경고 문구를 만들어 반환한다
+    /// 분류순 더보기 화면에서, 이 삭제로 여행 사진이 0장이 되는 동행자가 있으면 경고 문구 반환
     private func emptiedCompanionWarning(idsToDelete: [String]) async -> String? {
         guard let sourceAlbumId = filteredSourceAlbumId,
               let tripPhotos = try? await detailUseCase.fetchPhotos(by: sourceAlbumId) else { return nil }
@@ -526,9 +511,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         travelerInfo = formatTravelerInfo(linkedFaceAlbums + linkedAnimalAlbums)
     }
 
-    /// 여행에 등장한 얼굴/동물 앨범들을 "A와 B와 C의 여행"처럼 이름 나열 문구로 만들고, 인원 수는 따로 반환한다.
-    /// 이름 지어준 경우는 실제 이름, 아직 안 지어준 경우는 사람은 "사람", 동물은 "반려동물"로 표시한다.
-    /// 앨범 기간이 당일치기면(AutoAlbumUseCase의 명명 기준과 동일) "여행" 대신 "나들이"로 표시한다
+    /// 여행 동행자 문구("A와 B의 여행")와 인원 수 — 이름 없으면 "사람"/"반려동물", 당일치기면 "나들이"
     private func formatTravelerInfo(_ linkedAlbums: [Album]) -> TravelerInfo? {
         guard !linkedAlbums.isEmpty else { return nil }
 
@@ -568,9 +551,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
         }
     }
 
-    /// 삭제/제외 뒤 화면을 갱신한다. 실제 앨범이면 기존처럼 통째로 재조회하지만, 필터드 소스는
-    /// presetPhotos가 상수라 재조회해도 그대로라서(지웠는데 다시 보임) 화면에 보이는 목록에서
-    /// 직접 빼는 쪽으로 처리한다
+    /// 삭제/제외 뒤 갱신 — 실제 앨범은 재조회, 분류순 더보기 화면은 목록이 고정이라 직접 뺀다
     private func reloadAfterMutation(removing ids: [String]) async {
         guard presetPhotos != nil else {
             await loadPhotos()
@@ -587,8 +568,7 @@ public final class AlbumDetailViewModel: BaseViewModel {
             isLoading = true
             try await detailUseCase.editAlbumName(new: name, id: album.id)
             albumName = name
-            // album 자체도 갱신해둬야, 다음에 다시 이름 변경 시트를 열었을 때 이전 이름이 아니라
-            // 방금 저장한 이름/isRenamed 상태가 정확히 반영된다
+            // 다음에 이름 변경 시트를 열 때 방금 저장한 이름이 보이게 갱신
             album.displayName = name
             album.isRenamed = true
             self.album = album

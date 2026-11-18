@@ -39,8 +39,7 @@ public struct Photo: Hashable {
     public var faceEmbedding: [FaceEmbedding]
     public var animalEmbedding: [AnimalEmbedding]
 
-    /// 영상(PHAssetMediaType.video) 여부 — true면 라벨/얼굴/동물 인식, 비슷한사진 임베딩 비교
-    /// 파이프라인에서 제외된다(날짜/지역/여행 앨범은 그대로 포함)
+    /// 영상 여부 — 라벨/얼굴/동물 인식과 비슷한 사진 비교에서 빠진다(날짜/지역/여행엔 포함)
     public var isVideo: Bool
 
     public init(

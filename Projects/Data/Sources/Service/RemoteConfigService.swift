@@ -18,12 +18,7 @@ public final class RemoteConfigService {
 
     public init() {}
 
-    // FirebaseRemoteConfig SDK의 fetchAndActivate()는 이 프로젝트 환경에서
-    // 내부적으로 절대 완료되지 않는 프로미스 행이 있는 것으로 확인됐다(SDK 자체 버그,
-    // 재현 가능: Installations 인증 토큰은 즉시 성공하지만 SDK가 자체 보유한
-    // Installations 참조로 하는 동일 호출은 completion이 영영 안 옴 —
-    // firebase/firebase-ios-sdk#11770과 동일 증상). 서버는 curl로 직접 확인 시
-    // 정상 응답하므로, SDK를 거치지 않고 REST 엔드포인트를 직접 호출한다.
+    // FirebaseRemoteConfig SDK의 fetchAndActivate()가 이 환경에서 끝나지 않아(firebase-ios-sdk#11770) REST 엔드포인트를 직접 호출한다
     public func fetchMinAndRecommendVersion() async throws -> (min: String, recommend: String) {
         let entries = try await fetchEntries()
         return (

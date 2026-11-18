@@ -39,8 +39,7 @@ final class LibraryAlbumPickerCoordinator: BaseCoordinator {
         navigationController.pushViewController(vc, animated: true)
     }
 
-    /// 탭바(TabbarCoordinator)에서 이 화면 하나만 담은 새 네비게이션 컨트롤러를 모달로 띄우는
-    /// 방식으로 쓰이므로, "뒤로"는 pop이 아니라 그 모달 자체를 닫는 것이어야 한다.
+    /// 모달로 띄운 화면이라 "뒤로"는 모달을 닫는다
     private func dismiss() {
         navigationController.dismiss(animated: true)
         self.remove(coordinator: self)

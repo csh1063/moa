@@ -21,8 +21,7 @@ public struct AnimalEmbedding: Hashable, ClusterableEmbedding {
     public let boundingBox: CGRect
     public let species: AnimalSpecies
     public let photoId: String
-    /// VNRecognizeAnimalsRequest의 탐지 confidence. 사람 얼굴의 VNDetectFaceCaptureQualityRequest처럼
-    /// "사진이 선명한가"를 재는 전용 지표가 동물 쪽엔 없어서, 커버 사진 선정 등에 쓰는 대체 신호로만 사용한다.
+    /// 동물 탐지 confidence — 동물엔 화질 지표가 없어서 대표 사진 선정의 대체 신호로 쓴다
     public let detectionConfidence: Float
 
     public init(

@@ -112,6 +112,7 @@ public actor AnimalEmbeddingService {
 
     // MARK: - Private: Crop / Resize
 
+    /// 동물 박스에 여백을 붙여 자른다 — 다른 동물 쪽으로는 여백을 늘리지 않는다
     private func cropAnimal(from image: CGImage, boundingBox: CGRect, otherBoxes: [CGRect] = []) -> CGImage? {
         let width = CGFloat(image.width)
         let height = CGFloat(image.height)
@@ -126,9 +127,7 @@ public actor AnimalEmbeddingService {
         var minY = boundingBox.minY - (expandedHeight - boundingBox.height) / 2
         var maxY = minY + expandedHeight
 
-        // 같은 사진에 다른 동물이 있으면 그쪽 방향으로는 마진을 확대하지 않는다 — 크롭에 다른 개체가
-        // 섞여 들어가면 임베딩이 오염돼서 서로 다른 종/개체가 비슷하게 나오는 원인이 된다.
-        // 원본 탐지 박스보다 안쪽으로는 절대 줄이지 않는다(Vision이 준 탐지 결과는 그대로 신뢰)
+        // 다른 동물 쪽으로는 마진을 늘리지 않는다(섞이면 임베딩이 오염된다) — 탐지 박스보다 줄이지도 않는다
         for other in otherBoxes {
             let dx = other.midX - boundingBox.midX
             let dy = other.midY - boundingBox.midY

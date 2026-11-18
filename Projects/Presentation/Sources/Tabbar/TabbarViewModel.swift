@@ -12,8 +12,7 @@ import Domain
 
 enum TabbarViewModelAction {
     case progressSheet(AnalyzeProgress)
-    /// 분석 시작 안내 — "분석 시작"을 누르면 onStart
-    /// 시트는 바로 띄우고, 사진 수/예상 시간은 loadEstimate로 나중에 채운다(사진첩 전체를 훑어서 오래 걸림)
+    /// 분석 시작 안내 — 시트는 바로 띄우고 사진 수/예상 시간은 loadEstimate로 나중에 채운다
     case analysisGuide(isFirstAnalysis: Bool, loadEstimate: () async -> AnalysisEstimate?, onStart: () -> Void)
     case showLibraryImportPicker(LibraryAlbumImportUseCase)
 }
@@ -37,9 +36,7 @@ struct AnalyzeProgress {
     let albumChecklist: AlbumChecklistProgress
 }
 
-/// 시트 "자세히" 목록 — 사진 분석 쪽 7항목. 얼굴/반려동물/사진(라벨)은 실제로는 한 파이프라인에서
-/// 같이 처리돼서 따로 뽑을 신호가 없다 — 라벨 스트림 진행률(photoLabel)을 셋이 공유해서 보여준다.
-/// 여행지 확인도 마찬가지로 여행 앨범(travelProgress) 신호를 그대로 재사용한다.
+/// 시트 "자세히" 목록 — 사진 분석 쪽 7항목. 얼굴/반려동물/사진은 같은 라벨 스트림 진행률을 공유한다
 struct AnalysisChecklistProgress {
     let dateCheck: AnyPublisher<Double, Never>
     let addressConvert: AnyPublisher<Double, Never>
@@ -89,27 +86,18 @@ public final class TabbarViewModel: BaseViewModel {
 
     @Published private var progressRatio: Double = 0
     @Published private var autoAlbumProgressRatio: Double = 0
-    // progressRatio/autoAlbumProgressRatio는 진행률 바(0~1) 표시용이고, @Published라 구독 시점의
-    // 현재값을 항상 리플레이한다 — "완료"라는 확정적 신호는 그거와 별개로 한 번만 쏘는 이벤트로 관리한다
-    // (PassthroughSubject는 과거 값을 리플레이하지 않아서, 뒤늦게 구독해도 엉뚱한 값에 걸릴 일이 없다)
+    // 진행률 값은 구독 시점에 리플레이되므로 "완료"는 리플레이 없는 이벤트로 따로 보낸다
     private let photoCompletedSubject = PassthroughSubject<Void, Never>()
 
     // MARK: - 진행률 컴포넌트 (사용자 확정 가중치)
     //
-    // 각 항목은 자기 몫만큼의 가중치를 가진 독립적인 0~1 값이고, progressRatio/autoAlbumProgressRatio는
-    // 이 값들을 가중합해서 매번 다시 계산한다("실행 순서"가 아니라 "가중치"만 정해져 있는 구조라, 두
-    // 항목이 동시에 끝나면 둘 다 그대로 반영되고, 어느 순서로 끝나든 상관없다).
-    //
-    // 사진 분석: 날짜 5% + (지오코딩+라벨/임베딩 결합) 85% + 중복사진 탐지(임베딩 추출+비교) 10%
-    // @Published인 이유: 요약 진행률 계산뿐 아니라 시트 "자세히" 체크리스트에도 각자 그대로 노출되기
-    // 때문 — 아래 makeAnalyzeProgress()에서 $프로퍼티로 개별 publisher를 만든다.
+    // 각 항목은 자기 가중치만큼의 독립적인 0~1 값이고, 전체 진행률은 매번 가중합으로 다시 계산한다(순서 무관)
+    // 사진 분석: 날짜 5% + (지오코딩+라벨/임베딩) 85% + 중복사진 탐지 10%
     @Published private var dateProgress: Double = 0
     @Published private var addressProgress: Double = 0
     @Published private var streamProgress: Double = 0
     @Published private var dupDetectProgress: Double = 0
     // 앨범 생성: 날짜 5% + 여행 30% + 지역 5% + 얼굴 15%/동물 15% + 여행자연결 10% + 카테고리 10% + 중복앨범저장 10%
-    // (날짜 앨범을 다시 목록에 넣으면서 지역 10% → 5%로 줄이고 그 5%를 날짜로 옮겼다 — 둘 다 빠르게
-    // 끝나는 단순 분류 단계라 같은 급으로 취급)
     @Published private var dateAlbumProgress: Double = 0
     @Published private var travelProgress: Double = 0
     @Published private var regionProgress: Double = 0
@@ -253,7 +241,7 @@ public final class TabbarViewModel: BaseViewModel {
         case .importLibraryAlbum:
             self.onAction?(.showLibraryImportPicker(libraryAlbumImportUseCase))
         case .analysis:
-            // 분석 도중 다시 분석/재생성하면 진행률이 0으로 튀고, 쓰는 중인 앨범을 지우게 된다
+            // 진행 중에 다시 시작하면 진행률이 튀고 쓰는 중인 앨범을 지우게 된다
             guard !isAnalyzing else { showAnalyzingAlert(); return }
             analysisPhotoCount = 0
             let loadEstimate: () async -> AnalysisEstimate? = { [weak self] in
@@ -264,9 +252,7 @@ public final class TabbarViewModel: BaseViewModel {
             onAction?(.analysisGuide(isFirstAnalysis: (try? analysisUseCase.isFirstAnalysis()) ?? false, loadEstimate: loadEstimate, onStart: { [weak self] in
                 Task {
                     guard let self else { return }
-                    // 이전 분석/생성이 에러로 끝난 경우 progressRatio가 1.0에 멈춰있을 수 있어서,
-                    // 새 시트가 구독하자마자 (@Published는 구독 시점 현재값을 바로 흘려보냄) "완료"로 보일 수 있다 —
-                    // 새로 시작하기 전에 항상 0으로 리셋해서 이 시트는 항상 진짜 0부터 시작하게 한다
+                    // 지난 실행 값(1.0)이 남아 있으면 새 시트가 바로 "완료"로 보인다
                     self.progressRatio = 0
                     self.autoAlbumProgressRatio = 0
                     self.onAction?(.progressSheet(self.makeAnalyzeProgress()))
@@ -274,7 +260,7 @@ public final class TabbarViewModel: BaseViewModel {
                 }
             }))
         case .reAutoAlbum:
-            // 분석 도중 다시 분석/재생성하면 진행률이 0으로 튀고, 쓰는 중인 앨범을 지우게 된다
+            // 진행 중에 다시 시작하면 진행률이 튀고 쓰는 중인 앨범을 지우게 된다
             guard !isAnalyzing else { showAnalyzingAlert(); return }
             showAlert(
                 title: String(localized: "앨범 재생성", bundle: .module),
@@ -295,7 +281,7 @@ public final class TabbarViewModel: BaseViewModel {
                             self.autoAlbumProgressRatio = 0
                             self.onAction?(.progressSheet(self.makeAnalyzeProgress(mode: .regenerateAll)))
 
-                            // 이 플로우는 사진 분석 없이 앨범 생성만 다시 하므로, 사진 분석 단계는 곧바로 완료 처리한다
+                            // 재생성은 사진 분석 없이 앨범만 만들어서 사진 분석은 바로 완료 처리한다
                             self.progressRatio = 1.0
                             self.photoCompletedSubject.send(())
                             await self.runAlbumGeneration(fullRegenerate: true)
@@ -378,22 +364,10 @@ public final class TabbarViewModel: BaseViewModel {
 
     // MARK: - 분석 + 앨범 생성 통합 플로우
 
-    /// 분석이 진행되는 동안(전체가 끝나길 기다리지 않고) 각 데이터가 준비되는 대로 관련 앨범을 바로
-    /// 생성한다. 두 트랙이 각자 필요한 데이터만 준비되면 바로 다음 단계로 넘어간다 — 기다릴 필요 없는
-    /// 단계를 억지로 뒤에 묶어두지 않는다:
-    /// - 주소 트랙: 지오코딩 완료 → 여행 앨범 → 지역 앨범(주소만 있으면 됨, 라벨 안 씀)
-    /// - 라벨 트랙: 라벨+임베딩 완료 → 카테고리 앨범(라벨만 있으면 됨) → 얼굴/동물 앨범 → 중복사진 탐지
-    ///   (얼굴/동물·중복탐지는 카테고리보다 오래 걸려서 카테고리를 먼저 끝내는 게 이득)
-    ///
-    /// 진행률은 "실행 순서"가 아니라 "가중치"로만 정해진다 — 각 항목은 자기 몫(위 `recomputePhotoProgress`/
-    /// `recomputeAlbumProgress` 참고)만큼의 독립적인 0~1 값이고, 매번 가중합해서 다시 계산한다. 그래서
-    /// 두 항목이 동시에 끝나면 둘 다 그대로 반영되고, 어느 순서로 끝나든 상관없다. 사진 분석 게이지와
-    /// 앨범 생성 게이지도 서로 독립적으로 각자 진행된다.
-    ///
-    /// "사진 분석 완료"/"앨범 생성 완료" 신호는 주소+라벨 두 스트림이 다 끝나는 시점(아래 for-loop가
-    /// 끝나는 시점)에 쏜다 — 위 두 트랙에서 파생되는 앨범 생성 작업들(여행/지역/카테고리/얼굴/동물/
-    /// 중복탐지)은 전부 최선형(best-effort)이라, 이 시점에 아직 안 끝났어도 계속 진행되며
-    /// autoAlbumProgressRatio를 갱신하고 플로팅 미니 진행률이 그걸 이어서 보여준다.
+    /// 사진 분석과 앨범 생성을 같이 진행한다 — 데이터가 준비되는 대로 관련 앨범을 바로 만든다
+    /// - 주소 트랙: 지오코딩 완료 → 여행 앨범 → 지역 앨범
+    /// - 라벨 트랙: 라벨+임베딩 완료 → 얼굴/동물 앨범, (주소 트랙이 끝난 뒤) 카테고리 앨범 → 중복사진 탐지
+    /// 완료 신호는 두 스트림과 파생 작업이 전부 끝난 뒤에 보낸다
     private func analysis() async {
         guard !isAnalyzing else { return }
         self.isAnalyzing = true
@@ -406,17 +380,11 @@ public final class TabbarViewModel: BaseViewModel {
         leftAppDuringAnalysis = false
         debugLog("⏱️ [분석] 시작: \(startedAt)")
 
-        // onXCompleted 콜백 안에서 뜨는 Task들은 "던져놓고 안 기다리는" fire-and-forget이라, 아래
-        // for-loop만 끝나면(주소+라벨 "스트림" 자체가 끝난 시점) 이 셋이 실제로 다 끝났는지와 무관하게
-        // 다음 코드로 넘어가 버렸다 — 그래서 라벨 트랙(카테고리→얼굴/동물→중복탐지)이 몇십 초씩 더
-        // 돌고 있는데도 "완료" 신호가 먼저 나가서 시트가 중간에 뚝 닫히는 버그가 있었다(2단계 미니
-        // 위젯으로도 안 넘어가고 그냥 사라짐). 이 세 Task를 붙잡아뒀다가 루프가 끝난 뒤 실제로 다
-        // 끝날 때까지 기다린 다음에만 완료 신호를 쏘도록 고쳤다.
+        // 완료 신호는 이 세 작업이 실제로 다 끝난 뒤에 보낸다
         var basicScanTask: Task<Void, Never>?
         var addressTrackTask: Task<Void, Never>?
         var labelTrackTask: Task<Void, Never>?
-        // 카테고리 패스가 사진을 "분류 완료"로 표시하면 지역 패스가 그 사진을 못 본다 — 그래서 라벨 트랙은
-        // 주소 트랙(여행+지역)이 끝난 걸 확인한 뒤에 카테고리로 넘어간다. 주소 트랙은 실패해도 완료 콜백을 부른다.
+        // 카테고리는 분류 완료 표시를 남겨 지역 패스가 그 사진을 못 보게 되므로, 주소 트랙이 끝난 뒤에 돈다
         let (addressTrackDone, addressTrackDoneContinuation) = AsyncStream<Void>.makeStream()
 
         do {
@@ -424,16 +392,12 @@ public final class TabbarViewModel: BaseViewModel {
                 onBasicScanCompleted: { [weak self] in
                     debugLog("⏱️ [분석] 기본 스캔 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                     debugLog("⏱️ [분석] 지오코딩+라벨 스트림 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
-                    // Task { @MainActor in ... }로 띄우면, 그 안의 XXXCore() 함수들이 실제로는 await
-                    // 지점이 없는(또는 적은) 동기 SwiftData 페이지 조회 루프라서 메인 스레드에서 그대로
-                    // 실행돼버린다 — 몇 초씩 걸리는 동안 X 버튼 같은 UI 터치가 전혀 안 먹히는 원인이었다.
-                    // Task.detached로 메인 액터 밖에서 돌리고, 상태(progress) 갱신하는 부분만 명시적으로
-                    // MainActor.run으로 돌아와서 처리한다.
+                    // 동기 SwiftData 루프라 메인에서 돌면 UI가 멈춘다 — 메인 밖에서 돌리고 상태 갱신만 메인에서
                     basicScanTask = Task.detached(priority: .userInitiated) {
                         let stepStartedAt = Date()
                         debugLog("⏱️ [분석] 날짜 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                         try? await self?.autoAlbumUseCase.createDateAlbumsEarly()
-                        // 영상은 라벨/좌표 상관없이 바로 분류 가능해서 날짜 앨범과 같은 타이밍에 처리
+                        // 영상은 라벨/좌표가 필요 없어 날짜 앨범과 같이 처리
                         try? await self?.autoAlbumUseCase.createVideoAlbumEarly()
                         await MainActor.run {
                             guard let self else { return }
@@ -455,8 +419,7 @@ public final class TabbarViewModel: BaseViewModel {
                         }
                         let stepStartedAt = Date()
                         debugLog("⏱️ [분석] 여행+지역 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
-                        // createTravelAlbumsEarly 안에서 여행 앨범 만들고 바로 이어서 지역 분류까지
-                        // 끝낸다(둘 다 주소만 있으면 되는 작업이라 라벨을 기다릴 필요가 없다).
+                        // 여행 + 지역까지 처리
                         try? await self?.autoAlbumUseCase.createTravelAlbumsEarly()
                         await MainActor.run {
                             guard let self else { return }
@@ -473,11 +436,7 @@ public final class TabbarViewModel: BaseViewModel {
                     labelTrackTask = Task.detached(priority: .userInitiated) {
                         let stepStartedAt = Date()
                         debugLog("⏱️ [분석] 얼굴/동물 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
-                        // createPersonAndSimilarAlbums의 onProgress는 얼굴(0~0.5)/동물(0.5~1.0) 순서로
-                        // 하나의 0~1 값에 실어 보낸다 — 여기서 그 구간을 갈라 얼굴/동물을 따로 노출한다
-                        // (자세히 체크리스트에서 둘을 별개 행으로 보여주기 위함). faceProgress/animalProgress는
-                        // 이미 라벨 스트림 단계에서 0~0.5(추출 중)까지 채워져 있으므로, 여기(클러스터링)는
-                        // 그 이어서 0.5~1.0만 채운다 — 처음부터 다시 0에서 시작하지 않는다.
+                        // 얼굴(0~0.5)/동물(0.5~1) 진행률을 나눠서, 추출 단계에서 채운 절반 뒤로 이어 채운다
                         try? await self?.autoAlbumUseCase.createPersonAndSimilarAlbums { ratio in
                             Task { @MainActor in
                                 guard let self else { return }
@@ -490,7 +449,7 @@ public final class TabbarViewModel: BaseViewModel {
                                 self.recomputeAlbumProgress()
                             }
                         }
-                        // createPersonAndSimilarAlbums 안에서 여행자 연결까지 같이 끝난 뒤 리턴된다
+                        // 여행자 연결까지 끝난 뒤 리턴된다
                         await MainActor.run {
                             guard let self else { return }
                             self.faceProgress = 1
@@ -500,8 +459,7 @@ public final class TabbarViewModel: BaseViewModel {
                         }
                         debugLog("⏱️ [분석] 얼굴/동물 앨범 생성 + 여행자 연결 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
 
-                        // 카테고리 패스가 사진을 "분류 완료"로 표시하므로 지역 패스(주소 트랙)가 끝난 뒤에 한다.
-                        // 얼굴/동물은 이 표시와 무관해서 기다리지 않고 먼저 돈다.
+                        // 카테고리는 지역 패스가 끝난 뒤에 — 얼굴/동물은 기다리지 않고 먼저 돈다
                         for await _ in addressTrackDone {}
 
                         debugLog("⏱️ [분석] 카테고리 앨범 생성 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
@@ -513,9 +471,7 @@ public final class TabbarViewModel: BaseViewModel {
                         }
                         debugLog("⏱️ [분석] 카테고리 앨범 생성 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
 
-                        // 중복(비슷한) 사진 탐지 — 전체 임베딩 추출+비교가 대부분의 시간을 차지해서
-                        // 분석 게이지의 몫으로 노출한다. 앨범 저장도 이 호출 안에서 같이 끝나므로,
-                        // 끝나자마자 앨범생성 게이지의 "중복앨범저장" 몫도 같이 올린다.
+                        // 중복 사진 탐지 — 앨범 저장까지 같이 끝나서 끝나면 중복앨범저장 몫도 같이 올린다
                         debugLog("⏱️ [분석] 중복 사진 탐지 시작 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
                         try? await self?.autoAlbumUseCase.detectDuplicatePhotos { ratio in
                             Task { @MainActor in
@@ -538,13 +494,7 @@ public final class TabbarViewModel: BaseViewModel {
                 switch progress.state {
                 case .progress(let ratio):
                     self.streamProgress = max(self.streamProgress, ratio)
-                    // 사진 1장당 라벨 분류랑 같이 얼굴/동물 임베딩 추출, 지오코딩도 이미 같은 루프
-                    // 안에서 같이 돌고 있다(detectFace가 people 게이트로 얼굴분석 돌릴지 정하던 구조,
-                    // 주소 트랙도 라벨 트랙이랑 병렬) — 그런데 체크리스트는 이 스트림이 통째로 끝나야만
-                    // "좌표를 주소로"/"얼굴"/"동물"이 움직이기 시작해서, 실제로는 다 같이 진행 중인데
-                    // "대기중"으로만 보였다. 스트림이 도는 동안 같이 올려서 "여러 개가 동시에 진행중"으로
-                    // 보이게 한다 — 얼굴/동물은 절반(추출)만, 나머지 절반(클러스터링)은 스트림이 끝난
-                    // 뒤 onLabelStreamCompleted 쪽에서 마저 채운다.
+                    // 주소/얼굴/동물도 이 스트림 안에서 같이 진행되므로 같이 올린다 — 얼굴/동물은 추출분 절반까지만
                     self.addressProgress = max(self.addressProgress, ratio)
                     self.faceProgress = max(self.faceProgress, ratio * 0.5)
                     self.animalProgress = max(self.animalProgress, ratio * 0.5)
@@ -561,11 +511,7 @@ public final class TabbarViewModel: BaseViewModel {
             self.recomputePhotoProgress()
             debugLog("⏱️ [분석] 주소+라벨 스트림 전체 완료 — 누적 \(String(format: "%.1f", Date().timeIntervalSince(startedAt)))초")
 
-            // "스트림"(주소+라벨 입력) 자체는 끝났어도, 거기서 파생된 앨범 생성 작업(날짜/여행/지역/
-            // 카테고리/얼굴/동물/중복탐지)은 위 onXCompleted 콜백들이 fire-and-forget으로 띄운 Task라
-            // 아직 안 끝났을 수 있다 — 특히 라벨 트랙(카테고리→얼굴/동물→중복탐지)은 몇십 초씩 걸린다.
-            // 이걸 기다리지 않고 완료 신호를 쏘면 시트/미니위젯/배지가 실제로는 안 끝났는데 먼저
-            // 닫혀버린다. 셋 다 실제로 끝날 때까지 여기서 기다린다.
+            // 파생 앨범 작업이 다 끝날 때까지 기다린 뒤에 완료 신호를 보낸다
             await basicScanTask?.value
             await addressTrackTask?.value
             await labelTrackTask?.value
@@ -583,7 +529,7 @@ public final class TabbarViewModel: BaseViewModel {
             self.albumCompletedSubject.send(())
             self.endAllProcess()
         } catch {
-            // 스트림이 실패해도 이미 띄운 트랙들은 계속 DB에 쓰고 있다 — 끝날 때까지 isAnalyzing을 유지해야 초기화 등이 안 겹친다
+            // 실패해도 트랙들은 계속 DB에 쓰고 있어서 끝날 때까지 기다린다(초기화 등과 겹치지 않게)
             await basicScanTask?.value
             await addressTrackTask?.value
             await labelTrackTask?.value
@@ -612,8 +558,7 @@ public final class TabbarViewModel: BaseViewModel {
 
     private func runAlbumGeneration(fullRegenerate: Bool = false) async {
         self.isComplete = false
-        // 이전 분석/재생성이 끝나며 7항목이 전부 1로 남아있거나(이번 세션에 분석을 한 번도 안 했으면
-        // 0으로 남아있거나) 해서, "자세히"를 열면 실제 진행과 무관하게 전부 완료/전부 대기로 보이던 버그
+        // 지난 실행 값이 남아 "자세히"가 엉뚱하게 보이지 않게 초기화
         self.resetAlbumProgressComponents()
         do {
             for try await progress in autoAlbumUseCase.generateAllAlbums(fullRegenerate: fullRegenerate) {
@@ -645,9 +590,7 @@ public final class TabbarViewModel: BaseViewModel {
         faceProgress = 1; animalProgress = 1; categoryProgress = 1; dupSaveProgress = 1
     }
 
-    /// generateAllAlbums의 5단계(날짜+지역+카테고리 → 얼굴 → 동물 → 여행 → 중복사진, 각자 1/5씩)를
-    /// "자세히" 체크리스트 7항목에 맞춰 반영한다. 1단계는 안에서 세 가지가 한 번에 처리돼서 그보다
-    /// 더 세밀하게 쪼갤 신호가 없어 셋을 같이 올린다
+    /// generateAllAlbums의 5단계(각 1/5)를 "자세히" 7항목에 맞춰 반영한다
     private func updateAlbumChecklist(ratio: Double) {
         let step1 = min(ratio / 0.2, 1.0)
         dateAlbumProgress = max(dateAlbumProgress, step1)
@@ -704,7 +647,6 @@ public final class TabbarViewModel: BaseViewModel {
     }
 
     private func createTravelAutoAlbum() async {
-        // 재생성은 다른 앨범처럼 지우고 전체를 다시 만든다 — 증분(마지막 여행만)은 분석하기에서만
         await regenerateSingleAlbum(deleting: ["travel"]) { onProgress in
             try await self.autoAlbumUseCase.rebuildAllTravelAlbums(onProgress: onProgress)
         }
@@ -734,8 +676,7 @@ public final class TabbarViewModel: BaseViewModel {
         }
     }
 
-    // 메인 앨범 화면에서 얼굴/동물이 이미 하나의 섹션(AlbumSection.faceSectionFromValues)으로
-    // 합쳐져 보여지고 있어서, 재생성 메뉴도 같은 단위로 묶어 하나의 버튼/동작으로 처리한다
+    // 메인 화면에서 얼굴/동물이 한 섹션이라 재생성도 하나로 묶는다
     private func createFaceAnimalAutoAlbum() async {
         await regenerateSingleAlbum(deleting: ["face", "animal"]) { onProgress in
             try await self.autoAlbumUseCase.createFaceAlbums { onProgress($0 * 0.5) }
@@ -755,8 +696,7 @@ public final class TabbarViewModel: BaseViewModel {
         }
     }
 
-    // 재생성 직전 단계라 isComplete는 안 건드린다 — 여기서 완료를 보내면 마이페이지가 새로고침하며 공용
-    // 로딩 화면을 켰다 끄는데, 그 페이드아웃 도중엔 바로 이어지는 재생성 로딩 화면이 무시돼서 안 뜬다
+    // isComplete는 안 보낸다 — 마이페이지 로딩 화면이 사라지는 중이면 이어지는 재생성 로딩이 무시된다
     private func albumClear(_ types: [String] = ["all"]) async {
         do {
             try await withDeletionProgress(title: String(localized: "기존 앨범 삭제 중", bundle: .module)) { onProgress in
@@ -767,7 +707,7 @@ public final class TabbarViewModel: BaseViewModel {
         }
     }
 
-    /// 삭제 도중 다른 조작이 끼면 안 돼서, 닫을 수 없는 진행률 카드를 띄운 채로 실행한다
+    /// 닫을 수 없는 삭제 진행률 카드를 띄운 채로 실행한다
     private func withDeletionProgress(
         title: String,
         _ work: (@escaping @Sendable (Double) -> Void) async throws -> Void

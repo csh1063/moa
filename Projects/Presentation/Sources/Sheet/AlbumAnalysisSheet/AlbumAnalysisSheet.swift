@@ -13,8 +13,7 @@ import Combine
 final class AlbumAnalysisSheet: UIViewController {
 
     var progress: AnalyzeProgress
-    /// 사용자가 명시적으로 최소화 버튼을 눌렀을 때만 불린다 — 스와이프/탭-아웃으로는 안 닫히므로
-    /// (isModalInPresentation = true, 분석 중 리셋 화면 이동 방지 목적) 이 콜백이 유일한 "닫힘" 신호다.
+    /// 최소화 버튼을 눌렀을 때만 불린다 — 스와이프로는 안 닫혀서 이게 유일한 닫힘 신호
     var onMinimize: (() -> Void)?
 
     private let minimizeButton: UIButton = {
@@ -160,8 +159,7 @@ final class AlbumAnalysisSheet: UIViewController {
 
         photoChecklistWrapper = wrapWithTopDivider(photoChecklistContainer)
         albumChecklistWrapper = wrapWithTopDivider(albumChecklistContainer)
-        // 펼침 여부는 이 wrapper의 isHidden으로만 제어한다 — group 스택의 arranged subview라 hidden일
-        // 때 레이아웃 공간 자체가 사라진다(내부 컨테이너를 숨기면 wrapper 높이가 안 줄어드는 문제가 있었음).
+        // 펼침은 wrapper의 isHidden으로만 — 그래야 공간까지 사라진다
         photoChecklistWrapper.isHidden = true
         albumChecklistWrapper.isHidden = true
 
@@ -209,8 +207,7 @@ final class AlbumAnalysisSheet: UIViewController {
         }
 
         minimizeButton.snp.makeConstraints { make in
-            // 탭 영역을 44x44(애플 권장 최소 터치 크기)로 키우되, 아이콘 자체 위치는 기존(28pt 기준
-            // top:16/trailing:20)과 같은 자리에 오도록 오프셋을 같이 보정했다.
+            // 탭 영역 44x44, 아이콘 위치는 기존 그대로
             make.top.equalTo(grabberView.snp.bottom).offset(8)
             make.trailing.equalTo(view).inset(12)
             make.width.height.equalTo(44)
@@ -240,10 +237,7 @@ final class AlbumAnalysisSheet: UIViewController {
         }
     }
 
-    /// 체크리스트 컨테이너 위에 얇은 구분선을 붙인 wrapper를 만들어 반환한다. 펼침/접힘은 반드시 이
-    /// wrapper의 isHidden으로만 제어해야 한다 — 컨테이너 자신을 숨기면 wrapper는 그대로 남아있는
-    /// 자신의 제약(divider~content~bottom) 때문에 높이가 안 줄어들어 접힌 상태에서도 빈 공간+구분선이
-    /// 남는 문제가 생긴다.
+    /// 위에 구분선을 붙인 wrapper — 펼침/접힘은 반드시 이 wrapper의 isHidden으로 한다
     private func wrapWithTopDivider(_ content: UIStackView) -> UIView {
         let divider = UIView()
         divider.backgroundColor = Theme.strokeSoft
@@ -266,8 +260,7 @@ final class AlbumAnalysisSheet: UIViewController {
     // MARK: - Bindings
 
     private func setupBindings() {
-        // 사진 분석과 앨범 생성이 순차가 아니라 2트랙(주소/라벨)으로 동시에 진행되고, 앨범 생성도
-        // 각 트랙이 끝나는 대로 바로 시작되므로 두 로딩 인디케이터를 처음부터 같이 돌린다.
+        // 두 트랙이 동시에 진행돼서 두 인디케이터를 처음부터 같이 돌린다
         photoRow.startSpinner()
         albumRow.setTitle(String(localized: "앨범 생성 중", bundle: .module))
         albumRow.startSpinner()
@@ -275,9 +268,7 @@ final class AlbumAnalysisSheet: UIViewController {
         photoRow.onToggleDetail = { [weak self] in self?.toggleChecklist(isPhoto: true) }
         albumRow.onToggleDetail = { [weak self] in self?.toggleChecklist(isPhoto: false) }
 
-        // progress 값(0~1)은 오직 진행률 바 표시용 — @Published라 구독 시점 현재값을 리플레이하기 때문에
-        // "완료"라는 확정적인 상태 전환은 이 값으로 추론하지 않고, 아래 photoCompleted/albumCompleted
-        // 이벤트(PassthroughSubject라 리플레이 없음)로만 판단한다
+        // 진행률 값은 리플레이되므로 "완료" 판단은 별도 완료 이벤트로만 한다
         progressPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] progress in
@@ -342,9 +333,7 @@ final class AlbumAnalysisSheet: UIViewController {
 
     // MARK: - 자세히 아코디언
 
-    /// 한쪽을 펼치면 다른 쪽은 자동으로 접힌다 — 시트 안에서 동시에 두 체크리스트가 다 펼쳐져 있으면
-    /// 너무 길어지고 산만해지기 때문. 펼쳐진 게 하나라도 있으면 detent를 .large()로 넓혀서 7~6줄짜리
-    /// 목록이 잘리지 않게 하고, 다 접히면 원래 .medium()으로 되돌린다.
+    /// 한쪽을 펼치면 다른 쪽은 접고, 펼친 게 있으면 .large, 없으면 .medium
     private func toggleChecklist(isPhoto: Bool) {
         let willExpandPhoto = isPhoto ? !isPhotoChecklistExpanded : false
         let willExpandAlbum = isPhoto ? false : !isAlbumChecklistExpanded

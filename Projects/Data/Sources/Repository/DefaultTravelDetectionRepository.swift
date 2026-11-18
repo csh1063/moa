@@ -26,6 +26,10 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
         self.geocoderService = geocoderService
     }
 
+    /// 여행 감지
+    /// 1) 시간순으로 보며 홈존 사진, 2일 이상 공백, 50km 이상 이동에서 조각을 끊는다
+    /// 2) 10장 미만 조각은 버리고 조각마다 대표 주소를 정한다
+    /// 3) 같은 지역이면서 2일 안에 이어지거나, 나라만 바뀌고 그 사이 집에 다녀올 수 없었으면 합친다
     public func detect(from photos: [PhotoLocationSnapshot], homeZones: [HomeZone], onProgress: (Double) -> Void) async throws -> [TravelCluster] {
         let located = photos
             .filter { $0.latitude != 0 || $0.longitude != 0 }
@@ -96,8 +100,7 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
             // 두 여행 사이의 시간 간격이 2일(timeGapThreshold) 이하로 연속되는지 체크
             let isTimeConnected = nextCluster.startDate.timeIntervalSince(currentCluster.endDate) <= timeGapThreshold
 
-            // 해외에서 나라를 넘어가며 쪼개진 경우 — 그 사이 집에 다녀오는 게 불가능했으면 한 여행이다
-            // (네덜란드 → 프랑스 → 스위스가 나라마다 따로 생기던 문제)
+            // 해외에서 나라를 넘어가며 쪼개진 경우 — 그 사이 집에 다녀오는 게 불가능했으면 한 여행
             let gap = nextCluster.startDate.timeIntervalSince(currentCluster.endDate)
             let isCountryHop = isTimeConnected
                 && !nextCluster.country.isEmpty
@@ -111,10 +114,6 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
                         homeZones: homeZones
                     )
                 }()
-
-            if let lastCountry = currentCluster.visitedCountries.last, lastCountry != nextCluster.country {
-                debugLog("🧳 나라 이동 \(lastCountry) → \(nextCluster.country): 간격 \(String(format: "%.1f", gap / 3600))시간, 홈존 \(homeZones.count)개, 합침 \(isCountryHop)")
-            }
 
             if (isSameRegion && isTimeConnected) || isCountryHop {
                 // 하나로 합치기: 사진 배열을 합치고 날짜 범위를 업데이트
@@ -152,6 +151,7 @@ public final class DefaultTravelDetectionRepository: TravelDetectionRepository {
         }
     }
 
+    /// 조각의 대표 주소 — 사진에 저장된 주소를 먼저 쓰고, 주소 없는 사진은 1km 격자 샘플만 주소 변환해서 보충, 가장 많이 나온 값으로 정한다
     public func buildCluster(from photos: [PhotoLocationSnapshot]) async throws -> TravelCluster? {
         guard !photos.isEmpty else { return nil }
 

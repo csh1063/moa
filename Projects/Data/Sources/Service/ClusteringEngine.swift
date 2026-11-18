@@ -23,8 +23,7 @@ public struct ClusteringConfig {
     public var similarityThreshold: Float
     /// 최소 클러스터 크기 — 이 크기 이상인 조각들만 병합 후보로 인정
     public var minimumClusterSize: Int
-    /// 병합 후 최종 크기 기준 — minimumClusterSize를 통과한 조각들을 병합한 결과가 이 값 미만이면
-    /// (서로 병합 상대를 못 찾아 혼자 남은 조각 포함) 앨범으로 만들지 않고 버림
+    /// 병합 후 최종 크기 기준 — 미만이면 앨범으로 만들지 않는다
     public var minimumMergedClusterSize: Int
     /// 개별 클러스터 품질 기준 — 이 미만이면 짜투리로 버림
     public var minimumClusterQuality: Float
@@ -69,9 +68,7 @@ public struct ClusteringConfig {
         minimumPairwiseSimilarity: 0.10
     )
 
-    /// TODO: 실제 반려동물 사진으로 재튜닝 필요 — DINOv2(384차원) 임베딩 공간의 유사도 분포가
-    /// AdaFace(512차원 ArcFace 계열) 얼굴 임베딩과 같으리라는 보장이 없다. 우선 사람 얼굴 기준값을
-    /// 그대로 사용해서 시작하고, 실제 데이터로 클러스터링 품질을 보며 조정한다.
+    /// TODO: 실제 반려동물 사진으로 재튜닝 필요 — 지금은 사람 얼굴 기준값을 그대로 쓴다
     public static let animalDefault = ClusteringConfig(
         similarityThreshold: 0.64,
         minimumClusterSize: 2,
@@ -93,8 +90,7 @@ public struct ClusterResult<Item: ClusterableEmbedding> {
 
 // MARK: - ClusteringOutcome
 
-/// `clusterWithLeftoverRetry`의 최종 결과 — 앨범으로 만들 클러스터와, 끝까지 어디에도 못 들어간
-/// leftover(다음 전체 재분석 때 처음부터 다시 시도)를 함께 반환한다
+/// 최종 결과 — 앨범으로 만들 클러스터와 어디에도 못 들어간 leftover
 public struct ClusteringOutcome<Item: ClusterableEmbedding> {
     public let clusters: [ClusterResult<Item>]
     public let leftover: [Item]
@@ -114,19 +110,13 @@ public final class ClusteringEngine<Item: ClusterableEmbedding> {
 
     // MARK: - Public
 
-    /// 재시도 없는 단일 패스 — `clusterWithLeftoverRetry(embeddings:maxRetryRounds: 0)`과 동일하다.
-    /// 리팩터 전 알고리즘(raw cluster 형성 + 병합을 한 번에)과 결과가 같아야 하는 기존 호출부용.
+    /// 재시도 없는 단일 패스
     public func cluster(embeddings: [Item]) -> [ClusterResult<Item>] {
         clusterWithLeftoverRetry(embeddings: embeddings, maxRetryRounds: 0).clusters
     }
 
-    /// 1) raw cluster 형성 → 2) leftover만 모아 최대 maxRetryRounds회 재시도(새 raw cluster가
-    /// 0개인 라운드가 나오면 조기 종료) → 3) 모든 라운드의 raw cluster를 합쳐 최종 병합을 딱 한 번 수행.
-    ///
-    /// `onProgress`는 유사도 행렬 계산처럼 무거운 단계 하나가 통째로 끝나야만 다음 값을 보낼 수 있어서
-    /// 촘촘한 진행률은 아니다 — 그래도 몇 분씩 걸릴 수 있는 이 함수가 호출자 입장에서 "그동안 아무 신호도
-    /// 없는 단일 블랙박스"로 보이지 않게 하는 목적. 형성(1) + 최대 재시도(maxRetryRounds) + 병합(1) 단계를
-    /// 분모로 삼아 "지금까지 확실히 끝낸 단계 비율"만 보여준다(재시도가 조기 종료돼도 근사치면 충분).
+    /// 1) raw cluster 형성 → 2) leftover만 최대 maxRetryRounds회 재시도(새 cluster가 없으면 조기 종료) → 3) 전체 raw cluster를 한 번에 병합
+    /// onProgress는 끝낸 단계 비율이라 촘촘하지 않다
     public func clusterWithLeftoverRetry(
         embeddings: [Item],
         maxRetryRounds: Int = 3,
@@ -172,8 +162,7 @@ public final class ClusteringEngine<Item: ClusterableEmbedding> {
 
     // MARK: - Raw Cluster 형성
 
-    /// Chinese Whispers + 품질/크기 게이트만 수행한다 (아직 최종 크기 병합 전 단계).
-    /// 게이트를 통과 못 한 임베딩은 전부 leftover로 모아 반환 — 다음 재시도 라운드의 입력이 된다.
+    /// Chinese Whispers + 품질/크기 게이트 — 통과 못 한 임베딩은 leftover로 반환
     private func formRawClusters(embeddings: [Item]) -> (raw: [[Item]], leftover: [Item]) {
         let n = embeddings.count
         guard n > 0 else { return ([], []) }
@@ -228,6 +217,7 @@ public final class ClusteringEngine<Item: ClusterableEmbedding> {
 
     // MARK: - Chinese Whispers
 
+    /// Chinese Whispers — 각 노드가 이웃 중 가중치 합이 가장 큰 라벨을 따라가는 걸 반복해서 군집을 만든다
     private func chineseWhispers(n: Int, similarityMatrix: [Float], photoIds: [String]) -> [Int] {
         var labels = Array(0..<n)
 
@@ -297,10 +287,7 @@ public final class ClusteringEngine<Item: ClusterableEmbedding> {
 
     // MARK: - Merge Raw Clusters
 
-    /// raw cluster(형성 라운드가 몇 차든 상관없이 전부 합친 목록)를 centroid 기반으로 병합해
-    /// 최종 앨범 후보(`minimumMergedClusterSize` 이상)를 만든다. raw cluster마다 자기 완결적인
-    /// `[Item]` 값을 들고 있으므로, 서로 다른 재시도 라운드(다른 임베딩 배열/인덱스 공간)에서 온
-    /// raw cluster끼리도 여기서 문제없이 함께 병합될 수 있다.
+    /// 모든 라운드의 raw cluster를 centroid 기준으로 병합해 최종 후보(minimumMergedClusterSize 이상)를 만든다
     private func mergeRawClusters(_ rawGroups: [[Item]]) -> (clusters: [ClusterResult<Item>], leftover: [Item]) {
         let m = rawGroups.count
         guard m > 0 else { return ([], []) }
@@ -409,8 +396,7 @@ public final class ClusteringEngine<Item: ClusterableEmbedding> {
         debugLog("✅ [\(logTag)] 클러스터 \(items.count)장 (내부 유사도 min: \(String(format: "%.3f", minSim)), avg: \(String(format: "%.3f", avgSim)), max: \(String(format: "%.3f", maxSim)))")
     }
 
-    /// 공유 유사도 행렬 없이 독립적인 `[Item]` 그룹에 대해 아웃라이어를 제거한다 — 로컬 유사도
-    /// 행렬을 그 그룹만으로 새로 계산해서 기존 `removeOutliers`(인덱스 기반)에 그대로 위임한다.
+    /// 그룹만으로 유사도 행렬을 새로 계산해서 아웃라이어를 제거한다
     private func removeOutliersLocal(items: [Item], minimumSize: Int) -> (kept: [Item], removed: [Item]) {
         guard !items.isEmpty else { return ([], []) }
         let n = items.count

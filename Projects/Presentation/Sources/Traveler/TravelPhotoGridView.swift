@@ -10,8 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// "사진 추가" 화면에서 이전/이후 한 방향의 사진 그리드 — 페이징 스크롤뷰에 나란히 두 개(이전용/이후용)
-/// 놓고 쓴다. 그리드 자체(콜렉션뷰/선택/페이지네이션)만 담당하고, 방향 전환이나 최종 "추가"는 상위 화면이 맡는다
+/// "사진 추가"의 한 방향(이전/이후) 사진 그리드 — 그리드와 선택만 담당한다
 final class TravelPhotoGridView: UIView {
 
     /// 이미지를 탭해서 상세(뷰어)로 보여달라는 요청 — 앨범 상세와 동일하게 뷰어에서도 선택할 수 있다
@@ -81,9 +80,7 @@ final class TravelPhotoGridView: UIView {
             cell.configure(with: cellViewModel, index: indexPath.row)
             cell.setSelectionMode(true)
             cell.setSelected(viewModel.selectedIds.contains(cellViewModel.localIdentifier))
-            // collectionView가 isEditing + allowsMultipleSelectionDuringEditing 상태라, 탭 한 번이든
-            // 길게 눌러서 드래그로 여러 개든 전부 didSelectItemAt/didDeselectItemAt으로 들어와 그리드
-            // 선택은 그쪽에서 처리된다. onImageTap은 선택을 건드리지 않고 상세(뷰어)만 띄운다
+            // 선택은 didSelect/didDeselect에서 처리하고, 이건 뷰어만 띄운다
             cell.onImageTap = { [weak self] in
                 guard let self,
                       let index = self.viewModel.photos.firstIndex(where: { $0.localIdentifier == cellViewModel.localIdentifier })
@@ -113,8 +110,7 @@ extension TravelPhotoGridView: UICollectionViewDelegate {
         Task { await viewModel.loadMoreIfNeeded(currentIndex: indexPath.item) }
     }
 
-    // 선택 상태는 diffable item의 정체성(hash/equality)에 안 들어있어서 스냅샷을 다시 적용할 필요 없이,
-    // 화면에 보이는 셀을 직접 찾아서 표시만 바꿔주면 된다
+    // 선택 상태는 아이템 정체성에 없어서 보이는 셀 표시만 바꾼다
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let item = dataSource.itemIdentifier(for: indexPath) else { return }
         viewModel.toggleSelection(id: item.localIdentifier)

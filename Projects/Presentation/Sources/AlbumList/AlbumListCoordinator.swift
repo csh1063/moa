@@ -18,8 +18,7 @@ public final class AlbumListCoordinator: BaseCoordinator {
 
     weak var delegate: AlbumDetailViewModelDelegate?
 
-    /// 길게 눌러서 뜨는 앨범 메뉴("..." 메뉴와 동일) 동안 그 메뉴를 만든 AlbumDetailCoordinator를
-    /// 붙잡아둔다 — 상세 화면으로 진입하지 않아서 childCoordinators에 들어가지 않으므로 여기서 직접 보관.
+    /// 길게 누르기 메뉴의 코디네이터를 붙잡아 둔다(상세 화면이 아니라 자식 목록에 안 들어간다)
     private var albumMenuCoordinator: AlbumDetailCoordinator?
 
     init(diContainer: AlbumListDIContainer,

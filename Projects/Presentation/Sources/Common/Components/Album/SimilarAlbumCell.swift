@@ -78,9 +78,7 @@ final class SimilarAlbumCell: UICollectionViewCell {
 //        nameLabel.text           = "유사한 사진"
 //        contentView.addSubview(nameLabel)
 
-        // 스택/이미지 크기를 셀 너비에 비례시킨다(기존 88pt 셀 기준 72pt 스택 = 0.818, 72pt 스택
-        // 기준 64pt 이미지 = 0.889) — 셀이 커지면(모두보기 2컬럼) 스택도 같이 커지고, 홈 캐러셀(88pt
-        // 고정)은 기존과 동일하게 유지된다.
+        // 스택/이미지 크기를 셀 너비에 비례시킨다(88pt 셀 기준 72/64pt)
         stackContainer.snp.makeConstraints { make in
             make.top.equalToSuperview()
             make.centerX.equalToSuperview()
@@ -129,8 +127,7 @@ final class SimilarAlbumCell: UICollectionViewCell {
 //            contentView.addShadow(color: .black, opacity: 0.3, offset: CGSize(width: 4, height: 4), radius: 8)
 //        }
 
-        // 앞/중간/뒤에 서로 다른 실제 사진을 보여준다 — stackIdentifiers가 3장 미만이면(가벼운 목록
-        // 조회 경로이거나 중복이 2장뿐인 그룹) 모자란 자리는 마지막 식별자를 그대로 반복해서 채운다.
+        // 서로 다른 사진 3장 — 모자라면 마지막 사진을 반복한다
         let ids = viewModel.stackIdentifiers
         let imageViews = [frontImageView, midImageView, backImageView]
         for (index, imageView) in imageViews.enumerated() {
