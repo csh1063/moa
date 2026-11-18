@@ -36,7 +36,7 @@ final class FrequentPlaceListViewModel: BaseViewModel {
     }
 
     func load() async {
-        // 예전에 측정된 자동 지역은 첫 진입 때 주소를 찾느라 오래 걸려서 빈 목록 대신 로딩을 보여준다
+        // 예전 자동 지역은 첫 진입 때 주소를 찾느라 오래 걸린다
         isLoading = true
         defer { isLoading = false }
         do {

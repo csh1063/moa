@@ -167,7 +167,7 @@ public final class PhotoLibraryViewModel: BaseViewModel {
                         PhotoCellItemViewModel(
                             localIdentifier: $0.localIdentifier,
                             imageLoader: self,
-                            isUnanalysis: $0.photo == nil,
+                            isUnanalysis: $0.isUnanalysis,
                             isVideo: $0.isVideo
                         )
                     }

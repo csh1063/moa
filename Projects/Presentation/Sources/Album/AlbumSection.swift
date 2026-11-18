@@ -41,9 +41,7 @@ enum AlbumSection: Int, CaseIterable {
         }
     }
 
-    /// 홈 화면 "인물" 섹션에 함께 노출되는 from 값들 — 얼굴/동물은 같은 섹션에서 섞여 보이지만
-    /// 병합/분리/여행자연결/이름변경 문구/"나" 하이라이트 등 모든 동작은 이 상수와 무관하게
-    /// AlbumType 케이스(.face vs .animal)와 album.from으로 계속 분리되어 있다.
+    /// 홈 "인물" 섹션에 같이 보이는 from 값 — 동작은 여전히 face/animal로 나뉜다
     static let faceSectionFromValues: Set<String> = ["face", "animal"]
 }
 

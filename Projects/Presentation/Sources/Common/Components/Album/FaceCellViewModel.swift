@@ -16,8 +16,7 @@ struct FaceCellViewModel {
     let imageUseCase: PhotoImageUseCase
     let albumUseCase: AlbumUseCase
 
-    /// 얼굴 박스는 사진 전체의 일부라, 화면 표시 크기(size)로 원본을 불러오면 크롭 후 해상도가 너무 낮아진다.
-    /// 그래서 원본은 항상 넉넉한 고정 크기로 불러오고, 크롭된 결과만 화면에 축소해서 보여준다.
+    /// 크롭 후 해상도가 낮아지지 않게 원본은 넉넉한 고정 크기로 불러온다
     private let sourceLoadSize = CGSize(width: 1024, height: 1024)
 
     func loadFaceImage() async -> UIImage? {

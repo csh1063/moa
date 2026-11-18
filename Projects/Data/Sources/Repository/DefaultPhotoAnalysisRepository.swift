@@ -24,9 +24,7 @@ public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
     private let animalEmbeddingService: AnimalEmbeddingService
     private let batchSize: Int
 
-    /// classifyImage(VNClassifyImageRequest) 결과 중 이 태그가 하나라도 있으면 동물 임베딩 추출을 시도한다.
-    /// PhotoCategoriesRule.json의 "동물" 카테고리 태그 목록에서, 개/고양이 개체식별과 무관한
-    /// 새/파충류 등은 빼고(VNRecognizeAnimalsRequest 자체가 개/고양이만 구분함) 재사용한 것이다.
+    /// 이 태그가 하나라도 있으면 동물 임베딩을 추출한다 — "동물" 카테고리 태그 중 개/고양이 관련만
     private let animalGateTags: Set<String> = [
         "animal", "dog", "pomeranian", "bichon", "chihuahua", "bulldog", "retriever", "pug", "poodle",
         "cat", "kitten"
@@ -59,8 +57,7 @@ public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
             let task = Task {
                 do {
                     let allAssets = try await libraryService.getPhotoList().photos
-                    // 영상은 라벨/얼굴/동물 인식 대상이 아니다 — 여기서 제외하면 라벨이 안 붙어서
-                    // 카테고리/얼굴/동물 앨범 분류에서도 자연히 빠진다(날짜/지역/여행 앨범은 영향 없음)
+                    // 영상은 라벨/얼굴/동물 인식 대상이 아니다
                     let photos = allAssets.filter {
                         !excludingIds.contains($0.asset.localIdentifier) && $0.asset.mediaType != .video
                     }
@@ -160,6 +157,7 @@ public final class DefaultPhotoAnalysisRepository: PhotoAnalysisRepository {
         return address
     }
 
+    /// 좌표 있는 미분석 사진의 주소를 변환해 저장한다 — 진행률 스트림
     public func locationAnalyze(_ unanalyzedIds: [String]) -> AsyncThrowingStream<ProgressAnalysis, Error> {
 
         return AsyncThrowingStream { continuation in

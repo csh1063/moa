@@ -152,8 +152,7 @@ private final class LibraryAlbumPickerCell: UITableViewCell {
         return label
     }()
 
-    /// 다음 화면으로 넘어가는 게 아니라 "이 앨범을 가져온다"는 동작이라, 화살표(chevron)
-    /// 대신 저장/다운로드 느낌의 트레이 아이콘을 쓴다
+    /// 화면 이동이 아니라 "가져오기"라서 트레이 아이콘
     private let importIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(named: "lucide_inbox", in: .module, with: nil)
@@ -195,8 +194,7 @@ private final class LibraryAlbumPickerCell: UITableViewCell {
     }
 }
 
-/// 목록 맨 위에 얹는 "전체 가져오기" 행 — 개별 앨범 셀과 똑같은 구조라 UITableViewCell로
-/// 만들 수도 있었지만, 재사용 셀 목록에 안 섞이게 tableHeaderView로 별도 배치했다
+/// 맨 위 "전체 가져오기" 행 — 재사용 셀과 안 섞이게 테이블 헤더로 둔다
 private final class LibraryAlbumPickerImportAllRow: UIView {
 
     var onTap: (() -> Void)?

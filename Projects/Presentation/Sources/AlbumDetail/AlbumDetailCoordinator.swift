@@ -18,9 +18,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
     weak var delegate: AlbumDetailViewModelDelegate?
 
-    /// presentAlbumMenu()로 만든 viewModel을 강하게 붙잡아 둔다 — 로컬 변수로만 두면
-    /// `delegate`가 weak라서 이 코디네이터가 살아있는 동안에도 viewModel이 바로 해제돼버려서
-    /// 합치기/분리/여행자 관리/삭제(전부 delegate?.xxx() 경유)가 조용히 아무 반응 없는 버그가 있었다.
+    /// 길게 누르기 메뉴의 viewModel을 붙잡아 둔다 — delegate가 weak라 로컬 변수면 바로 해제된다
     private var menuViewModel: AlbumDetailViewModel?
 
     init(diContainer: AlbumDetailDIContainer,
@@ -41,11 +39,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
         self.viewController = vc
     }
 
-    /// 메인/전체보기 화면에서 앨범을 길게 눌렀을 때 — 상세 화면으로 들어가지 않고 "..." 메뉴와
-    /// 완전히 동일한 메뉴를 그 화면 위에 바로 띄운다. 합치기/분리/이름변경/사진추가 등 메뉴에서
-    /// 이어지는 동작도 이 코디네이터가 (상세 화면 진입 없이) 그대로 처리한다. 이 동작들
-    /// (mergeTapped/splitTapped/travelerManagementTapped/deleteAlert)은 전부 album.id만 있으면
-    /// 되고 사진 로딩(.appear) 여부와 무관하게 동작하므로 안전하다.
+    /// 앨범을 길게 눌렀을 때 — 상세 화면 진입 없이 "..." 메뉴와 같은 메뉴를 바로 띄운다
     func presentAlbumMenu(album: Album) {
         let viewModel = diContainer.makeAlbumDetailViewModel()
         self.menuViewModel = viewModel
@@ -89,8 +83,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
     }
 
     func showAlbumRenameSheet(album: Album) {
-        // 한 번도 직접 이름을 바꾼 적 없는 앨범은 자동 생성된 이름(예: "인물 3", "부산 여행")이 그대로 채워지지 않도록 비워서 보여준다
-        // (isEdited는 병합/제외/분리 등 구조 변경 여부라 이름 변경 여부와는 별개 — isRenamed로 따로 구분)
+        // 인물/동물은 직접 지은 이름이 없으면 입력칸을 비워서 보여준다
         let sheet: AlbumRenameSheet
         if album.from == "face" || album.from == "animal" {
             sheet = AlbumRenameSheet(
@@ -99,8 +92,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
                 subtitle: String(localized: "이름을 정해주세요", bundle: .module)
             )
         } else {
-            // 인물/동물이 아닌 타입(날짜/장소/카테고리/여행/중복)은 자동 생성된 이름도 그 자체로
-            // 의미가 있어서(예: "부산 여행") isRenamed 여부와 무관하게 항상 현재 이름을 채워 보여준다
+            // 다른 타입은 자동 이름도 의미가 있어서 그대로 채운다
             sheet = AlbumRenameSheet(albumName: album.displayName)
         }
         sheet.onSave = { [weak self] newName in
@@ -119,9 +111,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
     func showAlbumOptions(album: Album) {
         var options: [OptionRowConfig] = []
 
-        // 날짜/카테고리/장소/중복 앨범은 이름/대표 사진이 자동 분류 기준 그 자체라서(예: "2026년", "카페")
-        // 사용자가 바꿀 수 있게 두지 않는다 — 인물/동물/여행 앨범만 이름 변경 + 대표 사진 변경 가능.
-        // 나머지 타입은 항상 최신 사진이 대표로 자동 유지된다(addPhotos/similar 클러스터링 쪽 로직)
+        // 날짜/카테고리/장소/중복은 이름과 대표 사진이 분류 기준이라 바꿀 수 없다 — 인물/동물/여행만
         let editableCoverTypes: Set<String> = ["face", "animal", "travel"]
         if editableCoverTypes.contains(album.from) {
             options.append(
@@ -130,8 +120,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
                 }
             )
 
-            // 대표 사진 고르기는 사진 그리드(실제 상세 화면)가 떠 있어야 탭해서 고를 수 있다 — 메인/모두보기
-            // 화면에서 길게 눌러 띄운 빠른 메뉴(presentAlbumMenu, 상세 화면 진입 없음)에서는 제외한다
+            // 대표 사진 고르기는 상세 화면 그리드가 있어야 해서 길게 누르기 메뉴에선 뺀다
             if viewController != nil {
                 options.append(
                     OptionRowConfig(icon: "lucide_images", title: String(localized: "대표 사진 변경", bundle: .module), style: .normal) { [weak self] in
@@ -205,8 +194,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
         navigationController.present(sheet, animated: true)
     }
 
-    /// 취소하면 아무 것도 하지 않고 그리드(pickCover 모드)로 돌아가고, 선택해야만 실제로 저장 + 그리드를
-    /// 나간다 — "적용됐는지 안 됐는지 알 수 없다"는 문제를 없애기 위해 즉시 반영 대신 명시적 확인을 거친다
+    /// 대표 사진 미리보기 — "선택"을 눌러야 저장, 취소하면 그리드로 돌아간다
     func showCoverPreview(album: Album, candidateId: String) {
         let vc = CoverPhotoPreviewViewController(
             album: album,
@@ -362,21 +350,17 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
             self?.showPickerDetail(pickerVC: vc, photoDetails: photoDetails, index: index, selectedIdentifiers: selectedIdentifiers)
         }
 
-        // push 대신 모달로 띄운다 — 메인/더보기 화면(실제 앨범 상세로 진입하지 않은 채 길게 누르기
-        // 메뉴만 띄운 상태)에서도 열 수 있어야 하고, 화면 전체를 덮는 느낌이 의도에 더 맞는다
+        // 길게 누르기 메뉴에서도 열 수 있게 모달로 띄운다
         vc.modalPresentationStyle = .fullScreen
         navigationController.present(vc, animated: true)
     }
 
-    /// "사진 추가" 플로우 중 몇 단계에 있든, 이 플로우 전체를 한 번에 닫는다. push가 아니라
-    /// present로 띄우므로 실제 앨범 상세 화면(viewController)이 있든 없든(메인/더보기에서 진입한
-    /// 경우) 항상 동작한다.
+    /// "사진 추가" 플로우 전체를 한 번에 닫는다
     private func dismissAddPhotosFlow() {
         navigationController.dismiss(animated: true)
     }
 
-    /// "사진 추가" 마법사에서 이미지를 탭했을 때 — 앨범 상세와 동일하게 상세(뷰어)를 선택 모드로 띄우고,
-    /// 뷰어에서 선택을 바꾸면 그 결과를 다시 피커 그리드에 반영한다
+    /// "사진 추가"에서 사진을 탭했을 때 — 뷰어를 선택 모드로 띄우고 선택 결과를 피커에 반영한다
     private func showPickerDetail(pickerVC: TravelPhotoPickerViewController, photoDetails: [PhotoDetail], index: Int, selectedIdentifiers: Set<String>) {
         let vm = diContainer.makeImageViewerViewModel(
             photoDetails: photoDetails,
@@ -440,9 +424,7 @@ public final class AlbumDetailCoordinator: BaseCoordinator {
 
         let vc = AlbumDetailViewController(viewModel: viewModel)
         navigationController.pushViewController(vc, animated: true)
-        // 이 코디네이터는 여행 앨범 화면과 더보기로 들어간 화면을 전부 혼자 처리한다(자식 코디네이터
-        // 없음) — viewController는 "지금 맨 위에 떠 있는 AlbumDetailViewController"를 계속 가리켜야
-        // showAlbumOptions의 viewController != nil 가드, showCoverPreview의 캐스팅 등이 맞게 동작한다
+        // viewController는 항상 지금 맨 위의 앨범 상세 화면을 가리켜야 한다
         self.viewController = vc
     }
 

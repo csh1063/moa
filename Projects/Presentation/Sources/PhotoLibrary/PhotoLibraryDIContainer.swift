@@ -42,7 +42,8 @@ public final class PhotoLibraryDIContainer {
 
         let imageUseCase = DefaultImageViewerUseCase(
             repository: photoLibraryRepository,
-            labelRepository: labelDataRepository
+            labelRepository: labelDataRepository,
+            dataRepository: photoDataRepository
         )
 
         return ImageViewerViewModel(photoDetails: photoDetails,

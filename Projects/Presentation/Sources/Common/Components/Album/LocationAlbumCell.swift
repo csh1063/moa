@@ -70,9 +70,7 @@ final class LocationAlbumCell: UICollectionViewCell {
         thumbImageView.layer.cornerRadius = 16
         thumbImageView.layer.masksToBounds = true
         contentView.addSubview(thumbImageView)
-        // containerView는 카드 배경이 아니라 thumbImageView 위에 덮이는 반투명 스크림이다 — 안의
-        // placeLabel/subLabel/countLabel이 전부 흰색인 건 사진 위에서 읽히라고 그런 거라, 불투명
-        // 배경을 쓰면 안 된다(썼다가 사진이 가려지는 회귀가 있었음).
+        // 사진 위에 덮는 반투명 스크림 — 불투명하면 사진이 가려진다
         containerView.backgroundColor = Theme.viewerBackground.withAlphaComponent(0.4)
         containerView.layer.cornerRadius = 16
         containerView.layer.masksToBounds = true

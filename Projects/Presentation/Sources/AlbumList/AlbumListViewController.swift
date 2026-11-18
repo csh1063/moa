@@ -36,8 +36,7 @@ final class AlbumListViewController: BaseViewController {
 
     override var pageTitle: String? { screenTitle }
 
-    /// "인물" 모두보기는 face 앨범 목록으로 열리지만 내부적으로 동물(animal)도 같이 보여주므로,
-    /// AlbumSection의 type("face"/"animal" 구분 없이 face 하나로 취급)과 맞춰 조회한다.
+    /// "인물" 모두보기는 동물도 같이 보여줘서 face 하나로 취급한다
     private var screenTitle: String {
         AlbumSection.allCases.first { $0.type == viewModel.from }?.title ?? viewModel.from
     }
@@ -66,8 +65,7 @@ final class AlbumListViewController: BaseViewController {
         self.viewModel.send(.appear)
     }
 
-    /// "가져온 앨범" 모두보기는 다중 선택 삭제 대신 "가져오기" 버튼만 노출한다
-    /// (개별 삭제는 롱프레스 메뉴로 여전히 가능)
+    /// "가져온 앨범" 모두보기는 다중 선택 대신 "가져오기" 버튼만
     private var normalRightButtons: [NaviButtonSetting] {
         viewModel.from == "library"
             ? [RightButton(type: .importAlbum)]
@@ -313,9 +311,7 @@ final class AlbumListViewController: BaseViewController {
         return section
     }
 
-    /// 인물: 4열 고정 — 아이템 너비를 화면 실제 폭(environment)에서 역산해서 항상 정확히 4개가
-    /// 한 줄에 들어가게 한다. 이전엔 아이템 너비가 88pt 고정값이라 화면이 좁은 기기(예: 375pt)에서는
-    /// 4*88이 안 들어가서 3열로 줄어드는 문제가 있었음.
+    /// 인물: 화면 폭에서 계산해 항상 4열
     private func makeFaceSection(environment: NSCollectionLayoutEnvironment) -> NSCollectionLayoutSection {
         let columns = 4
         let spacing: CGFloat = 4
@@ -349,8 +345,7 @@ final class AlbumListViewController: BaseViewController {
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: sectionInset, bottom: 20, trailing: sectionInset)
         return section
     }
-    /// 중복: 4컬럼 → 2컬럼으로 카드를 키운다. SimilarAlbumCell의 스택/이미지가 셀 너비에 비례하므로
-    /// 카드가 커지면 겹쳐쌓인 사진도 같이 커진다.
+    /// 중복: 2컬럼 큰 카드
     private func makeSimilarSection() -> NSCollectionLayoutSection {
 
         let screenWidth = UIScreen.main.bounds.width
@@ -366,8 +361,7 @@ final class AlbumListViewController: BaseViewController {
             widthDimension: .fractionalWidth(1.0),
             heightDimension: .absolute(itemWidth)
         )
-        // 2컬럼을 명시적으로(아이템 2개짜리 배열) 구성 — makeLocationSection과 같은 방식.
-        // 1개짜리 배열을 자동 타일링시키면 interItemSpacing이 안 먹혀서 간격 계산이 어긋난다.
+        // 아이템 2개짜리 배열로 구성해야 interItemSpacing이 먹는다
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item, item])
         group.interItemSpacing = .fixed(12)
 
@@ -377,8 +371,7 @@ final class AlbumListViewController: BaseViewController {
         return section
     }
 
-    /// 가져온 앨범: LibraryAlbumGridCell(DateAlbumCell과 같은 사진+그라데이션+텍스트 구조)을
-    /// 2열로 배치하고, 셀 높이는 메인 화면 "시간" 카드(120pt)의 2배(240)로 고정한다
+    /// 가져온 앨범: 2열, 높이 240
     private func makeLibrarySection() -> NSCollectionLayoutSection {
         let inset: CGFloat = 20
         let spacing: CGFloat = 12
@@ -474,8 +467,7 @@ extension AlbumListViewController {
                     for: indexPath,
                     item: vm)
             case .category(let vm):
-                // "가져온 앨범" 모두보기는 카테고리와 같은 AlbumType.category를 재사용하지만
-                // 이 화면(viewModel.from == "library")에서만 전용 카드 스타일로 그린다
+                // "가져온 앨범" 모두보기만 전용 카드로 그린다
                 if self.viewModel.from == "library" {
                     return collectionView.dequeueConfiguredReusableCell(
                         using: libraryGridRegistration,
@@ -512,8 +504,7 @@ extension AlbumListViewController {
         snapshot.appendSections([0])  // 섹션 먼저
         snapshot.appendItems(data.albums)
 
-        // 레이아웃은 이 화면 진입 시 한 번만 정해지면 된다(타입이 인스턴스 생애주기 동안 안 바뀜) —
-        // 매번 setCollectionViewLayout으로 새 레이아웃을 만들면 가로 캐러셀/세로 스크롤 위치가 리셋된다
+        // 레이아웃을 다시 만들면 스크롤 위치가 리셋돼서 apply만 한다
         dataSource.apply(snapshot, animatingDifferences: true)
     }
 }

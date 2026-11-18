@@ -268,8 +268,7 @@ extension PhotoLibraryViewController {
     private func configureDataSource() {
         let cellRegistration = UICollectionView.CellRegistration<PhotoCell, PhotoCellItemViewModel> { cell, indexPath, cellViewModel in
             cell.configure(with: cellViewModel, index: indexPath.row)
-            // PhotoCell의 mainImageView/dimView에 자체 탭 제스처가 있어서 컬렉션뷰의
-            // didSelectItemAt이 안 불린다 — onImageTap으로 직접 연결해야 탭이 동작한다.
+            // 셀 자체 탭 제스처 때문에 didSelect가 안 불려서 직접 연결한다
             cell.onImageTap = { [weak self] in
                 self?.viewModel.send(.selectItem(id: cellViewModel.localIdentifier))
             }

@@ -8,11 +8,8 @@
 
 import Foundation
 
-/// 장소 지도의 줌 레벨에 따라 주소를 얼마나 세분화해서 묶을지 결정하는 순수 함수.
-/// 줌아웃 상태에서는 국가 단위로 크게, 줌인할수록 시/도 → 시/군/구 → 동까지 점점 촘촘하게
-/// 묶는다(동 단위가 최대 — 도로명까지는 안 내려감). 필드별 정제 규칙은 위치 앨범과 동일하게
-/// [[AddressGrouping]]을 공유해서, 같은 사진이 지역 앨범과 장소 지도에서 다르게 묶이지 않는다.
-/// MKMapView의 실시간 화면거리 클러스터링 대신 이 방식을 쓰는 이유는 [[PhotoMapUseCase]] 참고.
+/// 장소 지도 줌 레벨에 따라 주소를 얼마나 세분화해 묶을지 정하는 순수 함수 — 국가 → 시/도 → 시/군/구 → 동
+/// 필드 정제 규칙은 지역 앨범과 같은 [[AddressGrouping]]을 쓴다
 public enum PhotoMapClustering {
 
     public static func cluster(photos: [Photo], zoomLevel: Double) -> [PhotoMapCluster] {
@@ -52,8 +49,7 @@ public enum PhotoMapClustering {
 
     private static func groupKey(for photo: Photo, zoomLevel: Double, lat: Double, lon: Double) -> String {
         guard let address = photo.address, let components = AddressGrouping.cleanedComponents(for: address) else {
-            // 아직 역지오코딩이 안 된 사진(좌표는 있는데 주소가 없는 경우) — 좌표를 대략적인
-            // 격자(약 1km 단위)로 묶어서 따로따로 핀이 뜨는 걸 막는다
+            // 아직 주소 변환 안 된 사진은 약 1km 격자로 묶는다
             return "geo_\(Int((lat * 100).rounded()))_\(Int((lon * 100).rounded()))"
         }
 

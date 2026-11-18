@@ -123,11 +123,7 @@ final class ImageViewerViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // present 애니메이션이 시작되기 전, collectionView bounds가 확정되는 시점에 딱 한 번만
-        // 스크롤한다. viewWillAppear + async 디스패치로는 레이아웃이 아직 안 끝났을 수 있어 가끔
-        // 엉뚱한(0번) 페이지로 열리는 문제가 있었다. viewDidLayoutSubviews는 회전 등으로 이후에도
-        // 계속 호출될 수 있어서, 가드 없이 매번 스크롤하면 사용자가 이미 넘긴 위치를 초기 위치로
-        // 되돌리는 새 버그가 생긴다 — hasScrolledToInitialIndex로 최초 1회만 실행되게 막는다.
+        // bounds가 정해진 뒤 최초 1회만 시작 위치로 스크롤한다
         guard !hasScrolledToInitialIndex, collectionView.bounds.width > 0 else { return }
         hasScrolledToInitialIndex = true
         scrollToInitialIndex()
@@ -369,9 +365,7 @@ extension ImageViewerViewController: UICollectionViewDataSource {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoViewerCell.identifier, for: indexPath)
             if let videoCell = cell as? VideoViewerCell {
                 videoCell.currentPhotoId = photoDetail.id
-                // 정지 프레임(포스터)은 화면 크기 정도의 저화질 먼저 → 최대 해상도로 교체. 실제
-                // 재생용 AVPlayerItem은 별도로 비동기 로드한다 — 준비되기 전에 재생 버튼을 눌러도
-                // setPlayerItem이 나중에 채워지므로 안전하다
+                // 포스터는 저화질 → 최대 해상도, 재생용 아이템은 따로 비동기로 불러온다
                 viewModel.loadImageProgressive(id: photoDetail.id, size: collectionView.bounds.size) { [weak videoCell] poster, _ in
                     guard let videoCell, videoCell.currentPhotoId == photoDetail.id else { return }
                     videoCell.configure(poster: poster)

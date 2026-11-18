@@ -17,7 +17,7 @@ final class TabbarViewController: CustomTabBarController {
     private var showOnConsent: Bool = false
     private var showOnboarding: Bool = false
 
-    /// 탭 전환도 "사용자가 화면을 이동했다" 신호 중 하나 — 분석 진행 미니위젯을 배지로 축소하는 데 쓴다.
+    /// 탭 전환 — 미니 진행률을 배지로 줄이는 데 쓴다
     var onTabSelected: (() -> Void)?
 
     private var cancellables = Set<AnyCancellable>()
@@ -47,8 +47,7 @@ final class TabbarViewController: CustomTabBarController {
 //        self.setLayoutMargin(height: 68,
 //                             margin: .init(leading: 0, trailing: 0, bottom: 0),
 //                             padding: .init(leading: 12, trailing: 12))
-        // 분석 배지 자리(왼쪽)를 항상 비워두도록 .right로 고정 — 배지가 뜨고 질 때 탭바는 움직이지 않고
-        // 배지 자신만 그 자리에서 나타났다 사라진다(AnalysisBadgeManager 참고).
+        // 왼쪽 배지 자리를 비워두려고 오른쪽 정렬 — 배지가 떠도 탭바는 안 움직인다
         self.setAlign(.right)
         self.setLayoutMargin(height: 56, itemWidth: 80,
                              margin: .init(trailing: 20, bottom: 4),

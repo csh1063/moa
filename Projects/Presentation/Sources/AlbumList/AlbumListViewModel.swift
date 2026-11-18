@@ -58,9 +58,7 @@ final class AlbumListViewModel: BaseViewModel {
 
         self.bind()
 
-        // 길게 눌러서 뜨는 앨범 메뉴(삭제/합치기/분리 등)는 이 화면이 아니라 별도로 만든
-        // AlbumDetailViewModel을 통해 처리되므로, 이 화면 스스로 다시 불러오지 않으면 반영이 안 된다 —
-        // AlbumViewModel(홈 화면)과 동일하게 albumsPublisher를 구독해서 어디서 바뀌든 갱신되게 한다.
+        // 길게 누르기 메뉴의 변경도 반영되게 앨범 목록을 구독한다
         albumUseCase.albumsPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -126,8 +124,6 @@ final class AlbumListViewModel: BaseViewModel {
                 debugLog("앨범 삭제 실패: \(error)")
             }
         }
-        // 이 ViewModel은 albumsPublisher를 구독하지 않으므로(AlbumViewModel과 달리), 삭제 후
-        // 직접 다시 불러와야 목록에서 사라진 게 반영된다
         await loadAlbumFrom()
     }
 

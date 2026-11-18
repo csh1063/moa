@@ -75,6 +75,14 @@ public final class DefaultUserDefaultRepository: UserDefaultRepository {
         service.bool(UserDefaultsKey.showConsent) ?? false
     }
 
+    public func fetchAnalysisSecondsPerPhoto() async throws -> Double? {
+        service.get(forKey: UserDefaultsKey.analysisSecondsPerPhoto) as? Double
+    }
+
+    public func saveAnalysisSecondsPerPhoto(_ seconds: Double) async throws {
+        service.set(seconds, forKey: UserDefaultsKey.analysisSecondsPerPhoto)
+    }
+
     public func beginTravelAlbumCheckpoint(anchorDate: Date?) async throws {
         service.set(true, forK: UserDefaultsKey.travelAlbumCheckpointPending)
         if let anchorDate {

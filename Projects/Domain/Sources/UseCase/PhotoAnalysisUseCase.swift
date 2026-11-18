@@ -9,15 +9,32 @@
 import Foundation
 
 public protocol PhotoAnalysisUseCase {
-    /// 라벨+얼굴/동물 임베딩 스트림과 주소(지오코딩) 스트림은 내부적으로 이미 동시에 돈다 — 이 둘은
-    /// 하나로 합쳐진 진행률만 밖으로 나가서, 호출자는 "지오코딩만 끝났다"/"라벨만 끝났다"를 구분할
-    /// 방법이 없었다. 두 콜백은 각 스트림이 (성공이든, 주소 쪽은 실패를 삼키고든) 끝나는 시점에 정확히
-    /// 한 번씩 불려서, 호출자가 그 시점에 맞춰 관련 앨범 생성을 조기에 트리거할 수 있게 한다.
+    /// 라벨+임베딩 스트림과 주소 스트림은 동시에 돈다 — 각 스트림이 끝나는 시점에 콜백을 한 번씩 불러 관련 앨범을 바로 만들 수 있게 한다
     func analysis(
         onBasicScanCompleted: @escaping @Sendable () -> Void,
         onAddressStreamCompleted: @escaping @Sendable () -> Void,
         onLabelStreamCompleted: @escaping @Sendable () -> Void
     ) -> AsyncThrowingStream<ProgressAnalysis, Error>
+    /// 분석된 사진이 하나도 없음 — 처음 쓰거나 초기화한 뒤. 개수만 세서 바로 끝난다
+    func isFirstAnalysis() throws -> Bool
+    /// 분석 시작 안내용 — 이번에 분석할 사진 수(영상 제외)와 예상 시간. 사진첩 전체를 훑어서 시간이 걸린다
+    func estimate() async throws -> AnalysisEstimate
+    /// 분석이 끝난 뒤 실제 걸린 시간으로 이 기기의 장당 속도를 저장한다 — 다음 안내의 예상 시간에 쓴다
+    func recordAnalysisDuration(_ seconds: TimeInterval, photoCount: Int) async throws
+}
+
+public struct AnalysisEstimate {
+    public let photoCount: Int
+    public let estimatedSeconds: TimeInterval
+
+    /// 이 기기에서 잰 적 없을 때의 장당 시간 — 디버그 실측(0.2초)보다 출시 빌드가 빠를 걸 감안
+    static let defaultSecondsPerPhoto: Double = 0.15
+    /// 이보다 적게 분석한 결과는 저장하지 않는다 — 앨범 생성 같은 고정 시간이 장당 시간을 크게 부풀린다
+    static let minimumSampleCount = 300
+
+    static func estimatedSeconds(photoCount: Int, savedSecondsPerPhoto: Double?) -> TimeInterval {
+        Double(photoCount) * (savedSecondsPerPhoto ?? defaultSecondsPerPhoto)
+    }
 }
 
 extension PhotoAnalysisUseCase {
@@ -32,10 +49,9 @@ public final class DefaultPhotoAnalysisUseCase: PhotoAnalysisUseCase {
     private let analysisRepository: PhotoAnalysisRepository
     private let dataRepository: PhotoDataRepository
     private let geoRepository: GeoRepository
+    private let userDefaultRepository: UserDefaultRepository
 
-    // 라벨+얼굴 분석과 주소 변환을 동시에 진행할 때의 진행률 가중치 — 분석 게이지 전체(100%) 중
-    // 이 둘이 차지하는 85%(지오코딩30/라벨55) 안에서의 상대 비율이다. 나머지 15%(날짜5 + 중복탐지10)는
-    // TabbarViewModel이 이 스트림 바깥에서 더한다.
+    // 분석 게이지 중 이 스트림 몫 85%(지오코딩 30 / 라벨 55) 안의 비율 — 나머지 15%는 TabbarViewModel이 더한다
     private let labelWeight: Double = 55.0 / 85.0
     private let addressWeight: Double = 30.0 / 85.0
 
@@ -43,12 +59,33 @@ public final class DefaultPhotoAnalysisUseCase: PhotoAnalysisUseCase {
         libraryRepository: PhotoLibraryRepository,
         analysisRepository: PhotoAnalysisRepository,
         dataRepository: PhotoDataRepository,
-        geoRepository: GeoRepository
+        geoRepository: GeoRepository,
+        userDefaultRepository: UserDefaultRepository
     ) {
         self.libraryRepository = libraryRepository
         self.analysisRepository = analysisRepository
         self.dataRepository = dataRepository
         self.geoRepository = geoRepository
+        self.userDefaultRepository = userDefaultRepository
+    }
+
+    public func isFirstAnalysis() throws -> Bool {
+        try dataRepository.fetchAnalyzedCount() == 0
+    }
+
+    public func estimate() async throws -> AnalysisEstimate {
+        let analyzedIds = Set(try dataRepository.fetchAnalyzed())
+        let photoCount = try await libraryRepository.fetchImageIds().filter { !analyzedIds.contains($0) }.count
+        let saved = try await userDefaultRepository.fetchAnalysisSecondsPerPhoto()
+        return AnalysisEstimate(
+            photoCount: photoCount,
+            estimatedSeconds: AnalysisEstimate.estimatedSeconds(photoCount: photoCount, savedSecondsPerPhoto: saved)
+        )
+    }
+
+    public func recordAnalysisDuration(_ seconds: TimeInterval, photoCount: Int) async throws {
+        guard photoCount >= AnalysisEstimate.minimumSampleCount, seconds > 0 else { return }
+        try await userDefaultRepository.saveAnalysisSecondsPerPhoto(seconds / Double(photoCount))
     }
 
     // 사진 기본 정보 저장 → 라벨+얼굴 분석과 주소 변환 동시 진행 (4:1 가중 진행률)
@@ -84,8 +121,7 @@ public final class DefaultPhotoAnalysisUseCase: PhotoAnalysisUseCase {
                         }
                         group.addTask { [weak self] in
                             guard let self else { return }
-                            // 주소(네트워크) 분석이 실패해도 라벨/얼굴 분석과 앨범 생성은 계속 진행돼야 한다 —
-                            // 여기서 던지면 group.waitForAll()이 통째로 실패해서 아래 앨범 생성 자체가 안 불린다
+                            // 주소 분석이 실패해도 라벨 분석과 앨범 생성은 계속돼야 해서 여기서 삼킨다
                             do {
                                 for try await progress in self.addressStream() {
                                     switch progress.state {

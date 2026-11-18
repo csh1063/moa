@@ -33,7 +33,7 @@ final class HomeZoneDetectionTests: XCTestCase {
     }
 
     func test_onlyTwoWeeks_isNotHomeZone() {
-        // 여행 직후 몇 장만 본 증분 분석 상황 — 이게 0개라고 기존 홈존을 지우면 안 된다(AutoAlbumUseCase.analyze가 막음)
+        // 여행 직후 몇 장만 본 증분 상황 — 0개라고 기존 홈존을 지우면 안 된다
         let photos = [1, 1.01, 1.02, 8, 8.01].map { photo(daysAgo: $0) }
 
         XCTAssertTrue(HomeZoneDetection.zones(from: photos, now: now).isEmpty)

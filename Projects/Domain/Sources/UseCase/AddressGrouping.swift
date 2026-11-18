@@ -8,12 +8,10 @@
 
 import Foundation
 
-/// 주소 기반으로 사진을 묶을 때 쓰는 키 계산 — 위치 앨범(AutoAlbumUseCase)과 장소 지도
-/// (PhotoMapClustering)가 같은 기준으로 묶이도록 공용으로 뺀 순수 함수.
+/// 주소 기반 묶음 키 — 지역 앨범과 장소 지도가 같은 기준을 쓰도록 공용으로 뺐다
 public enum AddressGrouping {
 
-    /// 필드별로 정제된(cleanAreaName 적용) 주소 구성요소 — 장소 지도가 줌 단계별로 country부터
-    /// subLocality까지 몇 단계를 쓸지는 스스로 정하되, 각 필드의 정제 규칙은 여기 걸 그대로 쓴다.
+    /// 필드별로 정제된 주소 구성요소
     public struct CleanedAddressComponents {
         public let country: String?
         public let administrativeArea: String?

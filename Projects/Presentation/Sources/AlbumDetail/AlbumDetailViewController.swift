@@ -118,8 +118,7 @@ final class AlbumDetailViewController: BaseViewController {
     private let viewModel: AlbumDetailViewModel
     private var cancellables = Set<AnyCancellable>()
 
-    // 앨범 이름은 사용자가 정하는 값이라 카디널리티가 무한대라 분석 화면 이름으로 부적합 —
-    // 고정된 화면 식별자로 트래킹한다
+    // 앨범 이름은 사용자 입력이라 고정된 화면 이름으로 트래킹한다
     override var pageTitle: String? { "앨범 상세" }
 
     private var pageMode: AlbumDetailPageMode = .list {
@@ -128,8 +127,7 @@ final class AlbumDetailViewController: BaseViewController {
     /// 분류순에서 "선택"을 눌렀을 때 날짜순으로 돌려놓을지 판단하는 용도로 로컬에도 들고 있는다
     private var currentDisplayTab: AlbumDetailViewModel.DisplayTab = .date
     private var isSelectionMode: Bool { pageMode != .list }
-    /// 여러 장을 체크해서 지우기/제외하기 같은 "다중 선택" UI(체크박스, 하단 바)가 필요한 모드인지 —
-    /// pickCover는 탭 한 번으로 바로 끝나는 단일 동작이라 여기 포함하지 않는다
+    /// 체크박스와 하단바가 필요한 다중 선택 모드인지 — pickCover는 단일 탭 동작이라 제외
     private var isMultiSelectMode: Bool { pageMode == .select || pageMode == .onlySelect }
     private(set) var selectedIdentifiers: Set<String> = []
     /// 대표 사진 고르기 그리드에서 "대표" 태그를 어느 셀에 붙일지 판단하는 기준
@@ -137,10 +135,7 @@ final class AlbumDetailViewController: BaseViewController {
         didSet { refreshCoverTags() }
     }
     private var travelerInfo: AlbumDetailViewModel.TravelerInfo? {
-        // reloadData()는 사진 셀까지 전부 다시 그려서 깜빡였다 — 헤더가 이미 떠 있으면 그 뷰의 텍스트만
-        // 직접 바꾸고, 크기 재계산만 invalidateLayout으로 처리한다 (사진 셀은 전혀 안 건드림).
-        // 헤더가 아직 없던 상태(처음 생기는 경우)는 supplementaryViewProvider가 나중에 만들어질 때
-        // 이 시점의 최신 값을 그대로 읽어가므로 별도 처리가 필요 없다
+        // 헤더가 있으면 텍스트만 바꾸고 레이아웃만 갱신한다(reloadData는 셀이 깜빡인다)
         didSet {
             if let info = travelerInfo,
                let header = collectionView.visibleSupplementaryViews(ofKind: UICollectionView.elementKindSectionHeader).first as? TravelerHeaderView {
@@ -191,12 +186,9 @@ final class AlbumDetailViewController: BaseViewController {
             make.top.leading.trailing.equalToSuperview()
         }
 
-        // 여행 앨범일 때만 날짜순/분류순 토글을 끼워 넣는다 — 분류순 더보기로 들어간 화면(실제
-        // 앨범 아님, isTravelAlbum == false)은 토글 없이 기존처럼 바로 그리드가 나온다
+        // 여행 앨범일 때만 날짜순/분류순 토글
         if viewModel.isTravelAlbum {
-            // UISegmentedControl은 기본값이 0이 아니라 -1(선택 없음)이다 — 이걸 명시적으로 0(날짜순)으로
-            // 맞춰두지 않으면, 아래 selectedPublisher 구독이 이 -1을 그대로 읽어서 "분류순"으로 오인하고
-            // 그걸 ViewModel에 보내버려 화면이 항상 분류순으로 잘못 시작하는 버그가 있었다
+            // 기본값이 -1이라 0으로 맞추지 않으면 분류순으로 시작한다
             modeSegmentedControl.selectedSegmentIndex = 0
             view.addSubview(modeSegmentedControl)
             modeSegmentedControl.snp.makeConstraints { make in
@@ -332,9 +324,7 @@ final class AlbumDetailViewController: BaseViewController {
         if viewModel.isTravelAlbum {
             modeSegmentedControl.selectedPublisher
                 .sink { [weak self] index in
-                    // selectedSegmentIndex는 output.displayTab 바인딩에서도 코드로 세팅하는데, 그것도
-                    // KVO라 여기로 다시 흘러든다 — 실제로 값이 바뀐 경우(사용자가 탭한 경우)에만 보내서
-                    // 무한 루프를 끊는다
+                    // 코드로 바꾼 값도 다시 들어오므로 실제로 바뀐 경우에만 보낸다
                     guard let self else { return }
                     let tab: AlbumDetailViewModel.DisplayTab = index == 0 ? .date : .category
                     guard tab != currentDisplayTab else { return }
@@ -354,8 +344,7 @@ final class AlbumDetailViewController: BaseViewController {
                 case .back:   viewModel.send(.dismiss)
                 case .more:   viewModel.send(.more)
                 case .select:
-                    // 분류순(가로 줄 여러 개)은 체크박스로 고를 수 있는 단일 그리드가 아니라서,
-                    // 선택 모드로 들어가기 전에 팝업 없이 날짜순으로 돌려놓는다
+                    // 분류순은 선택할 그리드가 아니라서 날짜순으로 돌린 뒤 선택 모드로
                     if currentDisplayTab == .category {
                         viewModel.send(.enterSelectModeFromCategoryTab)
                     }
@@ -432,8 +421,7 @@ final class AlbumDetailViewController: BaseViewController {
         refreshCoverTags()
     }
 
-    /// 대표 사진 고르기 모드일 때만, 지금 이미 대표로 저장돼 있는 사진 셀에 "대표" 태그를 붙이고
-    /// 영상 셀은 고를 수 없게 흐리게 표시한다
+    /// 대표 사진 고르기 모드에서 현재 대표 사진에 "대표" 태그, 영상은 흐리게
     private func refreshCoverTags() {
         collectionView.visibleCells.forEach { cell in
             guard let photoCell = cell as? PhotoCell,
@@ -514,8 +502,7 @@ extension AlbumDetailViewController {
                         viewModel.send(.tappedVideoAsCoverCandidate)
                         return
                     }
-                    // 바로 적용하지 않고 미리보기부터 — 그리드는 그대로 pickCover 모드에 남아있는다
-                    // (취소하면 다시 고를 수 있도록). 실제 적용/모드 종료는 미리보기의 "선택" 확정 후에만
+                    // 바로 적용하지 않고 미리보기부터 — 확정은 미리보기의 "선택"에서
                     viewModel.send(.selectCoverCandidate(id: cellViewModel.localIdentifier))
                     return
                 }

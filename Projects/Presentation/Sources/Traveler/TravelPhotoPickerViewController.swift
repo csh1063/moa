@@ -11,8 +11,7 @@ import SnapKit
 import Combine
 import Domain
 
-/// 여행 앨범에 사진을 수동으로 추가하는 화면. 헤더의 "여행 기간 이전"/"여행 기간 이후" 토글로
-/// 아래 그리드를 페이징 전환하고(각자 선택 상태는 독립적으로 유지), 두 쪽에서 고른 걸 한꺼번에 "추가"한다
+/// 여행 앨범에 사진을 수동으로 추가 — 이전/이후 그리드를 토글로 전환하고 고른 걸 한꺼번에 추가한다
 final class TravelPhotoPickerViewController: UIViewController {
 
     private enum ActiveDirection { case before, after }

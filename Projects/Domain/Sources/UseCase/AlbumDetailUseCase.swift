@@ -18,8 +18,7 @@ public protocol AlbumDetailUseCase {
     func editAlbumName(new name: String, id: UUID) async throws
     /// 사용자가 앨범 대표(커버) 사진을 직접 고른 경우 저장
     func updateCoverPhoto(id: UUID, identifier: String) async throws
-    /// 앨범 타입에 맞는 삭제 경로로 라우팅한다 — 인물/동물은 재분석해도 다시 안 생기도록
-    /// 블랙리스트까지 처리하는 전용 삭제를, 그 외 타입은 범용 삭제를 사용한다.
+    /// 앨범 삭제 — 인물/동물은 재분석해도 다시 안 생기게 블랙리스트까지 처리한다
     func deleteAlbum(_ album: Album) async throws
     func deletePhotos(_ photoIds: [String], albumId: UUID, deleteInLibrary: Bool) async throws
     func fetchOtherFaceAlbums(excluding albumId: UUID) async throws -> [AlbumMergeCandidate]
@@ -37,8 +36,7 @@ public protocol AlbumDetailUseCase {
     func splitAnimalAlbum(albumId: UUID, clusterIds: [UUID]) async throws
     func fetchLinkedAnimalAlbums(albumId: UUID) async throws -> [Album]
 
-    /// 여행자 관리 시트용 — 얼굴+동물 앨범을 통틀어 이미 연결된(여행자) / 안 된(후보) 두 그룹으로 나눠서 반환.
-    /// 각 Album.from으로 사람/동물을 구분한다. "나"가 아직 연결 안 됐다면 후보 쪽 맨 앞으로
+    /// 여행자 관리 시트용 — 얼굴+동물 앨범을 연결된(여행자)/안 된(후보)으로 나눈다. "나"가 후보면 맨 앞
     func fetchTravelerManagementCandidates(albumId: UUID) async throws -> (travelers: [Album], others: [Album])
     /// 여행자 관리 시트의 "결정" — 얼굴/동물 id가 섞인 목록을 받아 각자의 연결 상태를 통째로 교체
     func updateLinkedTravelerAlbums(albumId: UUID, albumIds: [UUID]) async throws
@@ -228,8 +226,7 @@ public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
     public func addPhotosToAlbum(albumId: UUID, photos: [PhotoInAlbum]) async throws {
         guard !photos.isEmpty else { return }
 
-        // 아직 한 번도 분석 안 된 사진(스크린샷, 방금 전달받은 사진 등)은 기본 정보로라도 먼저 저장해야
-        // 앨범에 연결할 수 있다 (이미 있으면 savePhoto가 조용히 스킵함)
+        // 아직 분석 안 된 사진은 기본 정보로라도 먼저 저장해야 앨범에 연결된다
         for photo in photos {
             let basicPhoto = Photo(
                 localIdentifier: photo.localIdentifier,
@@ -285,9 +282,7 @@ public final class DefaultAlbumDetailUseCase: AlbumDetailUseCase {
         try repository.fetchOtherTravelAlbums(excluding: albumId)
     }
 
-    /// source(현재 보고 있는 앨범)를 살리고 target을 삭제하는 방향으로 합친다.
-    /// 두 여행 기간 사이(위치가 안 잡혀 클러스터링에서 빠졌던 사진들 포함)를 전부 다시 모아서
-    /// 사진/기간/이름/연결된 얼굴 앨범을 AutoAlbumUseCase와 동일한 알고리즘으로 다시 계산한다
+    /// source(보고 있는 앨범)를 남기고 target을 지운다 — 두 기간 사이 사진을 전부 다시 모으고 동행자를 다시 계산, 이름은 source 유지
     public func mergeTravelAlbums(sourceId: UUID, targetId: UUID) async throws {
         let travelAlbums = try repository.fetchAll(from: "travel")
         guard let source = travelAlbums.first(where: { $0.id == sourceId }),

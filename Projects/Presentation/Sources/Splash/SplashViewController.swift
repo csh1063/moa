@@ -131,10 +131,7 @@ final class SplashViewController: BaseViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         self.viewModel.send(.appear)
-        // 실제 체크(삭제된 사진 정리/동기화)는 .appear를 보내는 이 시점에 바로 시작되는데,
-        // 프로그레스바는 카드 연출(step4)에 맞춰 뒤늦게(약 2.8초 뒤) 나타나도록 돼 있었다 —
-        // 그래서 바가 보일 때 이미 진행률이 훌쩍 앞서 있는 경우가 많았다. 카드 연출과 무관하게
-        // 처음부터 바로 페이드인해서 실제 진행 상황을 그대로 보여준다.
+        // 체크는 바로 시작되니 진행바도 카드 연출과 무관하게 바로 보여준다
         UIView.animate(withDuration: 0.3) { self.progressTrack.alpha = 1 }
         self.runAnimation { [weak self] in
             self?.viewModel.send(.endAnim)

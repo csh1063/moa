@@ -27,15 +27,13 @@ public class DefaultPhotoLibraryUseCase: PhotoLibraryUseCase {
 
         let library = try await self.repository.fetchPhotos()
 
-        let photos = try dataRepository.fetchPhotos()
-
-        let photoMap = Dictionary(uniqueKeysWithValues: photos.map { ($0.localIdentifier, $0) })
+        // 미분석 표시에는 id만 있으면 된다 — 위치 같은 사진 정보는 뷰어가 보고 있는 사진 것만 따로 불러온다
+        let analyzedIds = Set(try dataRepository.fetchAnalyzed())
 
         let updatedPhotos = library.photos.map { libraryPhoto -> PhotoInAlbum in
             var updatedPhoto = libraryPhoto
-            if let photo = photoMap[libraryPhoto.localIdentifier] {
-                updatedPhoto.photo = photo
-            }
+            // 영상은 분석 대상이 아니라 미분석으로 표시하지 않는다
+            updatedPhoto.isUnanalysis = !libraryPhoto.isVideo && !analyzedIds.contains(libraryPhoto.localIdentifier)
             return updatedPhoto
         }
 

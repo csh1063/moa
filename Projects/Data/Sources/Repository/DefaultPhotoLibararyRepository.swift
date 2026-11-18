@@ -35,6 +35,10 @@ public final class DefaultPhotoLibraryRepository: PhotoLibraryRepository {
         return try await self.libraryService.getPhotoIds()
     }
 
+    public func fetchImageIds() async throws -> [String] {
+        try await self.libraryService.getImageIds()
+    }
+
     public func checkPermission() async throws -> PhotoPermission {
         try await self.permissionService.checkPermission()
     }

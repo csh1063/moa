@@ -9,9 +9,7 @@
 import UIKit
 import Combine
 
-/// 사진 분석과 앨범 생성이 이제 순차가 아니라 각자 독립적으로(병렬로) 진행되기 때문에, 하나의 원을
-/// 반으로 나눠 보여주던 예전 디자인(마치 앞뒤 단계처럼 보임)을 버리고, 두 줄짜리 독립 바 형태로
-/// 바꿨다 — 아이콘으로 구분되는 두 개의 얇은 진행바가 각자 채워진다.
+/// 미니 진행률(2단계) — 사진 분석과 앨범 생성이 병렬이라 두 줄의 독립 진행바로 보여준다
 final class MiniProgressView: UIView {
 
     var cancellables = Set<AnyCancellable>()
@@ -95,10 +93,8 @@ final class MiniProgressView: UIView {
     }
 }
 
-/// 미니 위젯 한 줄 — 아이콘 + 얇은 진행바 + 진행 중일 때만 보이는 펄스 도트(끝단).
-/// 폭 계산은 self가 아니라 trackView 대비 비율(multipliedBy)로 해서 레이아웃 시점과 무관하게 항상
-/// 정확하고, 첫 반영은 애니메이션 없이 즉시 적용해서 위젯이 다시 만들어질 때(시트↔미니 전환) "0부터
-/// 다시 차는" 것처럼 보이지 않게 한다 — ProgressRow와 같은 이유/같은 방식.
+/// 미니 위젯 한 줄 — 아이콘 + 진행바 + 진행 중일 때만 펄스 도트
+/// 폭은 트랙 대비 비율로 계산하고 첫 반영은 애니메이션 없이 — 위젯을 다시 만들 때 0부터 차 보이지 않게
 private final class MiniProgressBarRow: UIView {
 
     private let iconView: UIImageView = {
@@ -149,8 +145,7 @@ private final class MiniProgressBarRow: UIView {
         addSubview(iconView)
         addSubview(trackView)
         trackView.addSubview(fillView)
-        // glowDot은 트랙에 안 가려야 해서(트랙은 clipsToBounds) trackView가 아니라 self의 자식으로 두고
-        // fillView의 오른쪽 끝을 따라가게만 제약을 건다.
+        // 트랙이 잘라내지 않게 도트는 self에 두고 진행바 끝만 따라간다
         addSubview(glowDot)
 
         snp.makeConstraints { make in
@@ -183,10 +178,7 @@ private final class MiniProgressBarRow: UIView {
     }
 
     func updateProgress(_ progress: Double) {
-        // NSLayoutConstraint의 multiplier는 생성 후 변경 불가능해서 updateConstraints(상수만 갈아끼움)로는
-        // 못 바꾼다 — remakeConstraints로 매번 통째로 다시 만들어야 한다(안 그러면 "Updated constraint
-        // could not find existing matching constraint to update" 크래시). remake는 이 뷰에 걸린 기존
-        // SnapKit 제약을 전부 지우고 새로 만들기 때문에, leading/top/bottom도 같이 다시 선언해야 한다.
+        // multiplier는 바꿀 수 없어서 remake로 제약 전체를 다시 만든다
         let apply = {
             self.fillView.snp.remakeConstraints { make in
                 make.leading.top.bottom.equalTo(self.trackView)

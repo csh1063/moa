@@ -37,10 +37,7 @@ public final class DefaultAppVersionCheckUseCase: AppVersionCheckUseCase {
         return .upToDate
     }
 
-    // RemoteConfigService의 네트워크 요청 자체는 URLRequest.timeoutInterval로 이미 방어된다.
-    // 다만 Installations 토큰 발급 콜백은 completion-handler 브릿지라 Task 취소를 따르지 않으므로,
-    // 스플래시가 절대 무한정 멈추지 않도록 구조화되지 않은(unstructured) Task로 경합시켜
-    // 진 쪽은 백그라운드에 버려두고 이긴 쪽만으로 즉시 리턴한다.
+    // 토큰 발급 콜백은 취소를 따르지 않아서, 스플래시가 멈추지 않게 타임아웃과 경합시켜 먼저 끝난 쪽으로 리턴한다
     private func fetchPolicyWithTimeout(seconds: UInt64 = 20) async -> AppVersionPolicy? {
         await withCheckedContinuation { continuation in
             let resumeGuard = ResumeGuard()

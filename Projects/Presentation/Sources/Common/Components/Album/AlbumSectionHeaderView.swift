@@ -44,9 +44,7 @@ final class AlbumSectionHeaderView: UICollectionReusableView {
         moreButton.addTarget(self, action: #selector(moreTapped), for: .touchUpInside)
         addSubview(moreButton)
 
-        // 섹션의 contentInsets(leading/trailing 20)이 supplementariesFollowContentInsets
-        // 기본값(true)에 의해 헤더에도 이미 적용된 상태라, 여기서 또 20을 주면 셀 콘텐츠보다
-        // 20pt 더 안쪽에서 시작하는 이중 여백이 된다 — 헤더 프레임 경계에 바로 붙인다
+        // 섹션 여백이 헤더에도 이미 적용돼서 여기선 여백을 안 준다
         titleLabel.snp.makeConstraints { make in
             make.leading.equalToSuperview()
             make.centerY.equalToSuperview()

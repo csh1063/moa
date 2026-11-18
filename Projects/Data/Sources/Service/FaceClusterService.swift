@@ -12,8 +12,7 @@ import UIKit
 
 // MARK: - FaceClusterService
 
-/// Chinese Whispers 기반 클러스터링 알고리즘 자체는 ClusteringEngine으로 옮겼고, 여기는 그걸
-/// 사람 얼굴(AdaFace_IR50, 512차원) 기준값으로 감싸는 얇은 래퍼만 남았다.
+/// ClusteringEngine을 사람 얼굴(AdaFace_IR50, 512차원) 기준값으로 감싼 래퍼
 public final class FaceClusterService {
 
     private let engine = ClusteringEngine<FaceEmbedding>(config: .faceDefault, logTag: "FaceClusterService")

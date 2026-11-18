@@ -10,8 +10,7 @@ import UIKit
 import AVFoundation
 import SnapKit
 
-/// 상세화면에서 영상(PHAssetMediaType.video)을 실제로 재생하는 셀. 그리드/썸네일은 정지 프레임으로
-/// 충분해서 여전히 PhotoCell 등 기존 이미지 경로를 그대로 쓰고, 여기 상세화면에서만 AVPlayer로 재생한다.
+/// 뷰어에서 영상을 AVPlayer로 재생하는 셀 — 그리드/썸네일은 기존 이미지 경로를 쓴다
 final class VideoViewerCell: UICollectionViewCell {
 
     static let identifier = "VideoViewerCell"
@@ -93,8 +92,7 @@ final class VideoViewerCell: UICollectionViewCell {
 
     // MARK: - State
 
-    /// 재사용 도중 뒤늦게 도착하는 포스터 콜백이 이미 다른 사진으로 바뀐 셀에 잘못 그려지는 걸
-    /// 막기 위한 식별자 — 호출부(ImageViewerViewController)가 콜백마다 비교한다
+    /// 재사용된 셀에 늦게 온 포스터가 그려지지 않게 비교하는 식별자
     var currentPhotoId: String?
     private var player: AVPlayer?
     private var isPlaying = false
@@ -156,8 +154,7 @@ final class VideoViewerCell: UICollectionViewCell {
         contentView.addSubview(posterImageView)
         posterImageView.snp.makeConstraints { $0.edges.equalToSuperview() }
 
-        // 화면 전체가 아니라 좌/우 가장자리 40pt 폭에서만 길게 눌러야 2배속이 걸리게, 그 폭만큼의
-        // 안 보이는 뷰 두 개에만 제스처를 붙인다 (가운데를 길게 눌러도 아무 반응 없음)
+        // 좌/우 가장자리 40pt에서만 길게 누르면 2배속
         [leftEdgeZone, rightEdgeZone].forEach { zone in
             contentView.addSubview(zone)
             let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
@@ -175,7 +172,7 @@ final class VideoViewerCell: UICollectionViewCell {
         }
 
         contentView.addSubview(fastForwardBadge)
-        // 가운데 대신 우측 상단 — 상단 네비게이션 바(topBarView, 높이 100pt)와 안 겹치게 그 바로 아래
+        // 상단바(100pt) 바로 아래 우측
         fastForwardBadge.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(112)
             make.trailing.equalToSuperview().inset(16)
@@ -192,10 +189,7 @@ final class VideoViewerCell: UICollectionViewCell {
         contentView.addSubview(durationLabel)
         contentView.addSubview(progressSlider)
 
-        // 하단정보(ImageViewerViewController.bottomInfoView, 높이 96pt + 아래쪽 여백 8pt)와
-        // 안 겹치게 그 바로 위에 둔다. 높이를 실제 트랙(가는 선)보다 훨씬 크게 잡아서 — UISlider는
-        // 보이는 트랙 두께와 무관하게 자기 bounds 전체로 터치를 받으므로, 시각적으론 그대로 얇고
-        // 손가락으로 잡기는 훨씬 쉬워진다
+        // 하단 정보(96pt + 여백 8pt) 바로 위 — 높이를 크게 잡아 얇은 트랙도 잡기 쉽게
         progressSlider.snp.makeConstraints { make in
             make.leading.equalTo(currentTimeLabel.snp.trailing).offset(8)
             make.trailing.equalTo(durationLabel.snp.leading).offset(-8)
@@ -219,12 +213,10 @@ final class VideoViewerCell: UICollectionViewCell {
 
     // MARK: - Configure
 
-    /// poster는 이 화면에 들어오자마자 보여줄 정지 프레임(기존 이미지 로딩 경로 재사용), playerItem은
-    /// 준비되는 대로 비동기로 채워진다 — 재생을 누르기 전까지는 poster만 보인다
+    /// poster는 바로 보여줄 정지 프레임, playerItem은 준비되는 대로 비동기로 채운다
     func configure(poster: UIImage?) {
         posterImageView.image = poster
-        // 저화질→고화질 두 번 불릴 수 있는데, 그 사이에 사용자가 이미 재생을 눌렀다면 이미지만
-        // 갱신하고(화면엔 안 보이지만) 재생 상태는 건드리지 않는다
+        // 저화질→고화질 두 번 불릴 수 있다 — 이미 재생 중이면 재생 상태는 건드리지 않는다
         guard !isPlaying else { return }
         posterImageView.isHidden = false
         playPauseButton.setImage(UIImage(named: "lucide_play", in: .module, with: nil), for: .normal)
@@ -269,8 +261,7 @@ final class VideoViewerCell: UICollectionViewCell {
         currentTimeLabel.text = Self.formatTime(seconds)
         progressSlider.value = Float(seconds)
 
-        // 로컬 파일이라 보통 setPlayerItem 시점에 duration을 바로 알 수 있지만, 혹시 그때
-        // 아직 안 채워졌던 경우를 대비해 재생되는 동안에도 계속 다시 확인한다
+        // duration이 처음에 비어 있었을 수 있어서 재생 중에도 다시 확인한다
         if progressSlider.maximumValue <= 0, let duration = player?.currentItem?.duration {
             let durationSeconds = CMTimeGetSeconds(duration)
             if durationSeconds.isFinite && durationSeconds > 0 {
@@ -291,8 +282,7 @@ final class VideoViewerCell: UICollectionViewCell {
         playPauseButton.setImage(UIImage(named: "lucide_play", in: .module, with: nil), for: .normal)
     }
 
-    /// 상단바/하단정보와 같은 그룹으로 묶여서 화면 탭할 때 같이 사라졌다 나타난다. 숨겨진 동안은
-    /// 터치를 안 받게 해서, 숨은 자리를 탭하면 재생/일시정지가 아니라 다시 나타나는 쪽으로 간다.
+    /// 화면 탭에 상단바/하단정보와 같이 숨김 — 숨긴 동안엔 터치를 받지 않는다
     func setControlsHidden(_ hidden: Bool, animated: Bool) {
         let views: [UIView] = [playPauseButton, currentTimeLabel, durationLabel, progressSlider]
         views.forEach { $0.isUserInteractionEnabled = !hidden }

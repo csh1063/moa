@@ -18,9 +18,7 @@ public actor FaceEmbeddingService {
 
     private let inputSize = CGSize(width: 112, height: 112)
 
-    // ArcFace/InsightFace 계열 모델이 학습에 쓰는 표준 112x112 정렬 기준 눈 좌표 (회전만이 아니라 스케일/이동까지 정규화하기 위함).
-    // 원본 레퍼런스 값(38.2946, 51.6963 / 73.5318, 51.5014)은 좌상단 원점(Y 아래로 증가) 기준인데,
-    // alignToCanonical은 CGContext(좌하단 원점, Y 위로 증가)에 그대로 그리므로 Y를 112 기준으로 뒤집어서 보관한다.
+    // ArcFace 계열 표준 112x112 정렬 눈 좌표 — CGContext(좌하단 원점)에 그리므로 Y를 뒤집어 보관
     private let canonicalLeftEye = CGPoint(x: 38.2946, y: 112 - 51.6963)
     private let canonicalRightEye = CGPoint(x: 73.5318, y: 112 - 51.5014)
 
@@ -32,8 +30,7 @@ public actor FaceEmbeddingService {
         return try? MLModel(contentsOf: url, configuration: MLModelConfiguration())
     }()
 
-    // 기본(ANE 포함) 모델이 정렬 검증 실패 등으로 예측에 실패했을 때만 재시도용으로 쓰는 CPU+GPU 전용 모델.
-    // 평소엔 안 쓰이고, 실패한 사진 한 장에 한해서만 느리더라도 안전하게 다시 시도하기 위함
+    // 기본 모델 예측이 실패한 사진만 다시 시도하는 CPU+GPU 모델
     private lazy var fallbackModel: MLModel? = {
         guard let url = Bundle.module.url(forResource: "AdaFace_IR50", withExtension: "mlmodelc") else {
             return nil
@@ -47,9 +44,7 @@ public actor FaceEmbeddingService {
 
     // MARK: - Public
 
-    // hasGlass는 더 이상 필터링에 쓰지 않음 — 안경 여부는 얼굴마다 embedding.hasGlasses로 이미 담겨 있고,
-    // 실제 제외는 DefaultFaceClusterRepository에서 클러스터링 대상으로 쓸 때 처리한다.
-    // 여기서 photo 단위로 걸러버리면 안경 쓴 사람이 한 명이라도 있는 사진에서 다른 사람 얼굴까지 통째로 버려진다.
+    // hasGlass는 쓰지 않는다 — 안경은 얼굴별 embedding.hasGlasses로 담고 클러스터링 대상에서 뺀다(사진 단위로 거르면 다른 얼굴까지 버려진다)
     public func extractEmbeddings(from image: CGImage, hasGlass: Bool = false) async -> [FaceEmbedding] {
         guard let observations = detectFacesWithLandmarks(in: image),
               !observations.isEmpty else {
@@ -72,8 +67,7 @@ public actor FaceEmbeddingService {
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do {
             try handler.perform([request])
-            // VNDetectFaceCaptureQualityRequest도 자체적으로 이미지 전체에서 얼굴을 찾아주므로,
-            // 얼굴 후보마다 따로 돌리지 않고 이미지당 한 번만 실행해서 boundingBox로 매칭한다.
+            // 품질 요청은 이미지당 한 번만 돌리고 boundingBox로 얼굴과 매칭한다
             let qualityObservations = faceCaptureQualityObservations(in: image)
             return request.results?.compactMap { observation -> (VNFaceObservation, Float)? in
                 let quality = matchedFaceCaptureQuality(for: observation.boundingBox, in: qualityObservations) ?? 0
@@ -93,9 +87,7 @@ public actor FaceEmbeddingService {
         }
     }
 
-    // VNDetectFaceLandmarksRequest의 confidence는 사실상 항상 1.0이라 쓸모없어서,
-    // Apple이 얼굴 품질 평가용으로 따로 제공하는 VNDetectFaceCaptureQualityRequest를 이미지당 한 번만 돌려서 대신 쓴다.
-    // (regionOfInterest 없이 돌리면 이 요청도 이미지 전체에서 자체적으로 얼굴을 찾아준다)
+    // 랜드마크 confidence는 거의 항상 1.0이라 얼굴 품질은 따로 요청해서 쓴다
     private func faceCaptureQualityObservations(in image: CGImage) -> [VNFaceObservation] {
         let request = VNDetectFaceCaptureQualityRequest()
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
@@ -107,8 +99,7 @@ public actor FaceEmbeddingService {
         }
     }
 
-    // landmarks 검출기와 quality 검출기는 서로 다른 모델이라 결과가 어긋날 수 있으므로,
-    // 실제로 boundingBox가 겹치는 후보 중 가장 많이 겹치는 것만 매칭한다 (엉뚱한 옆 얼굴과 매칭되는 것 방지)
+    // 두 검출기의 결과가 어긋날 수 있어서 가장 많이 겹치는 것만 매칭한다
     private func matchedFaceCaptureQuality(for boundingBox: CGRect, in qualityObservations: [VNFaceObservation]) -> Float? {
         qualityObservations
             .filter { $0.boundingBox.intersects(boundingBox) }
@@ -137,8 +128,7 @@ public actor FaceEmbeddingService {
             debugLog("🕶️ 안경 감지")
         }
 
-        // 눈 사이 거리까지 정규화하는 정식 정렬(회전+스케일+이동)이 가능하면 그걸 쓰고,
-        // 랜드마크가 부족해서 안 되면 기존 회전만 하는 방식 + crop + resize로 폴백
+        // 정식 정렬(회전+스케일+이동)이 되면 그걸 쓰고, 랜드마크가 부족하면 회전+crop+resize
         let modelInput: CGImage
         if let landmarks = observation.landmarks,
            let canonical = alignToCanonical(image: image, boundingBox: observation.boundingBox, landmarks: landmarks) {
@@ -166,9 +156,7 @@ public actor FaceEmbeddingService {
 
     // MARK: - Private: Alignment (구조 개편)
 
-    // 회전만 하던 alignFace와 달리, 두 눈 사이 거리를 기준 좌표(canonicalLeftEye/RightEye)에 맞춰
-    // 회전+스케일+이동까지 한 번에 정규화한다. 원본 이미지에서 바로 112x112로 워프하므로
-    // crop → rotate → resize를 거치며 생기는 손실도 줄어든다.
+    // 두 눈을 기준 좌표에 맞춰 회전+스케일+이동을 한 번에 정규화하고 원본에서 바로 112x112로 워프한다
     private func alignToCanonical(image: CGImage, boundingBox: CGRect, landmarks: VNFaceLandmarks2D) -> CGImage? {
         guard let leftPupil = landmarks.leftPupil ?? landmarks.leftEye,
               let rightPupil = landmarks.rightPupil ?? landmarks.rightEye,
@@ -179,9 +167,7 @@ public actor FaceEmbeddingService {
         let imageWidth = CGFloat(image.width)
         let imageHeight = CGFloat(image.height)
 
-        // landmark 좌표는 boundingBox 기준 정규화(0~1, Vision 좌표계=좌하단 원점) → 원본 이미지 픽셀 좌표로 변환.
-        // 여기서 나온 좌표는 CGContext/CGAffineTransform(좌하단 원점, Y 위로 증가)에 바로 쓰이므로
-        // cropFace(.cropping(to:)용, 좌상단 원점)처럼 Y를 뒤집으면 안 된다 — 뒤집으면 눈 위치가 완전히 어긋난다.
+        // 랜드마크(boundingBox 기준 0~1, 좌하단 원점) → 원본 픽셀 좌표. CGContext에 바로 쓰므로 Y를 뒤집지 않는다
         func toOriginalPixel(_ point: CGPoint) -> CGPoint {
             let actualX = (boundingBox.minX + (point.x * boundingBox.width)) * imageWidth
             let actualY = (boundingBox.minY + (point.y * boundingBox.height)) * imageHeight

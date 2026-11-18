@@ -8,8 +8,7 @@
 
 import Foundation
 
-/// 장소 지도 화면의 핀 하나 — 주소 기준으로 묶인 사진 그룹. 핀 위치는 그 그룹에 속한 사진들의
-/// 실제 좌표 평균(centroid)이고, 대표 썸네일은 가장 최근 사진.
+/// 장소 지도 핀 하나 — 주소로 묶은 사진 그룹. 위치는 좌표 평균, 썸네일은 최신 사진
 public struct PhotoMapCluster {
     public let id: String
     public let latitude: Double

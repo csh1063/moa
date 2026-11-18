@@ -8,8 +8,7 @@
 
 import Foundation
 
-// Presentation은 Firebase를 직접 의존하지 않는다(AlertManager/LoadingManager와 같은 싱글톤
-// 패턴) — 실제 로깅 구현(FirebaseAnalytics)은 App이 시작 시점에 logHandler로 주입한다.
+// Presentation은 Firebase를 모른다 — 실제 로깅은 App이 logHandler로 주입한다
 public final class AnalyticsTracker {
 
     public static let shared = AnalyticsTracker()

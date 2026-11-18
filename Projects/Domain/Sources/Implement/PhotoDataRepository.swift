@@ -19,24 +19,23 @@ public protocol PhotoDataRepository {
     func fetchHasCoordinators() throws -> [Photo]
     /// 좌표가 있는 가장 최근 사진 하나
     func fetchLatestLocated() throws -> Photo?
+    func fetchPhoto(localIdentifier: String) throws -> Photo?
     /// 영상 앨범용 — 라이브러리 전체의 영상 사진
     func fetchVideos() throws -> [Photo]
     func fetchAnalyzed() throws -> [String]
+    func fetchAnalyzedCount() throws -> Int
     func fetchLocationUnanalyzed() throws -> [Photo]
     func fetchAlbumUnclassified(limit: Int, offset: Int) throws -> [Photo]
-    /// albumsGeneratedAt 플래그를 무시하고 전체 사진을 offset 기준으로 페이지네이션해서 가져온다 —
-    /// "자동 앨범 전체 재생성"처럼 이미 분류된 사진도 다시 처리해야 할 때 사용
+    /// 분류 완료 여부와 상관없이 전체 사진을 offset으로 — 전체 재생성용
     func fetchAllForClassification(limit: Int, offset: Int) throws -> [Photo]
     func markAlbumsGenerated(identifiers: [String]) throws
     func fetchSimilarUnchecked() throws -> [Photo]
     func markSimilarChecked(identifiers: [String]) throws
     func fetchSyncPhotoId(byAlbum localIdentifier: UUID) throws -> String?
     func fetchSyncPhotoCount(byAlbum localIdentifier: UUID) throws -> Int
-    /// 여러 장을 한 번에 지운다 — 사진 1장마다 관계를 다시 스캔/저장하면 대형 앨범이 걸릴 때 급격히
-    /// 느려져서, 영향받는 앨범별로 한 번씩만 정리하고 저장도 한 번만 한다
+    /// 여러 장을 한 번에 지운다 — 영향받는 앨범마다 한 번만 정리하고 저장한다
     func deleteBatch(identifiers: [String]) throws
-    /// 날짜 범위(양끝 포함) 안의 분석된 사진 전체 — 여행 앨범 합치기에서 두 여행 사이 기간의 사진을
-    /// 위치 유무와 상관없이 전부 다시 모을 때 사용
+    /// 날짜 범위(양끝 포함) 안의 사진 전체 — 위치 유무와 상관없이
     func fetchPhotos(from startDate: Date, to endDate: Date) throws -> [Photo]
 }
 

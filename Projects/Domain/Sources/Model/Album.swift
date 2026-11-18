@@ -18,8 +18,7 @@ public struct Album {
 
     public var isAuto: Bool
     public var coverPhotoIdentifier: String?
-    /// 사용자가 "대표 사진 변경"으로 직접 고른 적 있는지 — true면 분석/동기화 중 자동으로 다시
-    /// 계산되는 커버(최신 사진, 얼굴 화질 베스트 등)가 이 선택을 덮어쓰지 않는다
+    /// 대표 사진을 직접 고른 적 있는지 — true면 자동 커버 계산이 덮어쓰지 않는다
     public var coverPhotoManuallySet: Bool
     public var keywords: [String]
     public var photos: [Photo]

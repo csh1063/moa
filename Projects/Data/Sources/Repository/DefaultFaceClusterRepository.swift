@@ -25,15 +25,11 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
     public func clusterAndSaveAlbums(onProgress: @escaping @Sendable (Double) -> Void) async throws {
         let context = ModelContext(container)
 
-        // 1. DB에서 모든 FaceEmbeddingEntity 로드
-        // SwiftData의 fetch 순서 자체가 실행마다 안정적으로 보장되지 않아서, id(UUID) 문자열 기준으로
-        // 직접 정렬해 순서를 고정한다 — 안 그러면 Chinese Whispers 내부 순회를 고정해봤자
-        // 입력 순서 자체가 매번 달라져서 같은 사진으로 재분석해도 결과가 달라질 수 있다.
+        // 1. 얼굴 임베딩 로드 — 같은 사진이면 같은 결과가 나오게 id 순으로 고정
         var embeddingDescriptor = FetchDescriptor<FaceEmbeddingEntity>(
             predicate: #Predicate { $0.hasGlasses == false }
         )
-        // photo/cluster를 루프 안에서 하나씩 접근하면 SwiftData가 개별로 fault를 해결하며 디스크를
-        // 왕복한다(N+1) — 미리 한 번에 당겨와서 이후 접근이 전부 메모리에서 끝나게 한다.
+        // 루프에서 하나씩 읽지 않게(N+1) 관계를 미리 당겨온다
         embeddingDescriptor.relationshipKeyPathsForPrefetching = [\.photo, \.cluster]
         let allEntities = try context.fetch(embeddingDescriptor)
             .sorted { $0.id.uuidString < $1.id.uuidString }
@@ -51,14 +47,12 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
             predicate: #Predicate { $0.from == "face" }
         ))
 
-        // 기존 클러스터 로드 — 재실행 시 같은 사람을 새 앨범으로 또 만들지 않고 재사용하기 위함
+        // 기존 클러스터 — 다시 돌려도 같은 사람은 기존 앨범을 재사용한다
         var existingClusters = try context.fetch(FetchDescriptor<ClusterEntity>())
 
-        // 클러스터링 — raw cluster 형성에서 버려진 임베딩은 leftover만 모아 최대 3회 재시도한 뒤
-        // 전체 라운드의 raw cluster를 합쳐 최종 병합까지 끝낸 결과가 outcome.clusters로 온다
+        // 클러스터링 — 남은 임베딩은 최대 3회 재시도 후 전체를 합쳐 최종 병합까지 끝낸 결과
         let embeddings = Array(allEntities.map { $0.toDomain() }.reversed())
-        // 클러스터링 자체(0~0.9)와 결과를 앨범에 적용하는 나머지(0.9~1.0)를 나눠서, 클러스터링이
-        // 끝난 뒤에도 진행률이 계속 움직이는 것처럼 보이게 한다 — 실제로는 적용 단계가 훨씬 빠르다.
+        // 진행률: 클러스터링 0~0.9, 앨범 적용 0.9~1
         let outcome = clusterService.clusterWithLeftoverRetry(embeddings: embeddings) { ratio in
             onProgress(ratio * 0.9)
         }
@@ -81,8 +75,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
             )
         }
 
-        // 최초 분석(또는 전체 삭제 후 재생성)일 때만 사진 수 기준으로 번호를 다시 매긴다 —
-        // 기존 인물 앨범이 이미 있었다면(일반적인 증분 분석) 번호는 건드리지 않는다.
+        // 최초(또는 전체 재생성)일 때만 사진 수 순으로 번호를 다시 매긴다
         if existingAlbumCount == 0 {
             renumberAlbums(context: context)
         }
@@ -91,8 +84,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         onProgress(1.0)
     }
 
-    /// 인물 앨범 전체를 사진 수 내림차순으로 "인물 1"부터 다시 번호 매긴다. 사용자가 직접 이름을
-    /// 바꾼 앨범(isRenamed)은 순위 계산엔 포함하되 번호를 소비하지 않고 건너뛴다.
+    /// 인물 앨범을 사진 수 순으로 "인물 1"부터 다시 번호 매긴다 — 직접 이름 지은 앨범은 번호를 건너뛴다
     private func renumberAlbums(context: ModelContext) {
         guard let albums = try? context.fetch(FetchDescriptor<AlbumEntity>(
             predicate: #Predicate { $0.from == "face" }
@@ -106,8 +98,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         }
     }
 
-    /// 클러스터 결과 하나를 기존 앨범과 매칭하거나 새 앨범으로 만들어 저장한다. 1차 raw cluster든
-    /// leftover 재시도에서 나온 raw cluster든 상관없이 동일하게 "기존 앨범 우선 매칭" 정책이 적용된다.
+    /// 클러스터 결과 하나를 기존 앨범과 매칭하거나 새 앨범으로 저장한다
     private func applyClusterResult(
         _ result: ClusterResult<FaceEmbedding>,
         context: ModelContext,
@@ -208,6 +199,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
 
     // MARK: - 새 임베딩 클러스터 매칭
 
+    /// 새 얼굴 임베딩을 가장 비슷한 기존 클러스터(유사도 0.68 이상)에 붙인다 — 전체 재클러스터링 없이
     public func matchAndAddNewEmbeddings(embeddingIds: [UUID]) async throws {
         guard !embeddingIds.isEmpty else { return }
         debugLog("🔍 새 임베딩 \(embeddingIds.count)개 매칭 시작")
@@ -278,8 +270,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         guard let source = albums.first(where: { $0.id == sourceId }),
               let target = albums.first(where: { $0.id == targetId }) else { return }
 
-        // 원래 이름 기억 — 나중에 분리(splitAlbum)할 때 복원용. 이미 기록된 게 있으면(과거에 또
-        // 합쳐진 적 있는 클러스터) 덮어쓰지 않아서 제일 처음 이름을 계속 보존한다.
+        // 분리할 때 복원하려고 원래 이름을 기억한다 — 이미 있으면 제일 처음 이름을 유지
         for cluster in source.clusters where cluster.originalDisplayName == nil {
             cluster.originalName = source.name
             cluster.originalDisplayName = source.displayName
@@ -299,9 +290,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
                 source.clusters.append(cluster)
             }
         }
-        // target.clusters를 비워둬야 한다 — AlbumEntity.clusters는 .cascade 삭제 규칙이라,
-        // 방금 source로 옮긴 클러스터가 여전히 target.clusters에 남아있으면 아래 context.delete(target)에서
-        // 그 클러스터까지 통째로 같이 삭제돼버린다 (병합했는데 분리할 클러스터가 사라지는 버그의 원인이었음)
+        // 옮긴 클러스터가 target에 남아 있으면 target 삭제 때 cascade로 같이 지워진다
         target.clusters.removeAll()
 
         let existingPhotoIds = Set(source.photos.map { $0.localIdentifier })
@@ -320,8 +309,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         debugLog("🔀 병합 완료: \(target.name) → \(source.name), 최종 \(source.photoCount)장")
     }
 
-    /// 병합 결과 앨범이 어떤 이름/번호를 가져야 하는지 결정한다 — 둘 다 자동 번호면 낮은 번호,
-    /// 어느 한쪽이라도 사용자가 직접 이름을 바꿨으면(isRenamed) 그 이름을 우선한다.
+    /// 합친 앨범의 이름 — 둘 다 자동 번호면 낮은 번호, 직접 지은 이름이 있으면 그 이름
     private func resolveMergedIdentity(source: AlbumEntity, target: AlbumEntity) -> (name: String, displayName: String, isRenamed: Bool) {
         if source.isRenamed && target.isRenamed { return (source.name, source.displayName, true) }
         if target.isRenamed { return (target.name, target.displayName, true) }
@@ -459,6 +447,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         }
     }
 
+    /// 고른 클러스터를 새 앨범으로 분리 — 원래 이름이 있으면 복원, 두 사람이 같이 나온 사진은 양쪽에 남긴다
     public func splitAlbum(albumId: UUID, clusterIds: [UUID]) async throws {
         let context = ModelContext(container)
 
@@ -469,9 +458,7 @@ public final class DefaultFaceClusterRepository: FaceClusterRepository {
         // 전부 떼어내면 원본 앨범이 텅 비므로, 최소 1개 클러스터는 남아있어야 분리가 성립한다
         guard !clustersToSplit.isEmpty, clustersToSplit.count < album.clusters.count else { return }
 
-        // 분리 대상 클러스터들이 전부 같은 "원래 이름"을 기억하고 있으면(병합되기 전 이름) 그걸로
-        // 복원한다 — 새 번호를 매기지 않는다. 기억이 없거나 서로 다르면(여러 앨범이 합쳐진 걸
-        // 애매하게 나누는 경우) 기존처럼 새 번호를 매긴다.
+        // 분리 대상이 모두 같은 원래 이름을 기억하면 그 이름으로 복원, 아니면 새 번호
         let origins = Set(clustersToSplit.map { $0.originalDisplayName })
         let newAlbumName: String
         let newDisplayName: String

@@ -27,8 +27,7 @@ public final class SplashViewModel: BaseViewModel {
     private let input = PassthroughSubject<Input, Never>()
 
     @Published private var finished: Bool = false
-    /// 스플래시에서 도는 체크(삭제된 사진 정리 + 앨범 커버/개수 동기화)의 전체 진행률 — 앞
-    /// 절반은 checkDeletedPhoto, 뒷 절반은 syncCoverAndCount에 배분한다.
+    /// 스플래시 체크 진행률 — 앞 절반 삭제된 사진 정리, 뒷 절반 커버/개수 동기화
     @Published private var progress: Double = 0
     private let appearSubject = PassthroughSubject<Void, Never>()
     private let animDoneSubject = PassthroughSubject<Void, Never>()

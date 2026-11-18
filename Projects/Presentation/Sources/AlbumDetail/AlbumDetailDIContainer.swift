@@ -55,8 +55,7 @@ public final class AlbumDetailDIContainer {
                                     startInSelectionMode: isSelectMode)
     }
 
-    /// 여행 앨범 "분류순" 보기의 더보기 — 실제 앨범이 아니라 (여행 사진) ∩ (사람/카테고리 앨범 사진)
-    /// 교집합만 보여주는 화면용. sourceAlbumId는 삭제/제외가 실제로 반영될 진짜 여행 앨범을 가리킨다.
+    /// 분류순 "더보기" 화면용 — sourceAlbumId는 삭제/제외가 반영될 실제 여행 앨범
     func makeAlbumDetailViewModel(filteredTitle: String, photos: [Photo], sourceAlbumId: UUID) -> AlbumDetailViewModel {
         let imageUseCase = DefaultPhotoImageUseCase(
             repository: photoLibraryRepository
@@ -96,7 +95,8 @@ public final class AlbumDetailDIContainer {
 
         let imageUseCase = DefaultImageViewerUseCase(
             repository: photoLibraryRepository,
-            labelRepository: labelRepository
+            labelRepository: labelRepository,
+            dataRepository: photoDataRepository
         )
 
         return ImageViewerViewModel(photoDetails: photoDetails,

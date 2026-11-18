@@ -34,11 +34,7 @@ final class AlbumSelectionActionBar: UIView {
     private let deleteSubject = PassthroughSubject<Void, Never>()
     var deletePublisher: AnyPublisher<Void, Never> { deleteSubject.eraseToAnyPublisher() }
 
-    /// 앨범 상세의 bottomBar와 동일하게 맞춘 값 — 고정 높이 88 + 중심에서 -10 오프셋으로,
-    /// safe area(홈 인디케이터)를 안전 마진으로 흡수한다. 예전엔 이 뷰 스스로
-    /// safeAreaLayoutGuide 기준으로 배치했었는데, 그 값이 setupView 시점엔 아직 0으로
-    /// 읽혀서(레이아웃 전) 버튼이 바 밖으로 걸쳐 보이는 버그가 있었다 — 앨범 상세와 동일한
-    /// 고정 수치 방식으로 통일해서 해결.
+    /// 앨범 상세 하단바와 같은 고정 높이 88 + 중심 -10 — safe area는 이 여백으로 흡수한다
     init() {
         super.init(frame: .zero)
         backgroundColor = Theme.background

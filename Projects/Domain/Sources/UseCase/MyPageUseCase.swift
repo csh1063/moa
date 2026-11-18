@@ -49,7 +49,8 @@ public final class DefaultMyPageUseCase: MyPageUseCase {
     }
 
     public func photoUnanalysisCount() async throws -> Int {
-        let photoIds = try await self.photoLibraryRepository.fetchPhotoIds()
+        // 영상은 분석 대상이 아니라 세면 분석해도 안 줄어든다 — 분석 시작 안내와 같은 기준
+        let photoIds = try await self.photoLibraryRepository.fetchImageIds()
         let analyzedIds = Set(try photoDataRepository.fetchAnalyzed())
         return photoIds.filter { !analyzedIds.contains($0) }.count
     }

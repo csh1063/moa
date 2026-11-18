@@ -10,9 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// "가져온 앨범" 모두보기 전용 셀 — DateAlbumCell과 같은 구조(커버 사진 + 하단 그라데이션 + 텍스트)를
-/// 따르되, 레이아웃(makeLibrarySection)에서 세로 크기를 메인 화면 시간 카드의 2배(240)로 고정하고
-/// 가로 2열로 배치한다
+/// "가져온 앨범" 모두보기 셀 — 커버 사진 + 하단 그라데이션 + 텍스트, 2열 높이 240
 final class LibraryAlbumGridCell: UICollectionViewCell {
 
     // MARK: - UI

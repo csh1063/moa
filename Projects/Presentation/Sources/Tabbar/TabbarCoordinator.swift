@@ -20,8 +20,7 @@ final class TabbarCoordinator: BaseCoordinator {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// 진행 상태 표시 3단계: 1(시트) → 2(미니위젯) → 3(탭바 옆 배지). currentTier == nil은 "지금 진행
-    /// 중인 분석이 없다"는 뜻(완료해서 완전히 치워졌거나, 애초에 시작 전).
+    /// 진행 표시 3단계: 1(시트) → 2(미니위젯) → 3(탭바 옆 배지). nil이면 진행 중인 분석 없음
     private enum ProgressTier {
         case sheet
         case mini
@@ -47,14 +46,15 @@ final class TabbarCoordinator: BaseCoordinator {
                 self?.startAnalysisFlow(progress: progress)
             case .showLibraryImportPicker(let useCase):
                 self?.presentLibraryImportPicker(useCase: useCase)
+            case .analysisGuide(let isFirstAnalysis, let loadEstimate, let onStart):
+                self?.presentAnalysisGuide(isFirstAnalysis: isFirstAnalysis, loadEstimate: loadEstimate, onStart: onStart)
             }
         }
 
         bindAlert(from: viewModel)
 
         self.tabbarViewController = TabbarViewController(viewModel: viewModel)
-        // 탭 전환도 "사용자가 화면을 이동했다" 신호 — 미니위젯(2단계)이 떠 있는 동안 탭을 바꾸면
-        // 배지(3단계)로 축소한다.
+        // 미니위젯이 떠 있을 때 탭을 바꾸면 배지로 줄인다
         self.tabbarViewController?.onTabSelected = { [weak self] in self?.handleUserDidNavigate() }
 
         let photoCoordinator = makePhotoLibraryCoordinator(viewModel: viewModel)
@@ -69,8 +69,7 @@ final class TabbarCoordinator: BaseCoordinator {
                 self?.tabbarViewController?.showTabbar()
             }
 
-            // 각 탭의 네비게이션 컨트롤러는 하나씩이라(자식 코디네이터도 전부 같은 컨트롤러에 push),
-            // 이 델리게이트 하나로 그 탭 안의 모든 화면 이동(상세/모두보기 등)을 다 잡아낸다.
+            // 탭 안의 모든 화면 이동을 잡는다
             $0.onNavigate = { [weak self] in self?.handleUserDidNavigate() }
         }
         let photo = photoCoordinator.startAndReturn()
@@ -91,8 +90,19 @@ final class TabbarCoordinator: BaseCoordinator {
         window.makeKeyAndVisible()
     }
 
-    /// "사진첩 앨범 불러오기"는 앨범 탭/설정 탭 양쪽에서 같은 진입점(tabbarViewModel)을 통해
-    /// 트리거되므로, 특정 탭의 네비게이션 스택이 아니라 탭바 위에 새 모달로 띄운다.
+    private func presentAnalysisGuide(isFirstAnalysis: Bool, loadEstimate: @escaping () async -> AnalysisEstimate?, onStart: @escaping () -> Void) {
+        guard let tabbarViewController else { return }
+        let sheet = AnalysisGuideSheet(isFirstAnalysis: isFirstAnalysis, loadEstimate: loadEstimate)
+        sheet.onStart = onStart
+        let height = sheet.fittingHeight(width: tabbarViewController.view.bounds.width)
+        if let presentation = sheet.sheetPresentationController {
+            presentation.detents = [.custom { _ in height }]
+            presentation.preferredCornerRadius = 28
+        }
+        (tabbarViewController.presentedViewController ?? tabbarViewController).present(sheet, animated: true)
+    }
+
+    /// 앨범 탭/설정 탭 양쪽에서 쓰는 진입점이라 탭바 위에 모달로 띄운다
     private func presentLibraryImportPicker(useCase: LibraryAlbumImportUseCase) {
         let modalNav = UINavigationController()
         let importCoordinator = LibraryAlbumPickerCoordinator(useCase: useCase, navigationController: modalNav)
@@ -126,23 +136,19 @@ final class TabbarCoordinator: BaseCoordinator {
     }
 
     private func presentSheet(progress: AnalyzeProgress) {
-        // 같은 progress를 보여주는 플로팅 미니 진행률/배지가 이미 떠 있다면(최소화 상태에서 다시
-        // 시트를 열게 되는 경우) 중복 표시되지 않도록 먼저 치운다.
+        // 미니 진행률/배지가 떠 있으면 중복되지 않게 먼저 치운다
         AnalysisProgressManager.shared.hide()
         AnalysisBadgeManager.shared.hide()
 
         let sheet = AlbumAnalysisSheet(progress: progress)
         sheet.isModalInPresentation = true
         if let presentation = sheet.sheetPresentationController {
-            // .large()도 미리 등록해둬야 "자세히" 펼쳤을 때 시트가 그쪽으로 전환할 수 있다 —
-            // 시작은 항상 .medium()이고, AlbumAnalysisSheet가 자세히 펼침/접힘에 맞춰 전환한다.
+            // "자세히"를 펼치면 .large로 전환된다
             presentation.detents = [.medium(), .large()]
             presentation.selectedDetentIdentifier = .medium
             presentation.preferredCornerRadius = 28
         }
-        // 사용자가 명시적으로 최소화 버튼을 눌러 시트를 닫으면(스와이프/탭-아웃은 여전히 막혀있음),
-        // 진행 중이던 분석/앨범생성 진행률을 그대로 물려받는 플로팅 미니 진행률(2단계)로 대체한다 —
-        // 분석 자체는 계속 진행된다.
+        // 최소화하면 분석은 계속되고 미니 진행률(2단계)로 바뀐다
         sheet.onMinimize = { [weak self] in
             self?.enterMiniTier()
         }
@@ -161,8 +167,7 @@ final class TabbarCoordinator: BaseCoordinator {
             albumProgress: progress.albumProgress,
             showsPhotoProgress: progress.mode == .analysis,
             onTap: { [weak self] in
-                // 슬라이드-아웃 애니메이션이 실제로 끝난 뒤에 시트를 띄운다 — 바로 present하면
-                // 위젯이 사라지는 게 아니라 새로 뜬 시트에 그냥 가려져서 애니메이션이 안 보였다.
+                // 위젯이 다 사라진 뒤에 시트를 띄운다(안 그러면 애니메이션이 가려진다)
                 AnalysisProgressManager.shared.hide(delay: 0) {
                     self?.currentTier = .sheet
                     self?.presentSheet(progress: progress)
@@ -171,21 +176,14 @@ final class TabbarCoordinator: BaseCoordinator {
         )
     }
 
-    /// 3단계 — 탭바 옆 활동 배지. 2단계 상태에서 사용자가 어디로든 화면을 이동하면(탭 전환/상세
-    /// 진입 등) 여기로 축소된다. 탭바는 항상 이 자리를 비워두고 있어서(TabbarViewController 참고)
-    /// 움직이지 않고, 배지만 나타난다.
+    /// 3단계 — 탭바 옆 배지. 미니위젯 상태에서 화면을 이동하면 여기로 줄어든다
     private func enterBadgeTier() {
         guard currentAnalyzeProgress != nil, !isAnalysisComplete else { return }
         currentTier = .badge
-        // hide()의 delay 기본값(0.5초)은 "완료 후 잠깐 보여주다 사라지는" 용도라 여기선 안 맞는다
-        // — delay: 0을 명시해야 호출 즉시(딜레이 없이) 슬라이드아웃이 시작된다. 이걸 안 넘겨서
-        // 기본값을 그대로 쓰면 위젯이 0.5초간 가만히 있다가 그제서야 움직이기 시작해서, 그보다
-        // 먼저 나타나는 배지와 타이밍이 완전히 어긋나 보였다.
+        // 딜레이 없이 바로 사라지게 해야 배지와 타이밍이 맞는다
         AnalysisProgressManager.shared.hide(delay: 0)
 
-        // 위젯이 왼쪽으로 슬라이드돼 사라지는 중에 배지가 같이 나타나면 "둘이 따로 움직이는"
-        // 것처럼 보인다 — 위젯의 슬라이드아웃(0.5초, 딜레이 없이 바로 시작)이 거의 끝날 즈음 배지가
-        // 같은 방향(왼쪽에서)으로 슬라이드인해야 "이어서 넘어왔다"는 느낌이 난다.
+        // 위젯이 거의 사라질 즈음 배지가 같은 방향에서 들어와야 이어지는 느낌이 난다
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             AnalysisBadgeManager.shared.show(onTap: { [weak self] in
                 self?.handleBadgeTap()
@@ -193,15 +191,13 @@ final class TabbarCoordinator: BaseCoordinator {
         }
     }
 
-    /// 미니위젯(2단계)이 떠 있는 동안에만 의미가 있다 — 시트가 떠 있을 땐 모달이라 애초에 다른 화면으로
-    /// 이동할 수 없고, 이미 배지(3단계)인데 또 이동해도 그대로 배지 유지면 된다.
+    /// 미니위젯(2단계)일 때만 배지로 줄인다
     private func handleUserDidNavigate() {
         guard currentTier == .mini else { return }
         enterBadgeTier()
     }
 
-    /// 배지를 탭했을 때 — 아직 진행 중이면 미니위젯(2단계)으로 복귀, 이미 완료 상태("완료" 텍스트로
-    /// 바뀐 뒤)라면 그냥 치운다.
+    /// 배지 탭 — 진행 중이면 미니위젯으로, 완료 상태면 치운다
     private func handleBadgeTap() {
         if isAnalysisComplete {
             AnalysisBadgeManager.shared.hide()
@@ -220,12 +216,10 @@ final class TabbarCoordinator: BaseCoordinator {
                 self.isAnalysisComplete = true
                 switch self.currentTier {
                 case .badge:
-                    // 배지 상태에서 완료되면 바로 사라지지 않고 "완료" 텍스트로 바뀐다 — 사용자가
-                    // 탭해야(handleBadgeTap) 사라지면서 탭바가 가운데로 복귀한다.
+                    // 배지 상태에서 완료되면 "완료"로 바뀌고, 탭해야 사라진다
                     AnalysisBadgeManager.shared.showCompleted()
                 case .sheet, .mini, .none:
-                    // 시트는 스스로 dismiss(AlbumAnalysisSheet.endPage), 미니위젯은 스스로 hide
-                    // (MiniProgressView가 progress>=1.0일 때 자동으로 처리) — 여기선 상태만 정리.
+                    // 시트와 미니위젯은 스스로 닫힌다 — 여기선 상태만 정리
                     self.currentTier = nil
                     self.currentAnalyzeProgress = nil
                 }

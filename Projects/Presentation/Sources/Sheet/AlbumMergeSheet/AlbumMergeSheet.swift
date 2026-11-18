@@ -10,9 +10,7 @@ import UIKit
 import SnapKit
 import Domain
 
-/// 현재 앨범과 합칠 동일 인물 앨범을 커버 사진 그리드에서 여러 개 골라 한 번에 합치기 위한 시트
-/// centroid 유사도 0.5를 넘는 후보만 "닮은 사람" 헤더 + 구분선으로 따로 보여주고,
-/// 나머지는 굳이 "기타"처럼 단정짓는 라벨 없이 원래 그리드처럼 그냥 보여준다
+/// 현재 앨범과 합칠 앨범을 여러 개 골라 한 번에 합치는 시트 — 유사도 0.5 넘는 후보는 "닮은 사람"으로 따로
 final class AlbumMergeSheet: UIViewController {
 
     private struct MergeSection {
@@ -71,14 +69,12 @@ final class AlbumMergeSheet: UIViewController {
         return lb
     }()
 
-    // 얼굴 앨범은 사진만 봐도 구분되지만, 여행은 이름/기간을 봐야 어떤 여행인지 알 수 있어서
-    // 2줄(이름+기간)만큼 셀 높이를 늘려서 보여준다
+    // 여행은 이름/기간 2줄만큼 셀을 높인다
     private static let travelInfoHeight: CGFloat = 40
 
     private lazy var collectionView: UICollectionView = {
         let space: CGFloat = 12
-        // 여행은 이름/기간 텍스트가 셀 안에 들어가야 해서 한 줄에 2개만 두어 셀 폭을 넓힌다
-        // (얼굴/동물 합치기는 사진만 보여주면 되니 그대로 3개)
+        // 여행은 텍스트가 들어가서 한 줄에 2개, 얼굴/동물은 3개
         let count: CGFloat = isTravel ? 2 : 3
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical

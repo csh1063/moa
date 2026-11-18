@@ -9,8 +9,7 @@
 import CoreLocation
 import Foundation
 
-// Domain 모듈
-/// 여행 판정에서 빼는 "자주가는 동네" — 자동 측정(최근 사진 좌표) 또는 사용자가 직접 추가한 것
+/// 여행 판정에서 빼는 "자주가는 동네" — 자동 측정 또는 직접 추가
 public struct HomeZone {
     public let id: UUID
     public let latitude: Double

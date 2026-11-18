@@ -75,8 +75,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
                 SortDescriptor(\.displayName, order: .forward)
             ]
         )
-        // "similar"(비슷한 사진) 앨범만 커버 스택에 실제 사진 최대 4장이 필요해서 photos까지 채워
-        // 읽는다 — 다른 타입은 지금처럼 가볍게(coverPhotoIdentifier만) 읽어서 성능 영향이 없다.
+        // 비슷한 사진 앨범만 커버 스택용으로 사진까지 읽는다
         return try context.fetch(fetchDescriptor).map {
             $0.from == "similar" ? $0.toDomainWithPhoto() : $0.toDomainWithKey()
         }
@@ -105,10 +104,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
     public func fetchPhotos(by albumId: UUID) throws -> [Photo] {
 
         let context = ModelContext(container)
-        // PhotoEntity를 관계 predicate(photo.albums.contains)로 직접 조회하면, 다른 컨텍스트에서 방금
-        // 추가한 관계가 앱을 재시작하기 전까진 반영이 안 되는 경우가 있었다(SwiftData의 to-many 관계/com
-        // predicate 관련 알려진 문제). AlbumEntity를 id로 먼저 찾아 album.photos로 읽으면 관계 폴팅이
-        // 정상적으로 최신 상태를 반영한다.
+        // 관계 predicate로 사진을 직접 조회하면 다른 컨텍스트에서 추가한 관계가 늦게 반영돼서, 앨범을 먼저 찾아 album.photos로 읽는다
         let albumDescriptor = FetchDescriptor<AlbumEntity>(
             predicate: #Predicate { $0.id == albumId }
         )
@@ -119,9 +115,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
             .map { $0.toDomain() }
     }
 
-    /// 얼굴 앨범 디버깅용: 이 클러스터에 묶인 얼굴들의 사진별 boundingBox (정규화 좌표, Vision 기준 원점 좌하단)
-    /// clusterId로 받지만 실제로는 album.name — FaceEmbeddingEntity는 clusterId 문자열이 아니라
-    /// cluster(ClusterEntity) 관계로 앨범과 연결되어 있어서 관계를 타고 이름을 비교한다.
+    /// 이 인물 앨범 얼굴들의 사진별 boundingBox(정규화, 원점 좌하단) — clusterId는 실제로 album.name
     public func fetchFaceBoundingBoxes(clusterId: String) throws -> [String: CGRect] {
 
         let context = ModelContext(container)
@@ -164,9 +158,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         return result
     }
 
-    /// 앨범 커버로 쓸 사진(coverPhotoIdentifier) 안에서, 이 앨범 소속 클러스터의 얼굴 boundingBox를 찾는다.
-    /// 별도로 저장해두지 않고 커버 사진과 클러스터 관계로 그때그때 찾는 이유는, 저장해두면 커버 사진이
-    /// 바뀔 때마다 boundingBox도 같이 갱신해줘야 하는데 그 동기화가 깨지기 쉽기 때문 (실제로 한 번 깨졌었음)
+    /// 커버 사진 안에서 이 앨범 클러스터의 얼굴 boundingBox — 저장하지 않고 매번 찾아서 커버와 어긋나지 않게 한다
     public func fetchCoverFaceBoundingBox(albumId: UUID) throws -> CGRect? {
         let context = ModelContext(container)
         let fetchDescriptor = FetchDescriptor<AlbumEntity>(predicate: #Predicate { $0.id == albumId })
@@ -222,8 +214,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 
         entity.name = album.name
         entity.displayName = album.displayName
-        // 사용자가 직접 고른 대표 사진은 스플래시 동기화(syncCoverAndCount) 같은 자동 갱신에 덮이면 안
-        // 된다 — DB에 저장된 entity의 플래그가 진실이라, 호출자가 넘긴 album 값과 무관하게 여기서 막는다
+        // 직접 고른 대표 사진은 자동 갱신으로 덮지 않는다
         if !entity.coverPhotoManuallySet {
             entity.coverPhotoIdentifier = album.coverPhotoIdentifier
         }
@@ -316,10 +307,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 
         let fetchedPhotos = try context.fetch(photoDescriptor)
 
-        // album.photos 전체를 훑어서 Set을 만들면, 카테고리처럼 사진이 많이 몰리는 앨범에선 호출할
-        // 때마다(페이지마다) 그 앨범의 기존 사진 전체를 다시 읽어와야 해서 갈수록 느려진다(카테고리
-        // 규칙을 넓힌 뒤로 체감될 만큼). 대신 사진 쪽(이번에 추가하려는 몇백 장뿐이라 훨씬 작음)의
-        // albums 관계를 봐서 "이 앨범에 이미 들어있는지"를 확인한다 — 결과는 같고 비용만 줄어든다.
+        // 앨범의 기존 사진 전체 대신, 추가할 사진 쪽 albums 관계로 중복을 확인한다(큰 앨범에서 훨씬 빠르다)
         let uniqueNewPhotos = fetchedPhotos.filter { photo in !photo.albums.contains { $0.id == albumId } }
 
         guard !uniqueNewPhotos.isEmpty else { return }
@@ -463,9 +451,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
             return others.map { AlbumMergeCandidate(album: $0.toDomainWithKey(), similarity: -1) }
         }
 
-        // 두 기간이 겹치면 0, 안 겹치면 더 가까운 쪽 경계까지의 간격(초) — 기간이 가까울수록 이어붙일
-        // 가능성이 높은 다른 여행이라고 보고 위로 올린다. AlbumMergeCandidate.similarity는 face 쪽의
-        // 0~1 유사도 개념이라 여기선 표시용이 아니라 정렬 순서를 매기는 용도로만 음수 간격을 채운다
+        // 두 기간이 겹치면 0, 아니면 가까운 경계까지 간격(초) — 가까울수록 위로. similarity엔 정렬용으로 음수 간격을 넣는다
         func gap(to album: AlbumEntity) -> TimeInterval {
             guard let start = album.startDate, let end = album.endDate else { return .greatestFiniteMagnitude }
             if end < currentStart {
@@ -531,8 +517,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
                 albums.forEach { $0.photos.removeAll() }
                 try context.save()
             },
-            // AlbumEntity.keywords / .clusters / .animalClusters가 .cascade라서, 앨범을 먼저 지우면
-            // 아래가 이미 같이 지워져버려 로그가 항상 0개로 찍힌다 — 자식을 먼저 지운다
+            // cascade로 같이 지워지기 전에 자식부터 지워서 삭제 개수가 로그에 맞게 찍히게 한다
             { try self.deleteAllLogged(AlbumKeywordEntity.self, context: context) },
             { try self.deleteAllLogged(ClusterEntity.self, context: context) },
             { try self.deleteAllLogged(AnimalClusterEntity.self, context: context) },
@@ -541,8 +526,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
                 albums.forEach { context.delete($0) }
                 try context.save()
             },
-            // PhotoEntity.faceEmbeddings / .animalEmbeddings / .labels가 .cascade라서, 사진을 먼저 지우면
-            // 아래가 이미 같이 지워져버려 로그가 항상 0개로 찍힌다 — 자식을 먼저 지운다
+            // cascade로 같이 지워지기 전에 자식부터 지운다
             { try self.deleteAllLogged(PhotoLabelEntity.self, context: context) },
             { try self.deleteAllLogged(FaceEmbeddingEntity.self, context: context) },
             { try self.deleteAllLogged(AnimalEmbeddingEntity.self, context: context) },
@@ -582,11 +566,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
 
     // MARK: - Vacuum
 
-    // SQLite는 삭제된 행의 공간을 파일에서 자동으로 회수하지 않는다. auto_vacuum 모드가 아니면
-    // deleteAll() 이후에도 스토어 파일 크기가 그대로라, 최초 1회 INCREMENTAL 모드로 전환해두고
-    // 이후부턴 가벼운 incremental_vacuum만으로 공간을 회수한다.
-    // UserDefaults 플래그 대신 DB의 실제 auto_vacuum 모드를 매번 조회한다 — 플래그는 VACUUM이
-    // 조용히 실패해도 "성공했다"고 잘못 기록될 수 있어 신뢰할 수 없다.
+    // 삭제 후 파일 크기가 줄도록 최초 1회 auto_vacuum을 INCREMENTAL로 바꾼다 — 플래그 대신 실제 모드를 매번 조회
     private func convertToAutoVacuumIfNeeded() {
         guard currentAutoVacuumMode() == 0 else { return } // 0 = NONE(미적용), 1 = FULL, 2 = INCREMENTAL
 
@@ -611,10 +591,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         return sqlite3_column_int(statement, 0)
     }
 
-    // ACHANGE/ATRANSACTION/ATRANSACTIONSTRING은 SwiftData(Core Data)가 내부적으로 남기는
-    // persistent history 로그 — 우리 엔티티가 아니고, 코드 어디서도 히스토리 API를 안 써서
-    // 실질적으로 아무 데도 안 쓰인다. deleteAll()로 모든 데이터를 지우는 시점에 같이 비워서
-    // 데이터와 그 변경 로그를 함께 초기화한다.
+    // SwiftData 내부 변경 기록(ACHANGE/ATRANSACTION) 테이블도 같이 비운다 — 앱에서 쓰지 않는다
     private func incrementalVacuum() {
         executeRawSQL(
             "DELETE FROM ACHANGE;",
@@ -625,9 +602,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         )
     }
 
-    // 리셋과 별개로, 앱을 계속 쓰는 동안에도 ACHANGE/ATRANSACTION은 평소 분석/저장 때마다 계속
-    // 쌓인다. 앱 실행 시점마다 7일 지난 것만 지워서 무한정 자라는 걸 막는다. 이미 정리된 상태면
-    // 지울 게 없어서 사실상 공짜 연산이라, 별도로 "마지막 실행 언제였는지" 플래그를 둘 필요는 없다.
+    // 평소에도 쌓이는 변경 기록은 앱 실행 때마다 7일 지난 것만 지운다
     private static let historyRetentionInterval: TimeInterval = 7 * 24 * 60 * 60
 
     public func pruneOldHistory() {
@@ -640,9 +615,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         )
     }
 
-    // ModelContainer가 붙잡고 있는 커넥션과 별개로, 같은 스토어 파일에 직접 연결해서 raw SQL을 실행한다.
-    // VACUUM류는 SwiftData API로 노출되어 있지 않다. deleteAll()의 모든 save가 끝난 뒤에만 호출할 것 —
-    // 그렇지 않으면 배타적 락이 필요한 VACUUM이 진행 중인 다른 트랜잭션과 충돌해 실패할 수 있다.
+    // VACUUM은 SwiftData API가 없어서 스토어 파일에 직접 연결해 실행한다 — 모든 save가 끝난 뒤에만 호출
     private func executeRawSQL(_ statements: String...) {
         guard let url = container.configurations.first?.url else { return }
 
@@ -658,8 +631,7 @@ public final class DefaultAlbumDataRepository: AlbumDataRepository {
         }
     }
 
-    // 타입 단위 배치 삭제(context.delete(model:))는 필수 취급되는 역방향 관계가 있으면
-    // "mandatory OTO nullify inverse" 오류로 실패하므로, 개별 fetch 후 하나씩 지운다.
+    // 타입 단위 일괄 삭제는 필수 역관계가 있으면 실패해서 하나씩 지운다
     private func deleteAllLogged<T: PersistentModel>(_ type: T.Type, context: ModelContext) throws {
         let items = try context.fetch(FetchDescriptor<T>())
         items.forEach { context.delete($0) }

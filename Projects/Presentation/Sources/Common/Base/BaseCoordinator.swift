@@ -16,9 +16,7 @@ open class BaseCoordinator: NSObject {
     var viewController: UIViewController?
     var hideTabBar: (() -> Void)?
     var showTabBar: (() -> Void)?
-    /// 이 코디네이터가 소유한 네비게이션 컨트롤러에서 push/pop으로 화면이 바뀔 때마다 불린다(자식
-    /// 코디네이터가 같은 네비게이션 컨트롤러에 푸시해도 델리게이트는 이 인스턴스 하나라 전부 여기로
-    /// 잡힌다). 분석 진행 미니위젯을 "화면을 이동하면 배지로 축소" 시키는 신호로 쓴다.
+    /// 이 네비게이션 컨트롤러에서 화면이 바뀔 때마다(자식 코디네이터 포함) — 미니 진행률을 배지로 줄이는 신호
     var onNavigate: (() -> Void)?
 
     private var childCoordinators: [BaseCoordinator] = []
