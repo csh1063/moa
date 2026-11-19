@@ -69,6 +69,8 @@ playground.xcworkspace
 *.mlpackage/
 *.mlpackage/**
 *.mlmodel
+# 모델 전용 저장소(moa-models)가 들어가는 폴더
+Projects/Data/Resources/Models/
 
 # Tuist
 #

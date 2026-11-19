@@ -6,10 +6,11 @@ let project = Project.framework(module: Module.data,
                                 + [.moya, .combineMoya, .firebaseCore, .firebaseInstallations],
                                 resources: [
                                     .glob(pattern: "Resources/**", excluding: [
-                                        "Resources/AdaFace_IR50.mlpackage/**",
-                                        "Resources/AnimalReID_DINOv2.mlpackage/**"
+//                                        "Resources/AdaFace_IR50.mlpackage/**",
+//                                        "Resources/AnimalReID_DINOv2.mlpackage/**"
+                                        "Resources/Models/**"
                                     ]),
-                                    .folderReference(path: "Resources/AdaFace_IR50.mlpackage"),
-                                    .folderReference(path: "Resources/AnimalReID_DINOv2.mlpackage")
+                                    .folderReference(path: "Resources/Models/AdaFace_IR50.mlpackage"),
+                                    .folderReference(path: "Resources/Models/AnimalReID_DINOv2.mlpackage")
                                 ]
 )

@@ -17,6 +17,7 @@
 		18C33019EB6CA3C1AA21BC01 /* AlbumEntity+Cover.swift in Sources */ = {isa = PBXBuildFile; fileRef = E082691F450F54AD88854E36 /* AlbumEntity+Cover.swift */; };
 		1989135D2D6A2C2BA17A6B60 /* PhotoAssetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1818CB29A1914B6416E20D3E /* PhotoAssetEntity.swift */; };
 		1A9938F2B9F9AD2825A0FC20 /* DefaultPhotoLabelDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76713B0DD0063DA264DCB484 /* DefaultPhotoLabelDataRepository.swift */; };
+		1D96AC70BA6C2093CB02C710 /* AnimalReID_DINOv2.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = B72A861798C283909EC6A7F0 /* AnimalReID_DINOv2.mlpackage */; };
 		1F93F0012FE2FE74A4C4929A /* DefaultRemoteConfigRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE479F3785C45E481DE2590E /* DefaultRemoteConfigRepository.swift */; };
 		22AD151C6F8F526A63C49DF8 /* GeocoderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34FC610C922DCAAD54F6B871 /* GeocoderService.swift */; };
 		2860537EF7A4CA2043066EE3 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29EF029A6B30807D731688F4 /* KeychainService.swift */; };
@@ -34,7 +35,6 @@
 		4663300422AA8318849C7E2F /* SettingAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE89F7482442DA1D567520B0 /* SettingAPI.swift */; };
 		54A2E62D0EC1FE15C4EC0D50 /* BaseDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2C733233FE6C2AD8240B99 /* BaseDTO.swift */; };
 		565C1DBED68ECA6870BD0038 /* UserDefaultsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D1CCABEC1645F0152B5B6D4 /* UserDefaultsService.swift */; };
-		585A38C5669771C827844135 /* AdaFace_IR50.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = 1B5CDF57D65F9F18DBDB7878 /* AdaFace_IR50.mlpackage */; };
 		5885591219481623BDE44981 /* DefaultAnimalClusterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39B7AF9558C7DA8363302371 /* DefaultAnimalClusterRepository.swift */; };
 		599CC5CF9769EC145EBCCBA9 /* DefaultSettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87D3DC59E24DD0DF2B3F452 /* DefaultSettingsRepository.swift */; };
 		5EA569B0768E5AD816A9A987 /* CombineMoya.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 742288D39DB3A440246920F5 /* CombineMoya.framework */; };
@@ -46,7 +46,6 @@
 		6E426C1732C4F413AC7A8218 /* NetworkExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76459B21CDAA266908FB15AD /* NetworkExecutor.swift */; };
 		6F110D428C48DDE7B9472154 /* PhotoCategories.json in Resources */ = {isa = PBXBuildFile; fileRef = 6D8A1A11088B68A6F132362E /* PhotoCategories.json */; };
 		6F33010F296BA936918BD397 /* ReplaceWord.json in Resources */ = {isa = PBXBuildFile; fileRef = 7C6F4F8847EEDF2F518DCDFA /* ReplaceWord.json */; };
-		744B46BA18E8A44A2BC312B1 /* AnimalReID_DINOv2.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = E3B2A9DF9F6AA3BD597B2930 /* AnimalReID_DINOv2.mlpackage */; };
 		7BFC8F8D9EB52F550573BFEA /* ClusterEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DDC5E52CD491D7F26A8BAA0 /* ClusterEntity.swift */; };
 		7FB70958E7BF4019A5C80763 /* MoyaLoggingPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D08035744E740B19598B050 /* MoyaLoggingPlugin.swift */; };
 		859CF157EAE3D69D8D32CAAE /* BaseAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC6624C7821755E8B610FA7 /* BaseAPI.swift */; };
@@ -77,6 +76,7 @@
 		CA93FDB8808153302B4A5DFB /* ClusterBlacklistEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5344C50DA80E761F09B49D0 /* ClusterBlacklistEntity.swift */; };
 		D1EF8D8DDA5E3FD55D5EA822 /* FaceEmbeddingEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607BEA126948AC2115D0A898 /* FaceEmbeddingEntity.swift */; };
 		DA599D2B1940A4AC3470A0AF /* DefaultUserDefaultRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC881DEF0F76E95CE82F589 /* DefaultUserDefaultRepository.swift */; };
+		DC028A0B405309ABDA34D54E /* AdaFace_IR50.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = 297DF278511C5FA77DE08170 /* AdaFace_IR50.mlpackage */; };
 		DC858020FCA5B09C0358CBE0 /* AnimalEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BC36853DE11064796533BD2 /* AnimalEmbeddingService.swift */; };
 		E6236BC642F4816FB3AF2C80 /* AlbumEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D810417D088186C5EF9D88 /* AlbumEntity.swift */; };
 		E8539FAB053E0536F6C791C9 /* RemoveKeywords.json in Resources */ = {isa = PBXBuildFile; fileRef = C7ACD72F94A74330B0A3CD8E /* RemoveKeywords.json */; };
@@ -111,10 +111,10 @@
 		128368EC009916124428DD3C /* DefaultSimilarPhotoClusterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSimilarPhotoClusterRepository.swift; sourceTree = "<group>"; };
 		16740A9D26F7F47AE40CEDE9 /* AlbumEntityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumEntityMapper.swift; sourceTree = "<group>"; };
 		1818CB29A1914B6416E20D3E /* PhotoAssetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAssetEntity.swift; sourceTree = "<group>"; };
-		1B5CDF57D65F9F18DBDB7878 /* AdaFace_IR50.mlpackage */ = {isa = PBXFileReference; path = AdaFace_IR50.mlpackage; sourceTree = "<group>"; };
 		1D6BD6C0BFFB08B0574D32AF /* PhotoCategoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCategoryService.swift; sourceTree = "<group>"; };
 		1E0A1E65D202F027E3B90C53 /* PhotoLabelEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLabelEntity.swift; sourceTree = "<group>"; };
 		22D00CECFC40ACA66E15A488 /* UserDefaultsKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKey.swift; sourceTree = "<group>"; };
+		297DF278511C5FA77DE08170 /* AdaFace_IR50.mlpackage */ = {isa = PBXFileReference; path = AdaFace_IR50.mlpackage; sourceTree = "<group>"; };
 		29EF029A6B30807D731688F4 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		34FC610C922DCAAD54F6B871 /* GeocoderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocoderService.swift; sourceTree = "<group>"; };
 		35D810417D088186C5EF9D88 /* AlbumEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumEntity.swift; sourceTree = "<group>"; };
@@ -165,6 +165,7 @@
 		AD8063F1308ED5DAF4F79715 /* PhotoCategoriesRule.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = PhotoCategoriesRule.json; sourceTree = "<group>"; };
 		AE89F7482442DA1D567520B0 /* SettingAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingAPI.swift; sourceTree = "<group>"; };
 		B2319C2201DBC66BAC5D1358 /* FeedbackParam.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackParam.swift; sourceTree = "<group>"; };
+		B72A861798C283909EC6A7F0 /* AnimalReID_DINOv2.mlpackage */ = {isa = PBXFileReference; path = AnimalReID_DINOv2.mlpackage; sourceTree = "<group>"; };
 		B9E8EF953CC3787BDF03C44B /* RemoteConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfigService.swift; sourceTree = "<group>"; };
 		BA755235187FDC8A07A62C3C /* ServerType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerType.swift; sourceTree = "<group>"; };
 		BF420FD928A623DCD3CA5C99 /* ProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderFactory.swift; sourceTree = "<group>"; };
@@ -181,7 +182,6 @@
 		E1A31A4B6A99AA268BBD96B2 /* DefaultFaceClusterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultFaceClusterRepository.swift; sourceTree = "<group>"; };
 		E33F6688B6A751C4C72CD11E /* PhotoEntityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoEntityMapper.swift; sourceTree = "<group>"; };
 		E38D43CEE696BFEF020903BE /* Moya.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Moya.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		E3B2A9DF9F6AA3BD597B2930 /* AnimalReID_DINOv2.mlpackage */ = {isa = PBXFileReference; path = AnimalReID_DINOv2.mlpackage; sourceTree = "<group>"; };
 		E3D3393DC12A40D40B2F8A24 /* FirebaseCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FirebaseCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5344C50DA80E761F09B49D0 /* ClusterBlacklistEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClusterBlacklistEntity.swift; sourceTree = "<group>"; };
 		E59ACAB8AA8E582CA0A62794 /* GeoJsonAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoJsonAPI.swift; sourceTree = "<group>"; };
@@ -231,8 +231,7 @@
 		4A97E3DA1312611007289D2E /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				1B5CDF57D65F9F18DBDB7878 /* AdaFace_IR50.mlpackage */,
-				E3B2A9DF9F6AA3BD597B2930 /* AnimalReID_DINOv2.mlpackage */,
+				C9DBD88381EC7ACDDF7C1381 /* Models */,
 				6D8A1A11088B68A6F132362E /* PhotoCategories.json */,
 				AD8063F1308ED5DAF4F79715 /* PhotoCategoriesRule.json */,
 				C7ACD72F94A74330B0A3CD8E /* RemoveKeywords.json */,
@@ -388,6 +387,15 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
+		C9DBD88381EC7ACDDF7C1381 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				297DF278511C5FA77DE08170 /* AdaFace_IR50.mlpackage */,
+				B72A861798C283909EC6A7F0 /* AnimalReID_DINOv2.mlpackage */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		E231B74EC066E02AB86DF723 /* API */ = {
 			isa = PBXGroup;
 			children = (
@@ -464,8 +472,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				585A38C5669771C827844135 /* AdaFace_IR50.mlpackage in Resources */,
-				744B46BA18E8A44A2BC312B1 /* AnimalReID_DINOv2.mlpackage in Resources */,
+				DC028A0B405309ABDA34D54E /* AdaFace_IR50.mlpackage in Resources */,
+				1D96AC70BA6C2093CB02C710 /* AnimalReID_DINOv2.mlpackage in Resources */,
 				6F110D428C48DDE7B9472154 /* PhotoCategories.json in Resources */,
 				A3E338663B897C4F2817FAE9 /* PhotoCategoriesRule.json in Resources */,
 				E8539FAB053E0536F6C791C9 /* RemoveKeywords.json in Resources */,
